@@ -21,7 +21,8 @@ public final class SmartFolderService: SmartFolderServiceProtocol {
             case .ageDays:
                 guard let publishedDate = article.publishedDate else { return false }
                 let ageDays = Calendar.current.dateComponents([.day], from: publishedDate, to: Date()).day ?? 0
-                return ageDays <= Int(criterion.value) ?? 0
+                let maxAgeDays = Int(criterion.value) ?? 0
+                return ageDays <= maxAgeDays
             case .readState:
                 return (article.isRead && criterion.value.lowercased() == "read") || (!article.isRead && criterion.value.lowercased() == "unread")
             }

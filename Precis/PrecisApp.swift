@@ -4,7 +4,7 @@ import SwiftUI
 struct PrecisApp: App {
     var body: some Scene {
         WindowGroup {
-            MainWindowLayout()
+            AlphaConsoleView()
         }
     }
 }
