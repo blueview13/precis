@@ -1,0 +1,85 @@
+name: Precis
+options:
+  bundleIdPrefix: app.precis
+  deploymentTarget:
+    macOS: "26.0"
+  createIntermediateGroups: true
+packages:
+  FeedKit:
+    url: https://github.com/nmdias/FeedKit.git
+    from: 9.1.0
+settings:
+  base:
+    PRODUCT_NAME: Precis
+    PRODUCT_BUNDLE_IDENTIFIER: app.precis.Precis
+    MARKETING_VERSION: 0.1.0
+    CURRENT_PROJECT_VERSION: 1
+    TARGETED_DEVICE_FAMILY: "1"
+    SUPPORTED_PLATFORMS: macosx
+    MACOSX_DEPLOYMENT_TARGET: 26.0
+    ENABLE_APP_SANDBOX: YES
+    ENABLE_HARDENED_RUNTIME: YES
+    CODE_SIGN_STYLE: Automatic
+    CODE_SIGN_IDENTITY: "-"
+    DEVELOPMENT_TEAM: ""
+    ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    ARCHS: arm64
+    VALID_ARCHS: arm64
+    SWIFT_VERSION: 6.0
+    GENERATE_INFOPLIST_FILE: NO
+    INFOPLIST_FILE: Precis/Info.plist
+    CODE_SIGN_ENTITLEMENTS: Precis/Precis.entitlements
+    NSAppTransportSecurity:
+      NSAllowsArbitraryLoads: false
+    NSHumanReadableCopyright: "© 2026 Precis. All rights reserved."
+    LSApplicationCategoryType: public.app-category.news
+    NSPrincipalClass: NSApplication
+
+targets:
+  Precis:
+    type: application
+    platform: macOS
+    sources:
+      - Precis
+    resources:
+      - path: Precis/Assets.xcassets
+        optional: true
+    dependencies:
+      - package: FeedKit
+        product: FeedKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.precis.Precis
+        INFOPLIST_FILE: Precis/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Precis/Precis.entitlements
+        ENABLE_APP_SANDBOX: YES
+        ENABLE_HARDENED_RUNTIME: YES
+        COMBINE_HIDPI_IMAGES: YES
+    scheme:
+      testTargets: []
+      gatherCoverageData: false
+      runConfig:
+        executable: Precis
+        arguments:
+          environmentVariables: []
+      build:
+        targets:
+          Precis: all
+
+schemes:
+  Precis:
+    build:
+      targets:
+        Precis: all
+    run:
+      config: Debug
+      executable: Precis
+    test:
+      config: Debug
+      targets: []
+    profile:
+      config: Release
+      executable: Precis
+    archive:
+      config: Release
+      revealArchiveInOrganizer: true
