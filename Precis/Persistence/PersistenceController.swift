@@ -1,7 +1,7 @@
 import Foundation
 
 public final class PersistenceController {
-    public static let shared = PersistenceController()
+    nonisolated(unsafe) public static let shared = PersistenceController()
 
     private init() {}
 

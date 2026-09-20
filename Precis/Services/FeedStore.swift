@@ -1,7 +1,8 @@
 import Foundation
 
 public final class FeedStore: ObservableObject {
-    public static let shared = FeedStore()
+    // In-memory alpha store.
+    nonisolated(unsafe) public static let shared = FeedStore()
 
     @Published public private(set) var feeds: [Feed] = []
     @Published public private(set) var articles: [Article] = []

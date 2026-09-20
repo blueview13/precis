@@ -5,7 +5,7 @@ struct ContentView: View {
         VStack(spacing: 16) {
             Image(systemName: "newspaper")
                 .font(.system(size: 48))
-                .foregroundStyle(.accent)
+                .foregroundStyle(.tint)
 
             Text("Precis")
                 .font(.largeTitle)

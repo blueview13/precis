@@ -102,7 +102,7 @@ public final class FeedDiscoveryService: FeedDiscoveryServiceProtocol {
         )
     }
 
-    private func detectYouTubeFeed(from url: URL) async throws -> FeedDiscoveryResult? {
+    func detectYouTubeFeed(from url: URL) async throws -> FeedDiscoveryResult? {
         let host = url.host?.lowercased() ?? ""
         guard host.contains("youtube.com") || host == "youtu.be" else { return nil }
 
@@ -135,7 +135,7 @@ public final class FeedDiscoveryService: FeedDiscoveryServiceProtocol {
         )
     }
 
-    private func detectSubredditFeed(from url: URL) async throws -> FeedDiscoveryResult? {
+    func detectSubredditFeed(from url: URL) async throws -> FeedDiscoveryResult? {
         let host = url.host?.lowercased() ?? ""
         guard host.contains("reddit.com") else { return nil }
 

@@ -74,7 +74,7 @@ public final class FeedParserService: FeedParserServiceProtocol {
         }
     }
 
-    private func normalize(feed: Feed, url: URL) throws -> ParsedFeedResult {
+    private func normalize(feed: FeedKit.Feed, url: URL) throws -> ParsedFeedResult {
         switch feed {
         case .rss(let rssFeed):
             return ParsedFeedResult(
@@ -99,7 +99,7 @@ public final class FeedParserService: FeedParserServiceProtocol {
                 entries: (atomFeed.entries ?? []).compactMap { entry in
                     ParsedFeedEntry(
                         title: entry.title ?? "Untitled",
-                        author: entry.author?.name,
+                        author: entry.authors?.first?.name,
                         publishedDate: entry.published ?? entry.updated,
                         link: entry.links?.first?.attributes?.href.flatMap(URL.init(string:)),
                         content: entry.summary?.value ?? entry.content?.value,
@@ -119,7 +119,7 @@ public final class FeedParserService: FeedParserServiceProtocol {
                         publishedDate: item.datePublished,
                         link: item.url.flatMap(URL.init(string:)),
                         content: item.contentText ?? item.contentHtml,
-                        imageURL: item.image?.flatMap(URL.init(string:))
+                        imageURL: item.image.flatMap(URL.init(string:))
                     )
                 }
             )
