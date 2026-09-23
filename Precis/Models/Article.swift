@@ -38,4 +38,18 @@ public struct Article: Identifiable, Codable, Hashable {
         self.isStarred = isStarred
         self.imageURL = imageURL
     }
+
+    public init(record: ArticleRecord) {
+        self.id = record.id
+        self.feedID = record.feed?.id ?? UUID()
+        self.title = record.title
+        self.author = record.author
+        self.publishedDate = record.publishedDate
+        self.link = record.link.flatMap { URL(string: $0) }
+        self.rawContent = record.rawContentText
+        self.extractedContent = record.extractedContentText ?? record.rawContentText
+        self.isRead = record.isRead
+        self.isStarred = record.isStarred
+        self.imageURL = record.imageURL.flatMap { URL(string: $0) }
+    }
 }

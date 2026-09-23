@@ -17,7 +17,7 @@ public enum FeedDiscoveryError: Error, LocalizedError {
     }
 }
 
-public protocol FeedDiscoveryServiceProtocol {
+public protocol FeedDiscoveryServiceProtocol: Sendable {
     func discover(from rawInput: String) async throws -> FeedDiscoveryResult
     func normalizeURL(_ rawInput: String) throws -> URL
     func validateFeedURL(_ url: URL) -> Bool
@@ -27,18 +27,51 @@ public final class FeedDiscoveryService: FeedDiscoveryServiceProtocol {
     public init() {}
 
     public func discover(from rawInput: String) async throws -> FeedDiscoveryResult {
+        // Check for shorthand patterns first (r/subreddit, @handle, etc.)
+        if let shorthand = try? await detectShorthand(rawInput) {
+            return shorthand
+        }
+
         let normalizedURL = try normalizeURL(rawInput)
 
         if let direct = try validateAndClassifyDirectFeed(for: normalizedURL) {
             return direct
         }
 
-        if let youtubeResult = try await detectYouTubeFeed(from: normalizedURL) {
+        if let youtubeResult = try? await detectYouTubeFeed(from: normalizedURL) {
             return youtubeResult
         }
 
         if let subredditResult = try await detectSubredditFeed(from: normalizedURL) {
             return subredditResult
+        }
+
+        if let googleNewsResult = try await detectGoogleNewsFeed(from: normalizedURL) {
+            return googleNewsResult
+        }
+
+        if let twitterResult = try await detectTwitterFeed(from: normalizedURL) {
+            return twitterResult
+        }
+
+        if let facebookResult = try await detectFacebookFeed(from: normalizedURL) {
+            return facebookResult
+        }
+
+        if let mastodonResult = try await detectMastodonFeed(from: normalizedURL) {
+            return mastodonResult
+        }
+
+        if let blueskyResult = try await detectBlueskyFeed(from: normalizedURL) {
+            return blueskyResult
+        }
+
+        if let tiktokResult = try await detectTikTokFeed(from: normalizedURL) {
+            return tiktokResult
+        }
+
+        if let githubResult = try await detectGitHubFeed(from: normalizedURL) {
+            return githubResult
         }
 
         if let websiteResult = try await detectWebsiteAlternateFeed(from: normalizedURL) {
@@ -107,32 +140,118 @@ public final class FeedDiscoveryService: FeedDiscoveryServiceProtocol {
         guard host.contains("youtube.com") || host == "youtu.be" else { return nil }
 
         let path = url.path
-        let channelID: String?
+        var channelID: String?
+        var handle: String?
 
         if path.contains("/channel/") {
             channelID = path.components(separatedBy: "/channel/").last
         } else if path.contains("/user/") {
             channelID = path.components(separatedBy: "/user/").last
         } else if path.contains("/@") {
-            channelID = path.components(separatedBy: "/@").last
-        } else {
-            channelID = nil
+            handle = path.components(separatedBy: "/@").last
         }
 
-        guard let channelID, !channelID.isEmpty else {
-            return nil
+        // Try to resolve @handle to channel ID via page fetch
+        if let handle, !handle.isEmpty {
+            channelID = try? await resolveYouTubeHandle(handle)
         }
 
-        let youtubeURL = URL(string: "https://www.youtube.com/feeds/videos.xml?channel_id=\(channelID)")
-        guard let youtubeURL else { return nil }
+        // If we have a channel ID, use the direct Atom feed
+        if let channelID, !channelID.isEmpty {
+            let youtubeURL = URL(string: "https://www.youtube.com/feeds/videos.xml?channel_id=\(channelID)")
+            guard let youtubeURL else { return nil }
+            let title = handle ?? channelID
+            return FeedDiscoveryResult(
+                originalInput: url.absoluteString,
+                normalizedURL: youtubeURL,
+                title: "YouTube • \(title)",
+                kind: .youtube,
+                isDirectFeed: true
+            )
+        }
 
-        return FeedDiscoveryResult(
-            originalInput: url.absoluteString,
-            normalizedURL: youtubeURL,
-            title: "YouTube • \(channelID)",
-            kind: .youtube,
-            isDirectFeed: true
-        )
+        return nil
+    }
+
+    // MARK: - Shorthand Detection (r/subreddit, @handle, etc.)
+
+    func detectShorthand(_ input: String) async throws -> FeedDiscoveryResult? {
+        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+
+        // r/subreddit → Reddit RSS
+        if trimmed.hasPrefix("r/") {
+            let subreddit = String(trimmed.dropFirst(2))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .replacingOccurrences(of: "/", with: "")
+            guard !subreddit.isEmpty else { return nil }
+
+            let rssURL = URL(string: "https://www.reddit.com/r/\(subreddit)/.rss")
+            guard let rssURL else { return nil }
+
+            return FeedDiscoveryResult(
+                originalInput: input,
+                normalizedURL: rssURL,
+                title: "r/\(subreddit)",
+                kind: .subreddit,
+                isDirectFeed: true
+            )
+        }
+
+        // @handle → try YouTube first, then Twitter/X
+        if trimmed.hasPrefix("@") {
+            let handle = String(trimmed.dropFirst(1))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !handle.isEmpty else { return nil }
+
+            let youtubeURL = URL(string: "https://www.youtube.com/@\(handle)")!
+            if let result = try? await detectYouTubeFeed(from: youtubeURL) {
+                return result
+            }
+
+            let rssHubURL = URL(string: "https://rsshub.app/twitter/user/\(handle)")
+            if let rssHubURL {
+                return FeedDiscoveryResult(
+                    originalInput: input,
+                    normalizedURL: rssHubURL,
+                    title: "@\(handle)",
+                    kind: .twitter,
+                    isDirectFeed: true
+                )
+            }
+        }
+
+        return nil
+    }
+
+    /// Resolve a YouTube @handle to a channel ID by fetching the page.
+    private func resolveYouTubeHandle(_ handle: String) async throws -> String? {
+        let profileURL = URL(string: "https://www.youtube.com/@\(handle)")
+        guard let profileURL else { return nil }
+
+        var request = URLRequest(url: profileURL)
+        request.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15", forHTTPHeaderField: "User-Agent")
+        // Bypass YouTube GDPR consent page
+        request.setValue("CONSENT=YES+cb; Domain=.youtube.com; Path=/; Max-Age=31536000", forHTTPHeaderField: "Cookie")
+        let (data, _) = try await URLSession.shared.data(for: request)
+        guard let html = String(data: data, encoding: .utf8) else { return nil }
+
+        // Try "externalId":"UC..." (most reliable — YouTube's own identifier)
+        let externalPattern = #""externalId":"(UC[a-zA-Z0-9_-]{22})"#
+        if let regex = try? NSRegularExpression(pattern: externalPattern),
+           let match = regex.firstMatch(in: html, range: NSRange(html.startIndex..<html.endIndex, in: html)),
+           let range = Range(match.range(at: 1), in: html) {
+            return String(html[range])
+        }
+
+        // Fallback: channel/UC... in URL
+        let channelPattern = #"channel/(UC[a-zA-Z0-9_-]{22})"#
+        if let regex = try? NSRegularExpression(pattern: channelPattern),
+           let match = regex.firstMatch(in: html, range: NSRange(html.startIndex..<html.endIndex, in: html)),
+           let range = Range(match.range(at: 1), in: html) {
+            return String(html[range])
+        }
+
+        return nil
     }
 
     func detectSubredditFeed(from url: URL) async throws -> FeedDiscoveryResult? {
@@ -143,6 +262,7 @@ public final class FeedDiscoveryService: FeedDiscoveryServiceProtocol {
         guard pathParts.count >= 2, pathParts[0] == "r", !pathParts[1].isEmpty else { return nil }
 
         let subreddit = pathParts[1]
+        // Use old.reddit.com — it's less restrictive with RSS access
         let rssURL = URL(string: "https://www.reddit.com/r/\(subreddit)/.rss")
         guard let rssURL else { return nil }
 
@@ -151,6 +271,195 @@ public final class FeedDiscoveryService: FeedDiscoveryServiceProtocol {
             normalizedURL: rssURL,
             title: "r/\(subreddit)",
             kind: .subreddit,
+            isDirectFeed: true
+        )
+    }
+
+    // MARK: - Google News
+
+    func detectGoogleNewsFeed(from url: URL) async throws -> FeedDiscoveryResult? {
+        let host = url.host?.lowercased() ?? ""
+        guard host.contains("news.google.com") else { return nil }
+
+        // Already an RSS URL
+        if url.path.contains("/rss") {
+            return FeedDiscoveryResult(
+                originalInput: url.absoluteString,
+                normalizedURL: url,
+                title: "Google News",
+                kind: .googleNews,
+                isDirectFeed: true
+            )
+        }
+
+        // Extract search query from URL
+        if let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+           let queryItems = components.queryItems,
+           let query = queryItems.first(where: { $0.name == "q" })?.value {
+            let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
+            let rssURL = URL(string: "https://news.google.com/rss/search?q=\(encodedQuery)&hl=en-US&gl=US&ceid=US:en")
+            guard let rssURL else { return nil }
+            return FeedDiscoveryResult(
+                originalInput: url.absoluteString,
+                normalizedURL: rssURL,
+                title: "Google News • \(query)",
+                kind: .googleNews,
+                isDirectFeed: true
+            )
+        }
+
+        // Generic Google News RSS
+        let rssURL = URL(string: "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en")
+        guard let rssURL else { return nil }
+        return FeedDiscoveryResult(
+            originalInput: url.absoluteString,
+            normalizedURL: rssURL,
+            title: "Google News",
+            kind: .googleNews,
+            isDirectFeed: true
+        )
+    }
+
+    // MARK: - X / Twitter (via RSSHub)
+
+    func detectTwitterFeed(from url: URL) async throws -> FeedDiscoveryResult? {
+        let host = url.host?.lowercased() ?? ""
+        guard host.contains("x.com") || host.contains("twitter.com") else { return nil }
+
+        let pathParts = url.path.split(separator: "/").map(String.init)
+        guard let username = pathParts.first, !username.isEmpty, !username.hasPrefix("@") else { return nil }
+
+        // Skip non-user paths
+        let skipPaths = ["search", "explore", "notifications", "messages", "settings", "home", "i", "hashtag"]
+        guard !skipPaths.contains(username.lowercased()) else { return nil }
+
+        let rssURL = URL(string: "https://rsshub.app/twitter/user/\(username)")
+        guard let rssURL else { return nil }
+
+        return FeedDiscoveryResult(
+            originalInput: url.absoluteString,
+            normalizedURL: rssURL,
+            title: "@\(username)",
+            kind: .twitter,
+            isDirectFeed: true
+        )
+    }
+
+    // MARK: - Facebook (via RSSHub)
+
+    func detectFacebookFeed(from url: URL) async throws -> FeedDiscoveryResult? {
+        let host = url.host?.lowercased() ?? ""
+        guard host.contains("facebook.com") || host.contains("fb.com") else { return nil }
+
+        let pathParts = url.path.split(separator: "/").map(String.init)
+        guard let pageName = pathParts.first, !pageName.isEmpty else { return nil }
+
+        // Skip non-page paths
+        let skipPaths = ["login", "signup", "groups", "events", "marketplace", "pages", "watch", "gaming"]
+        guard !skipPaths.contains(pageName.lowercased()) else { return nil }
+
+        let rssURL = URL(string: "https://rsshub.app/facebook/page/\(pageName)")
+        guard let rssURL else { return nil }
+
+        return FeedDiscoveryResult(
+            originalInput: url.absoluteString,
+            normalizedURL: rssURL,
+            title: "Facebook • \(pageName)",
+            kind: .facebook,
+            isDirectFeed: true
+        )
+    }
+
+    // MARK: - Mastodon (via RSSHub or native)
+
+    func detectMastodonFeed(from url: URL) async throws -> FeedDiscoveryResult? {
+        let host = url.host?.lowercased() ?? ""
+        // Check for common Mastodon instances or custom domains
+        guard host.contains("mastodon") || host.contains("fedibird") || host.contains("fosstodon") || host.contains("techhub.social") || host.contains("marsbar.social") || url.path.contains("/@") else { return nil }
+
+        let pathParts = url.path.split(separator: "/").map(String.init)
+        guard let username = pathParts.last, !username.isEmpty, username.hasPrefix("@") else { return nil }
+
+        let cleanUsername = String(username.dropFirst()) // Remove @
+        let rssURL = URL(string: "https://rsshub.app/mastodon/user/\(host)/\(cleanUsername)")
+        guard let rssURL else { return nil }
+
+        return FeedDiscoveryResult(
+            originalInput: url.absoluteString,
+            normalizedURL: rssURL,
+            title: "@\(cleanUsername) @ \(host)",
+            kind: .mastodon,
+            isDirectFeed: true
+        )
+    }
+
+    // MARK: - Bluesky (via RSSHub)
+
+    func detectBlueskyFeed(from url: URL) async throws -> FeedDiscoveryResult? {
+        let host = url.host?.lowercased() ?? ""
+        guard host.contains("bsky.app") || host.contains("bluesky") else { return nil }
+
+        let pathParts = url.path.split(separator: "/").map(String.init)
+        guard let handle = pathParts.last, !handle.isEmpty else { return nil }
+
+        let rssURL = URL(string: "https://rsshub.app/bluesky/user/\(handle)")
+        guard let rssURL else { return nil }
+
+        return FeedDiscoveryResult(
+            originalInput: url.absoluteString,
+            normalizedURL: rssURL,
+            title: "@\(handle) (Bluesky)",
+            kind: .bluesky,
+            isDirectFeed: true
+        )
+    }
+
+    // MARK: - TikTok (via RSSHub)
+
+    func detectTikTokFeed(from url: URL) async throws -> FeedDiscoveryResult? {
+        let host = url.host?.lowercased() ?? ""
+        guard host.contains("tiktok.com") else { return nil }
+
+        let pathParts = url.path.split(separator: "/").map(String.init)
+        guard let username = pathParts.last, !username.isEmpty else { return nil }
+
+        let rssURL = URL(string: "https://rsshub.app/tiktok/user/\(username)")
+        guard let rssURL else { return nil }
+
+        return FeedDiscoveryResult(
+            originalInput: url.absoluteString,
+            normalizedURL: rssURL,
+            title: "@\(username) (TikTok)",
+            kind: .tiktok,
+            isDirectFeed: true
+        )
+    }
+
+    // MARK: - GitHub (via releases/activity)
+
+    func detectGitHubFeed(from url: URL) async throws -> FeedDiscoveryResult? {
+        let host = url.host?.lowercased() ?? ""
+        guard host.contains("github.com") else { return nil }
+
+        let pathParts = url.path.split(separator: "/").map(String.init)
+        // Expect /owner/repo
+        guard pathParts.count >= 2 else { return nil }
+
+        let owner = pathParts[0]
+        let repo = pathParts[1]
+
+        // Skip non-repo paths
+        let skipPaths = ["settings", "notifications", "organizations", "enterprise", "features", "collections", "events", "sponsors"]
+        guard !skipPaths.contains(owner.lowercased()), !skipPaths.contains(repo.lowercased()) else { return nil }
+
+        let rssURL = URL(string: "https://github.com/\(owner)/\(repo)/releases.atom")
+        guard let rssURL else { return nil }
+
+        return FeedDiscoveryResult(
+            originalInput: url.absoluteString,
+            normalizedURL: rssURL,
+            title: "\(owner)/\(repo)",
+            kind: .github,
             isDirectFeed: true
         )
     }

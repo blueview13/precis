@@ -21,6 +21,20 @@
                ReferencedContainer = "container:Precis.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "E5F60718293A4B5C6D7E8F90"
+               BuildableName = "PrecisTests.xctest"
+               BlueprintName = "PrecisTests"
+               ReferencedContainer = "container:Precis.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -39,6 +53,16 @@
          </BuildableReference>
       </MacroExpansion>
       <Testables>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "E5F60718293A4B5C6D7E8F90"
+               BuildableName = "PrecisTests.xctest"
+               BlueprintName = "PrecisTests"
+               ReferencedContainer = "container:Precis.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
       <CommandLineArguments>
       </CommandLineArguments>

@@ -1,6 +1,6 @@
 import Foundation
 
-public struct FeedRefreshSummary {
+public struct FeedRefreshSummary: Sendable {
     public let feedID: UUID
     public let importedCount: Int
     public let updatedAt: Date

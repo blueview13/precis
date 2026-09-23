@@ -28,6 +28,7 @@ public struct BrowserView: View {
             .padding(12)
             .background(PrecisDesignSystem.surface(for: colorScheme))
 
+            
             WebView(url: URL(string: "https://example.com")!)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }

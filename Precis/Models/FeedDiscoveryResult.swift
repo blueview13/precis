@@ -5,6 +5,13 @@ public enum FeedDiscoveryKind: String, Codable, Sendable {
     case website
     case youtube
     case subreddit
+    case googleNews
+    case twitter
+    case facebook
+    case mastodon
+    case bluesky
+    case tiktok
+    case github
 }
 
 public struct FeedDiscoveryResult: Sendable {
