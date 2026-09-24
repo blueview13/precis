@@ -102,6 +102,25 @@ public final class ArticleRecord {
 }
 
 @Model
+public final class CategoryRecord {
+    @Attribute(.unique) public var id: UUID
+    public var name: String
+    // Optional so stores created before this column existed migrate in-place
+    // (a mandatory attribute would fail lightweight migration with 134110).
+    public var sortOrder: Int?
+
+    public init(
+        id: UUID = UUID(),
+        name: String,
+        sortOrder: Int? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.sortOrder = sortOrder
+    }
+}
+
+@Model
 public final class SummaryRecord {
     @Attribute(.unique) public var id: UUID
     public var article: ArticleRecord?

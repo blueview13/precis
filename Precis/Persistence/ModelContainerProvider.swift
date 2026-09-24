@@ -6,7 +6,8 @@ public enum ModelContainerProvider {
         FolderRecord.self,
         FeedRecord.self,
         ArticleRecord.self,
-        SummaryRecord.self
+        SummaryRecord.self,
+        CategoryRecord.self
     ])
 
     public static func makeContainer() throws -> ModelContainer {

@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import Combine
+import SwiftData
 
 struct MainWindowLayout: View {
     @Environment(\.colorScheme) private var colorScheme
@@ -20,6 +21,15 @@ struct MainWindowLayout: View {
     @State private var importedFeeds: [FeedRecord] = []
     @State private var showAddFeedSheet = false
     @State private var faviconCache: [String: Data] = [:]
+    @State private var categories: [CategoryRecord] = []
+    @State private var isAddingCategory = false
+    @State private var newCategoryName = ""
+    @State private var editingCategoryID: UUID?
+    @State private var editingCategoryName = ""
+    @FocusState private var isCategoryInputFocused: Bool
+    @FocusState private var isCategoryEditFocused: Bool
+    @State private var categoryDropTargetID: UUID?
+    @State private var categoryRowHeights: [UUID: CGFloat] = [:]
     @State private var articleListHeight: CGFloat = 350
     @State private var sidebarWidth: CGFloat = 260
     @Environment(\.openWindow) private var openWindow
@@ -104,6 +114,7 @@ struct MainWindowLayout: View {
         }
         .onAppear {
             refreshFeeds()
+            refreshCategories()
             viewModel.loadFromContext(modelContext)
             viewModel.loadFolders(context: modelContext)
             startBackgroundRefresh()
@@ -154,6 +165,136 @@ struct MainWindowLayout: View {
         } catch {
             importedFeeds = []
         }
+    }
+
+    // MARK: - Categories
+
+    private func refreshCategories() {
+        do {
+            let fetched = try modelContext.fetch(FetchDescriptor<CategoryRecord>())
+            // Legacy rows (sortOrder == nil) sort first by name, matching the
+            // original alphabetical order; positioned rows keep their order.
+            categories = fetched.sorted { lhs, rhs in
+                switch (lhs.sortOrder, rhs.sortOrder) {
+                case let (l?, r?) where l != r:
+                    return l < r
+                case (_?, nil):
+                    return false
+                case (nil, _?):
+                    return true
+                default:
+                    return lhs.name < rhs.name
+                }
+            }
+            normalizeCategoryOrder()
+        } catch {
+            PrecisLogger.error("Failed to load categories: \(error.localizedDescription)")
+            categories = []
+        }
+    }
+
+    /// Assigns contiguous positions so stored order survives relaunch,
+    /// and repairs rows that predate `sortOrder`. Persists only when changed.
+    private func normalizeCategoryOrder() {
+        var changed = false
+        for (index, category) in categories.enumerated() where category.sortOrder != index {
+            category.sortOrder = index
+            changed = true
+        }
+        guard changed else { return }
+        do {
+            try modelContext.save()
+        } catch {
+            PrecisLogger.error("Failed to normalize category order: \(error.localizedDescription)")
+        }
+    }
+
+    private func createCategory() {
+        let name = newCategoryName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return }
+
+        let nextOrder = (categories.compactMap(\.sortOrder).max() ?? -1) + 1
+        modelContext.insert(CategoryRecord(name: name, sortOrder: nextOrder))
+        do {
+            try modelContext.save()
+        } catch {
+            PrecisLogger.error("Failed to create category: \(error.localizedDescription)")
+        }
+
+        newCategoryName = ""
+        isAddingCategory = false
+        isCategoryInputFocused = false
+        refreshCategories()
+    }
+
+    private func beginEditingCategory(_ category: CategoryRecord) {
+        editingCategoryID = category.id
+        editingCategoryName = category.name
+        DispatchQueue.main.async {
+            isCategoryEditFocused = true
+        }
+    }
+
+    private func commitCategoryRename() {
+        guard let editingID = editingCategoryID,
+              let category = categories.first(where: { $0.id == editingID }) else {
+            cancelCategoryRename()
+            return
+        }
+
+        let name = editingCategoryName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !name.isEmpty && name != category.name {
+            category.name = name
+            do {
+                try modelContext.save()
+            } catch {
+                PrecisLogger.error("Failed to rename category: \(error.localizedDescription)")
+            }
+        }
+
+        editingCategoryID = nil
+        isCategoryEditFocused = false
+        refreshCategories()
+    }
+
+    private func cancelCategoryRename() {
+        editingCategoryID = nil
+        editingCategoryName = ""
+        isCategoryEditFocused = false
+    }
+
+    private func deleteCategory(_ category: CategoryRecord) {
+        modelContext.delete(category)
+        do {
+            try modelContext.save()
+        } catch {
+            PrecisLogger.error("Failed to delete category: \(error.localizedDescription)")
+        }
+        refreshCategories()
+    }
+
+    private func moveCategory(sourceID: UUID, targetID: UUID, insertAfter: Bool) {
+        guard sourceID != targetID,
+              let from = categories.firstIndex(where: { $0.id == sourceID }),
+              let targetIndex = categories.firstIndex(where: { $0.id == targetID })
+        else { return }
+
+        // If the computed placement is where the row already sits (dropping on
+        // the neighbor it is directly next to), flip sides so a drop on a
+        // different row always reorders. With only two categories the naive
+        // placement would otherwise be a silent no-op.
+        var after = insertAfter
+        if after ? from == targetIndex + 1 : from == targetIndex - 1 {
+            after.toggle()
+        }
+
+        withAnimation(.easeOut(duration: 0.2)) {
+            let moved = categories.remove(at: from)
+            var insertAt = categories.firstIndex(where: { $0.id == targetID }) ?? categories.count
+            if after { insertAt += 1 }
+            categories.insert(moved, at: insertAt)
+        }
+        normalizeCategoryOrder()
     }
 
     private func refreshSingleFeed(_ feed: FeedRecord) async {
@@ -373,6 +514,125 @@ struct MainWindowLayout: View {
                 SidebarItem(title: "Later", icon: "clock.arrow.circlepath", active: selectedSidebarItem == "Later") {
                     selectedSidebarItem = "Later"
                     viewModel.selectedSidebarFilter = .later
+                }
+
+                // Categories section
+                SidebarSection(title: "Categories", addActive: isAddingCategory) {
+                    isAddingCategory.toggle()
+                    newCategoryName = ""
+                }
+
+                if isAddingCategory {
+                    TextField("", text: $newCategoryName, prompt: Text("Category name"))
+                        .textFieldStyle(.roundedBorder)
+                        .font(PrecisTypography.body)
+                        .focused($isCategoryInputFocused)
+                        .onSubmit { createCategory() }
+                        .onExitCommand {
+                            isAddingCategory = false
+                            newCategoryName = ""
+                        }
+                        .onAppear {
+                            DispatchQueue.main.async { isCategoryInputFocused = true }
+                        }
+                        .padding(.vertical, 4)
+                }
+
+                ForEach(categories) { category in
+                    if editingCategoryID == category.id {
+                        TextField("", text: $editingCategoryName, prompt: Text("Category name"))
+                            .textFieldStyle(.roundedBorder)
+                            .font(PrecisTypography.body)
+                            .focused($isCategoryEditFocused)
+                            .onSubmit { commitCategoryRename() }
+                            .onExitCommand { cancelCategoryRename() }
+                            .onChange(of: isCategoryEditFocused) { _, focused in
+                                if !focused && editingCategoryID != nil {
+                                    commitCategoryRename()
+                                }
+                            }
+                            .padding(.vertical, 4)
+                    } else {
+                        HStack(spacing: 10) {
+                            Color.clear
+                                .frame(width: 4, height: 18)
+
+                            Image(systemName: "square.grid.2x2")
+                                .font(.body)
+                                .frame(width: 18)
+                                .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.6))
+
+                            Text(category.name)
+                                .font(PrecisTypography.body)
+                                .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.75))
+
+                            Spacer(minLength: 0)
+                        }
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 4)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(
+                                    categoryDropTargetID == category.id
+                                        ? PrecisDesignSystem.flag.opacity(0.15)
+                                        : Color.clear
+                                )
+                        )
+                        .onGeometryChange(for: CGFloat.self) { proxy in
+                            proxy.size.height
+                        } action: { height in
+                            categoryRowHeights[category.id] = height
+                        }
+                        .draggable(category.id.uuidString) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "square.grid.2x2")
+                                    .foregroundStyle(PrecisDesignSystem.flag)
+                                Text(category.name)
+                                    .font(PrecisTypography.body)
+                                    .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+                        }
+                        .dropDestination(for: String.self) { items, location in
+                            guard let first = items.first,
+                                  let sourceID = UUID(uuidString: first),
+                                  categories.contains(where: { $0.id == sourceID })
+                            else { return false }
+
+                            // Half-test midpoint; fall back to a typical row
+                            // height if geometry capture hasn't reported yet.
+                            let height = categoryRowHeights[category.id] ?? 0
+                            let midY = height > 0 ? height / 2 : 18
+                            let insertAfter = location.y >= midY
+                            categoryDropTargetID = nil
+                            PrecisLogger.info("Category drop: \(sourceID.uuidString.prefix(8)) → \(category.id.uuidString.prefix(8)) after=\(insertAfter)")
+                            moveCategory(sourceID: sourceID, targetID: category.id, insertAfter: insertAfter)
+                            return true
+                        } isTargeted: { targeted in
+                            if targeted {
+                                categoryDropTargetID = category.id
+                            } else if categoryDropTargetID == category.id {
+                                categoryDropTargetID = nil
+                            }
+                        }
+                        .help("Drag to reorder")
+                        .contextMenu {
+                            Button {
+                                beginEditingCategory(category)
+                            } label: {
+                                Label("Rename…", systemImage: "pencil")
+                            }
+                            Button(role: .destructive) {
+                                deleteCategory(category)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                    }
                 }
 
                 // Feeds
@@ -597,16 +857,47 @@ private enum ImportStatusKind {
 
 private struct SidebarSection: View {
     let title: String
+    var addActive: Bool = false
+    var onAdd: (() -> Void)? = nil
 
     @Environment(\.colorScheme) private var colorScheme
+    @State private var isHoveringAdd = false
 
     var body: some View {
-        Text(title)
-            .font(PrecisTypography.caption)
-            .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.6))
-            .textCase(.uppercase)
-            .tracking(1.2)
-            .padding(.top, PrecisSpacing.sm)
+        HStack(spacing: 8) {
+            Text(title)
+                .font(PrecisTypography.caption)
+                .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.6))
+                .textCase(.uppercase)
+                .tracking(1.2)
+
+            Spacer(minLength: 0)
+
+            if let onAdd {
+                Button(action: onAdd) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(PrecisDesignSystem.flag)
+                        .frame(width: 20, height: 20)
+                        .background(
+                            Circle()
+                                .fill(PrecisDesignSystem.flag.opacity(isHoveringAdd ? 0.28 : 0.15))
+                        )
+                        .overlay(
+                            Circle()
+                                .strokeBorder(PrecisDesignSystem.flag.opacity(isHoveringAdd ? 0.6 : 0.35), lineWidth: 1)
+                        )
+                        .rotationEffect(.degrees(addActive ? 45 : 0))
+                        .scaleEffect(isHoveringAdd ? 1.08 : 1)
+                }
+                .buttonStyle(.plain)
+                .onHover { isHoveringAdd = $0 }
+                .animation(.spring(response: 0.25, dampingFraction: 0.7), value: addActive)
+                .animation(.easeOut(duration: 0.15), value: isHoveringAdd)
+                .help(addActive ? "Cancel" : "New category")
+            }
+        }
+        .padding(.top, PrecisSpacing.sm)
     }
 }
 
