@@ -1,6 +1,7 @@
 import Foundation
 
 public enum RefreshInterval: Int, CaseIterable, Codable {
+    case oneMinute = 1
     case fiveMinutes = 5
     case fifteenMinutes = 15
     case thirtyMinutes = 30
@@ -8,6 +9,8 @@ public enum RefreshInterval: Int, CaseIterable, Codable {
 
     public var displayName: String {
         switch self {
+        case .oneMinute:
+            return "1 minute"
         case .fiveMinutes:
             return "5 minutes"
         case .fifteenMinutes:

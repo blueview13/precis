@@ -1,12 +1,15 @@
 import SwiftUI
 import AppKit
+import Combine
 
 struct MainWindowLayout: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     @StateObject private var viewModel: ArticleListViewModel
+    @AppStorage("refreshIntervalMinutes") private var refreshIntervalMinutes: Int = 15
+    @State private var backgroundRefresh = BackgroundRefreshService()
     @State private var selectedSidebarItem = "All Items"
-    @State private var feedURLInput = "https://example.com/feed.xml"
+    @State private var feedURLInput = ""
     @State private var isImporting = false
     @State private var isRefreshing = false
     @State private var isGeneratingSummary = false
@@ -91,7 +94,6 @@ struct MainWindowLayout: View {
             }
         }
         .background(PrecisDesignSystem.background(for: colorScheme))
-        .ignoresSafeArea()
         .onChange(of: viewModel.selectedFeedID) { _, _ in
             // Feed selection changed — regenerate digest for the new feed scope
             Task {
@@ -104,12 +106,39 @@ struct MainWindowLayout: View {
             refreshFeeds()
             viewModel.loadFromContext(modelContext)
             viewModel.loadFolders(context: modelContext)
+            startBackgroundRefresh()
             // Auto-generate feed-wide 12-hour summary on launch
             Task {
                 isGeneratingSummary = true
                 await viewModel.generateFeedWideSummary(context: modelContext, feedID: viewModel.selectedFeedID)
                 isGeneratingSummary = false
             }
+        }
+        .onDisappear {
+            backgroundRefresh.stopRefreshLoop()
+        }
+        .onChange(of: refreshIntervalMinutes) { _, _ in
+            // Restart the loop with the interval picked in Settings
+            startBackgroundRefresh()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .precisOpenSettings)) { _ in
+            openWindow(id: "settings")
+        }
+    }
+
+    // MARK: - Background refresh
+
+    private var refreshInterval: RefreshInterval {
+        RefreshInterval(rawValue: refreshIntervalMinutes) ?? .fifteenMinutes
+    }
+
+    private func startBackgroundRefresh() {
+        backgroundRefresh.stopRefreshLoop()
+        backgroundRefresh.beginRefreshLoop(interval: refreshInterval) {
+            // Skip a tick that would collide with a manual "refresh all" pass.
+            guard !isRefreshingAll else { return }
+            PrecisLogger.info("Background refresh tick — refreshing all feeds")
+            await refreshAllFeeds()
         }
     }
 
@@ -483,6 +512,7 @@ private struct AddFeedSheet: View {
     let onAdd: () -> Void
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @FocusState private var isURLEntryFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: PrecisSpacing.md) {
@@ -502,9 +532,12 @@ private struct AddFeedSheet: View {
                 .font(PrecisTypography.metadata)
                 .foregroundStyle(PrecisDesignSystem.marginalia)
 
-            TextField("https://example.com/feed.xml or any supported URL", text: $feedURLInput)
+            TextField("", text: $feedURLInput, prompt: isURLEntryFocused
+                ? nil
+                : Text("https://example.com/feed.xml or any supported URL"))
                 .textFieldStyle(.roundedBorder)
                 .font(PrecisTypography.body)
+                .focused($isURLEntryFocused)
                 .onSubmit { onAdd() }
 
             Button(action: onAdd) {

@@ -15,7 +15,7 @@ struct SettingsView: View {
     let onExportOPML: (() -> Void)?
     let hasFeeds: Bool
 
-    private let refreshOptions = [5, 15, 30, 60]
+    private let refreshOptions = [1, 5, 15, 30, 60]
     private let sortOptions = ["newest", "oldest", "unread first", "starred first"]
 
     private var feedCount: Int {
