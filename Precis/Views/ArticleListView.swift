@@ -1,14 +1,33 @@
 import SwiftUI
+import ImageIO
 
 struct ArticleListView: View {
     @ObservedObject var viewModel: ArticleListViewModel
+    /// Set by the shell so the sidebar can be revealed again from the list
+    /// header while the sidebar itself is hidden.
+    var isSidebarHidden: Bool = false
+    var onRevealSidebar: (() -> Void)? = nil
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage("showThumbnails") private var showThumbnails: Bool = true
+    // Backup invalidation: the view model also observes this key directly and
+    // republishes `sortPreference`, so the list re-sorts the moment Settings
+    // changes it.
+    @AppStorage("defaultSortOrder") private var defaultSortOrder: String = "newest"
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
+                if isSidebarHidden {
+                    Button(action: { onRevealSidebar?() }) {
+                        Image(systemName: "sidebar.left")
+                            .font(.title3)
+                            .foregroundStyle(PrecisDesignSystem.marginalia)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Show sidebar")
+                }
+
                 Text("Inbox")
                     .font(PrecisTypography.headline)
                     .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
@@ -19,7 +38,7 @@ struct ArticleListView: View {
                     Button(action: { viewModel.markAllAsRead(context: modelContext) }) {
                         Text("Mark All Read")
                             .font(PrecisTypography.caption)
-                            .foregroundStyle(PrecisDesignSystem.flag)
+                            .foregroundStyle(colorScheme == .dark ? Color.white : Color.black)
                     }
                     .buttonStyle(.plain)
                 }
@@ -35,10 +54,10 @@ struct ArticleListView: View {
 
                 Text("\(viewModel.filteredItems.count)")
                     .font(PrecisTypography.metadata)
-                    .foregroundStyle(PrecisDesignSystem.marginalia)
+                    .foregroundStyle(.white)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(PrecisDesignSystem.marginalia.opacity(0.12))
+                    .background(Color.accentColor)
                     .clipShape(Capsule())
             }
             .padding(PrecisSpacing.md)
@@ -54,28 +73,56 @@ struct ArticleListView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(PrecisDesignSystem.surface(for: colorScheme))
+            .background(Color(nsColor: .textBackgroundColor))
             .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(PrecisDesignSystem.rule(for: colorScheme), lineWidth: 1)
+            )
             .padding(.horizontal, PrecisSpacing.md)
             .padding(.bottom, PrecisSpacing.sm)
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(viewModel.filteredItems) { item in
-                        ArticleListRow(
-                            item: item,
-                            isSelected: viewModel.selectedItemID == item.id,
-                            showThumbnails: showThumbnails,
-                            onSelect: { viewModel.select(item) },
-                            onToggleStar: { viewModel.toggleStarred(item, context: modelContext) }
-                        )
-                        .contentShape(Rectangle())
+                if viewModel.filteredItems.isEmpty {
+                    // No more blank pane — explain why the list is empty
+                    // (e.g. Unread filter right after "Mark All Read").
+                    VStack(spacing: PrecisSpacing.xs) {
+                        Image(systemName: "checkmark.circle")
+                            .font(.title2)
+                            .foregroundStyle(PrecisDesignSystem.marginalia.opacity(0.6))
+
+                        Text(emptyStateTitle)
+                            .font(PrecisTypography.body)
+                            .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.6))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 64)
+                    .padding(.horizontal, PrecisSpacing.md)
+                } else {
+                    // Lazy: a full-window layout pass (first context-menu open
+                    // triggers one) must only measure visible rows — the eager
+                    // VStack measured every article and stalled the main thread.
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(viewModel.filteredItems) { item in
+                            ArticleListRow(
+                                item: item,
+                                isSelected: viewModel.selectedItemID == item.id,
+                                showThumbnails: showThumbnails,
+                                onSelect: { viewModel.select(item, context: modelContext) },
+                                onToggleStar: { viewModel.toggleStarred(item, context: modelContext) }
+                            )
+                            .contentShape(Rectangle())
+                        }
                     }
                 }
             }
         }
         .background(PrecisDesignSystem.background(for: colorScheme))
         .focusable()
+        // Suppress the system-accent focus ring — with a green macOS accent it
+        // painted green borders along the list's left/bottom edges. Keyboard
+        // nav (arrows/d/s) still works; selection shows via the row flag bar.
+        .focusEffectDisabled(true)
         .onKeyPress(.upArrow) {
             viewModel.selectPrevious()
             return .handled
@@ -97,6 +144,22 @@ struct ArticleListView: View {
             return .handled
         }
     }
+
+    private var emptyStateTitle: String {
+        if !viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "No articles match your search"
+        }
+        switch viewModel.selectedSidebarFilter {
+        case .unread:
+            return "You're all caught up — no unread articles"
+        case .starred:
+            return "No starred articles yet"
+        case .category:
+            return "No articles in this category yet"
+        default:
+            return "No articles here yet"
+        }
+    }
 }
 
 private struct ArticleListRow: View {
@@ -105,28 +168,13 @@ private struct ArticleListRow: View {
     let showThumbnails: Bool
     let onSelect: () -> Void
     let onToggleStar: () -> Void
+    @AppStorage("showReadingTime") private var showReadingTime: Bool = true
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             if showThumbnails, let imageURLString = item.imageURL, let imageURL = URL(string: imageURLString) {
-                AsyncImage(url: imageURL) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    case .failure:
-                        thumbnailPlaceholder
-                    case .empty:
-                        thumbnailPlaceholder
-                    @unknown default:
-                        thumbnailPlaceholder
-                    }
-                }
-                .frame(width: 64, height: 64)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .padding(.top, 4)
+                ArticleThumbnailView(url: imageURL)
             }
 
             VStack(alignment: .leading, spacing: 6) {
@@ -134,38 +182,41 @@ private struct ArticleListRow: View {
                     if !item.isRead {
                         Circle()
                             .frame(width: 8, height: 8)
-                            .foregroundStyle(PrecisDesignSystem.flag)
+                            .foregroundStyle(Color.accentColor)
                     }
 
                     Text(item.title)
                         .font(PrecisTypography.headline)
-                        .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
-                        .strikethrough(item.isRead)
+                        .foregroundStyle(item.isRead ? Color.gray : PrecisDesignSystem.foreground(for: colorScheme))
                         .lineLimit(2)
 
                     Spacer()
 
+                    Text(publishedAgo(item.publishedDate))
+                        .font(PrecisTypography.metadata)
+                        .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.5))
+
                     Button(action: onToggleStar) {
                         Image(systemName: item.isStarred ? "star.fill" : "star")
-                            .foregroundStyle(item.isStarred ? PrecisDesignSystem.flag : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.6))
+                            .foregroundStyle(item.isStarred ? Color.accentColor : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.6))
                     }
                     .buttonStyle(.plain)
                 }
-                .contentShape(Rectangle())
-                .onTapGesture(perform: onSelect)
 
                 HStack(spacing: PrecisSpacing.sm) {
-                    Text(item.feedTitle)
+                    Text(FeedDiscoveryService.conciseTitle(item.feedTitle))
                         .font(PrecisTypography.metadata)
                         .foregroundStyle(PrecisDesignSystem.marginalia)
 
-                    Text("•")
-                        .font(PrecisTypography.metadata)
-                        .foregroundStyle(PrecisDesignSystem.rule(for: colorScheme))
+                    if showReadingTime {
+                        Text("•")
+                            .font(PrecisTypography.metadata)
+                            .foregroundStyle(Color.accentColor)
 
-                    Text("\(item.readingTimeMinutes) min read")
-                        .font(PrecisTypography.metadata)
-                        .foregroundStyle(PrecisDesignSystem.marginalia.opacity(0.7))
+                        Text("\(item.readingTimeMinutes) min read")
+                            .font(PrecisTypography.metadata)
+                            .foregroundStyle(PrecisDesignSystem.marginalia.opacity(0.7))
+                    }
                 }
 
                 Text(item.cleanSnippet)
@@ -176,7 +227,19 @@ private struct ArticleListRow: View {
         }
         .padding(PrecisSpacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(isSelected ? PrecisDesignSystem.surface(for: colorScheme) : (item.isRead ? Color.clear : PrecisDesignSystem.surface(for: colorScheme)))
+        // The whole row is tappable, so ONE press anywhere on it selects the
+        // article and (via the view model) marks it read.
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onSelect)
+        // Highlight the selected row: accent tint under the leading accent bar.
+        .background(isSelected ? Color.accentColor.opacity(0.10) : Color.clear)
+        .overlay(alignment: .leading) {
+            if isSelected {
+                Rectangle()
+                    .fill(Color.accentColor)
+                    .frame(width: 3)
+            }
+        }
         .overlay(
             Rectangle()
                 .frame(height: 1)
@@ -194,6 +257,102 @@ private struct ArticleListRow: View {
                     .foregroundStyle(PrecisDesignSystem.marginalia.opacity(0.3))
                     .font(.title3)
             )
+    }
+
+    /// Compact approximate "time ago" for the row's right edge — "4h", "12m",
+    /// "3d"; falls back to a short date ("Sep 5") past a week.
+    private func publishedAgo(_ date: Date?) -> String {
+        guard let date else { return "" }
+        let seconds = max(0, Date().timeIntervalSince(date))
+        let minutes = Int((seconds / 60).rounded())
+        if minutes < 1 { return "now" }
+        if minutes < 60 { return "\(minutes)m" }
+        let hours = Int((seconds / 3600).rounded())
+        if hours < 24 { return "\(hours)h" }
+        if seconds < 7 * 86_400 {
+            return "\(max(1, Int((seconds / 86_400).rounded())))d"
+        }
+        return date.formatted(.dateTime.month(.abbreviated).day())
+    }
+}
+
+/// 64pt row thumbnail that decodes at THUMBNAIL resolution.
+///
+/// `AsyncImage` decodes the article image at full resolution — the sample
+/// showed ImageIO decode + `CA::Render::copy_image` IOSurface copies on the
+/// `SwiftUI.prepare-image` queues for every row. Across a busy list that
+/// churns hundreds of MB of bitmaps and shows up as black windows and mouse
+/// trails under memory pressure. This loads the bytes once and downsamples
+/// to 128px (2× for Retina) during decode, caching only the small result.
+private struct ArticleThumbnailView: View {
+    let url: URL
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var image: NSImage?
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(nsImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else {
+                placeholder
+            }
+        }
+        .frame(width: 64, height: 64)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .padding(.top, 4)
+        .task(id: url) {
+            image = await ArticleThumbnailLoader.image(for: url)
+        }
+    }
+
+    private var placeholder: some View {
+        RoundedRectangle(cornerRadius: 8)
+            .fill(PrecisDesignSystem.surface(for: colorScheme))
+            .frame(width: 64, height: 64)
+            .overlay(
+                Image(systemName: "photo")
+                    .foregroundStyle(PrecisDesignSystem.marginalia.opacity(0.3))
+                    .font(.title3)
+            )
+    }
+}
+
+private enum ArticleThumbnailLoader {
+    // NSCache is internally thread-safe; the global needs `nonisolated(unsafe)`
+    // to satisfy Swift 6 strict concurrency (same pattern as the renderer cache).
+    nonisolated(unsafe) static let cache: NSCache<NSURL, NSImage> = {
+        let cache = NSCache<NSURL, NSImage>()
+        cache.countLimit = 400
+        cache.totalCostLimit = 24 * 1024 * 1024 // 24 MB of decoded pixels
+        return cache
+    }()
+
+    static func image(for url: URL) async -> NSImage? {
+        if let cached = cache.object(forKey: url as NSURL) {
+            return cached
+        }
+        guard let (data, _) = try? await URLSession.shared.data(from: url),
+              let source = CGImageSourceCreateWithData(data as CFData, nil)
+        else { return nil }
+
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceThumbnailMaxPixelSize: 128
+        ]
+        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
+            return nil
+        }
+        let nsImage = NSImage(cgImage: cgImage, size: NSSize(width: 64, height: 64))
+        cache.setObject(
+            nsImage,
+            forKey: url as NSURL,
+            cost: cgImage.width * cgImage.height * 4
+        )
+        return nsImage
     }
 }
 

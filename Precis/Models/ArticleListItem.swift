@@ -19,9 +19,13 @@ public struct ArticleListItem: Identifiable, Hashable {
         return max(1, words / 230)
     }
 
+    /// Normalized plain text, computed once at init. The regex stripping below
+    /// runs over the full article HTML — doing it per `body` render made the
+    /// first sidebar interaction stall (spinning ball) while rows re-rendered.
+    private var normalizedBody: String
+
     public var articleBody: String {
-        let normalized = Self.normalizeArticleText(snippet)
-        return normalized.isEmpty ? title : normalized
+        normalizedBody.isEmpty ? title : normalizedBody
     }
 
     /// Original HTML content for rich rendering in the reading pane.
@@ -31,7 +35,7 @@ public struct ArticleListItem: Identifiable, Hashable {
 
     /// Clean display text with HTML stripped.
     public var cleanSnippet: String {
-        Self.normalizeArticleText(snippet)
+        normalizedBody
     }
 
     public init(
@@ -54,6 +58,7 @@ public struct ArticleListItem: Identifiable, Hashable {
         self.snippet = snippet
         self.link = link
         self.imageURL = imageURL
+        self.normalizedBody = Self.normalizeArticleText(snippet)
     }
 
     public init(record: ArticleRecord) {
@@ -64,9 +69,13 @@ public struct ArticleListItem: Identifiable, Hashable {
         self.publishedDate = record.publishedDate ?? Date()
         self.isRead = record.isRead
         self.isStarred = record.isStarred
-        self.snippet = record.extractedContentText ?? record.rawContentText ?? record.title
+        let rawSnippet = record.extractedContentText ?? record.rawContentText ?? record.title
+        self.snippet = rawSnippet
         self.link = record.link
         self.imageURL = record.imageURL
+        // Reuse the persisted plain-text render when available — recomputing
+        // it for every article on every load pegged the main thread at scale.
+        self.normalizedBody = record.normalizedText ?? Self.normalizeArticleText(rawSnippet)
     }
 
     private static func normalizeArticleText(_ rawText: String) -> String {
@@ -86,8 +95,11 @@ public struct ArticleListItem: Identifiable, Hashable {
             .replacingOccurrences(of: "&gt;", with: ">")
             .replacingOccurrences(of: "&quot;", with: "\"")
             .replacingOccurrences(of: "&#39;", with: "'")
+            .replacingOccurrences(of: "&rsquo;", with: "’")
 
-        let normalized = withoutTags
+        let decoded = decodeNumericEntities(withoutTags)
+
+        let normalized = decoded
             .components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
@@ -96,5 +108,36 @@ public struct ArticleListItem: Identifiable, Hashable {
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
         return normalized
+    }
+
+    /// Decodes numeric HTML character references (`&#039;`, `&#8217;`, `&#x2019;`)
+    /// so raw entity codes never leak into displayed text. Invalid codes are
+    /// left as-is; scanning always advances, so the loop always terminates.
+    private static func decodeNumericEntities(_ text: String) -> String {
+        guard text.contains("&#") else { return text }
+
+        var result = ""
+        var remainder = Substring(text)
+        while let open = remainder.range(of: "&#") {
+            result += remainder[..<open.lowerBound]
+            let afterOpen = remainder[open.upperBound...]
+            if let close = afterOpen.firstIndex(of: ";") {
+                let body = afterOpen[..<close]
+                let isHex = body.first == "x" || body.first == "X"
+                let digits = isHex ? String(body.dropFirst()) : String(body)
+                if !digits.isEmpty,
+                   let value = UInt32(digits, radix: isHex ? 16 : 10),
+                   value != 0,
+                   let scalar = Unicode.Scalar(value) {
+                    result.append(Character(scalar))
+                    remainder = remainder[afterOpen.index(after: close)...]
+                    continue
+                }
+            }
+            result += "&#"
+            remainder = afterOpen
+        }
+        result += remainder
+        return result
     }
 }

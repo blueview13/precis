@@ -191,4 +191,140 @@ struct FeedDiscoveryServiceTests {
 
         #expect(item.articleBody == "Quiet interfaces do not subtract from the reading experience. They make the words feel easier to trust and encourage a calmer pace.")
     }
+
+    @Test("Numeric HTML entities are decoded, not shown raw")
+    func decodesNumericHTMLEntities() {
+        let item = ArticleListItem(
+            title: "City appeal",
+            feedTitle: "Al Jazeera",
+            publishedDate: Date(),
+            snippet: "<p>could face &#039;severe penalty&#039; plus &#8217;quotes&#8221; and &#x2019;hex&#x201D;</p>"
+        )
+
+        #expect(item.articleBody == "could face 'severe penalty' plus ’quotes” and ’hex”")
+    }
+
+    @Test(
+        "Feed titles are shortened for display",
+        arguments: [
+            ("Al Jazeera – Breaking News, World News and Video from Al Jazeera", "Al Jazeera"),
+            ("World News and Video | Al Jazeera", "World News and Video"),
+            ("Five Little Words Are Too Many Here", "Five Little Words Are"),
+            ("BBC Sport", "BBC Sport")
+        ]
+    )
+    func shortensFeedTitles(input: String, expected: String) {
+        #expect(FeedDiscoveryService.conciseTitle(input) == expected)
+    }
+
+    // MARK: - Display titles (URL placeholders vs friendly names)
+
+    @Test(
+        "URL-ish titles are detected",
+        arguments: [
+            "feeds.bbci.co.uk",
+            "https://example.com/feed.xml",
+            "example.com",
+            "example.com/feed.xml",
+            "http://example.com/rss"
+        ]
+    )
+    func detectsURLLikeTitles(_ title: String) {
+        #expect(FeedDiscoveryService.looksLikeURL(title))
+    }
+
+    @Test(
+        "Friendly titles are never mistaken for URLs",
+        arguments: [
+            "BBC Sport",
+            "r/macapps",
+            "mancity",
+            "YouTube • mancity",
+            "",
+            "Hacker News (front page)"
+        ]
+    )
+    func sparesFriendlyTitles(_ title: String) {
+        #expect(!FeedDiscoveryService.looksLikeURL(title))
+    }
+
+    @Test("URL placeholders are swapped for the parsed channel title")
+    func replacesPlaceholderTitles() {
+        #expect(
+            FeedDiscoveryService.displayTitle(current: "feeds.bbci.co.uk", parsedTitle: "BBC Sport") == "BBC Sport"
+        )
+    }
+
+    @Test("Friendly titles survive even when the parsed title differs")
+    func keepsFriendlyTitles() {
+        #expect(
+            FeedDiscoveryService.displayTitle(current: "r/macapps", parsedTitle: "r/MacApps") == "r/macapps"
+        )
+    }
+
+    @Test("A missing or blank parsed title leaves the current title alone")
+    func keepsCurrentTitleWhenParsedTitleMissing() {
+        #expect(FeedDiscoveryService.displayTitle(current: "example.com", parsedTitle: nil) == "example.com")
+        #expect(FeedDiscoveryService.displayTitle(current: "example.com", parsedTitle: "   ") == "example.com")
+    }
+}
+
+/// Offline unit tests for `OPMLService` — covers the folder scoping and
+/// attribute-variant bugs that made OPML import unreliable.
+struct OPMLServiceTests {
+
+    @Test("Feeds, folders, and folder scope are parsed correctly")
+    func parsesFeedsWithFolders() throws {
+        let xml = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <opml version="2.0">
+          <head><title>Subs</title></head>
+          <body>
+            <outline text="Top level" xmlUrl="https://example.com/top.xml" type="rss"/>
+            <outline text="Tech" title="Tech">
+              <outline text="HN" xmlUrl="https://news.ycombinator.com/rss" type="rss"/>
+              <outline text="Mac" xmlURL="https://example.com/mac.xml" type="rss"/>
+            </outline>
+            <outline text="After folder" xmlUrl="https://example.com/after.xml" type="rss"/>
+          </body>
+        </opml>
+        """
+        let feeds = try OPMLService.parse(data: Data(xml.utf8))
+
+        #expect(feeds.count == 4)
+        // Top-level feed appearing before any folder has no folder name.
+        #expect(feeds[0].url == "https://example.com/top.xml")
+        #expect(feeds[0].folderName == nil)
+        // Feeds inside the folder are attributed to it…
+        #expect(feeds[1].folderName == "Tech")
+        // …including ones using the `xmlURL` spelling instead of `xmlUrl`.
+        #expect(feeds[2].url == "https://example.com/mac.xml")
+        #expect(feeds[2].folderName == "Tech")
+        // The folder scope must close at </outline>, so feeds after it are
+        // top-level again (the old parser leaked the folder forever).
+        #expect(feeds[3].folderName == nil)
+    }
+
+    @Test("Malformed XML throws instead of returning partial results")
+    func throwsOnMalformedXML() {
+        #expect(throws: OPMLParserError.self) {
+            try OPMLService.parse(data: Data("<opml><body><outline".utf8))
+        }
+    }
+
+    @Test("Exported OPML round-trips through the parser")
+    func exportRoundTrips() throws {
+        let original = [
+            OPMLFeed(title: "Hacker News", url: "https://news.ycombinator.com/rss"),
+            OPMLFeed(title: "r/macapps", url: "https://www.reddit.com/r/macapps/.rss", folderName: "Tech & Fun")
+        ]
+        let xml = OPMLService.generate(feeds: original)
+        let reparsed = try OPMLService.parse(data: Data(xml.utf8))
+
+        #expect(reparsed.count == 2)
+        #expect(reparsed[0].title == "Hacker News")
+        #expect(reparsed[0].folderName == nil)
+        #expect(reparsed[1].folderName == "Tech & Fun")
+        #expect(reparsed[1].url == "https://www.reddit.com/r/macapps/.rss")
+    }
 }

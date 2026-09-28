@@ -9,7 +9,7 @@ public enum PrecisDesignSystem {
     public static let surface = Color(hex: "#EAE6DA")
 
     public static func background(for colorScheme: ColorScheme) -> Color {
-        colorScheme == .dark ? Color(hex: "#171613") : paper
+        colorScheme == .dark ? Color(hex: "#171613") : Color.white
     }
 
     public static func foreground(for colorScheme: ColorScheme) -> Color {

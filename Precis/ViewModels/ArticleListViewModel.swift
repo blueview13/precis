@@ -4,13 +4,64 @@ import SwiftUI
 
 @MainActor
 public final class ArticleListViewModel: ObservableObject {
-    @Published public var items: [ArticleListItem]
+    @Published public var items: [ArticleListItem] {
+        didSet { invalidateDerivedState() }
+    }
     @Published public var selectedItemID: UUID?
     @Published public var selectedFeedID: UUID?
-    @Published public var searchText: String = ""
+    @Published public var searchText: String = "" {
+        didSet { invalidateDerivedState() }
+    }
     @Published public var feedWideSummaryText: String = ""
 
+    // MARK: Derived state (filtered rows + badge counts)
+
+    // The sidebar badge pills and the list header used to run O(library)
+    // scans on every render — `unreadCount(forFeed:)` filtered every article
+    // once per sidebar row (400 rows × 6k articles), and `filteredItems` did
+    // a full filter + sort 3-4× per render (isEmpty, count, ForEach) and
+    // again on every arrow-key press. All cached here and dropped by
+    // `invalidateDerivedState()` whenever an input changes.
+    private var filteredItemsCache: [ArticleListItem]?
+    private var unreadCountsByFeedCache: [UUID: Int]?
+    private var unreadTotalCache: Int?
+    private var starredTotalCache: Int?
+
+    private func invalidateDerivedState() {
+        filteredItemsCache = nil
+        unreadCountsByFeedCache = nil
+        unreadTotalCache = nil
+        starredTotalCache = nil
+    }
+
+    private func rebuildCountCaches() {
+        var byFeed: [UUID: Int] = [:]
+        var unread = 0
+        var starred = 0
+        for item in items {
+            if !item.isRead {
+                unread += 1
+                if let feedID = item.feedID {
+                    byFeed[feedID, default: 0] += 1
+                }
+            }
+            if item.isStarred {
+                starred += 1
+            }
+        }
+        unreadCountsByFeedCache = byFeed
+        unreadTotalCache = unread
+        starredTotalCache = starred
+    }
+
     public var filteredItems: [ArticleListItem] {
+        if let filteredItemsCache { return filteredItemsCache }
+        let computed = computeFilteredItems()
+        filteredItemsCache = computed
+        return computed
+    }
+
+    private func computeFilteredItems() -> [ArticleListItem] {
         let base: [ArticleListItem]
         switch selectedSidebarFilter {
         case .all:
@@ -19,10 +70,20 @@ public final class ArticleListViewModel: ObservableObject {
             base = items.filter { !$0.isRead }
         case .starred:
             base = items.filter { $0.isStarred }
-        case .later:
-            base = items.filter { !$0.isRead }
         case .feed(let feedID):
             base = items.filter { $0.feedID == feedID }
+        case .category(let categoryID):
+            // Articles from every feed indented under this category, merged
+            // into ONE list — `applySort` then orders them across feeds, so
+            // rows are never grouped by their source feed. Resolve the feed
+            // set ONCE: scanning `allFeeds` per item was O(articles × feeds).
+            let categoryFeedIDs = Set(
+                allFeeds.filter { $0.category?.id == categoryID }.map(\.id)
+            )
+            base = items.filter { item in
+                guard let feedID = item.feedID else { return false }
+                return categoryFeedIDs.contains(feedID)
+            }
         case .folder(let folderID):
             let feedIDs = Set(allFeeds.filter { $0.folder?.id == folderID }.map(\.id))
             base = items.filter { item in
@@ -31,19 +92,71 @@ public final class ArticleListViewModel: ObservableObject {
             }
         }
         guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return base
+            return applySort(to: base)
         }
         let query = searchText.lowercased()
-        return base.filter { $0.title.lowercased().contains(query) || $0.snippet.lowercased().contains(query) }
+        let matching = base.filter { $0.title.lowercased().contains(query) || $0.snippet.lowercased().contains(query) }
+        return applySort(to: matching)
+    }
+
+    /// Settings → "Default sort order". Stored (not re-read on each access) so
+    /// a change publishes through `objectWillChange` and every observer — the
+    /// list, sidebar, header count — re-renders immediately. A UserDefaults
+    /// observer registered in `init` keeps it in sync with the Settings window.
+    @Published public var sortPreference: String = UserDefaults.standard.string(forKey: "defaultSortOrder") ?? "newest" {
+        didSet { invalidateDerivedState() }
+    }
+    nonisolated(unsafe) private var sortObserver: NSObjectProtocol?
+
+    /// Stable ordering — ties keep the underlying newest-first fetch order.
+    private func applySort(to unsorted: [ArticleListItem]) -> [ArticleListItem] {
+        let indexed = unsorted.enumerated().map { (index: $0.offset, item: $0.element) }
+        let ordered: [(index: Int, item: ArticleListItem)]
+        switch sortPreference {
+        case "oldest":
+            ordered = indexed.sorted {
+                let l = $0.item.publishedDate ?? .distantPast
+                let r = $1.item.publishedDate ?? .distantPast
+                return l == r ? $0.index < $1.index : l < r
+            }
+        case "unread first":
+            ordered = indexed.sorted {
+                if $0.item.isRead != $1.item.isRead { return !$0.item.isRead }
+                return $0.index < $1.index
+            }
+        case "starred first":
+            ordered = indexed.sorted {
+                if $0.item.isStarred != $1.item.isStarred { return $0.item.isStarred }
+                return $0.index < $1.index
+            }
+        default: // "newest"
+            ordered = indexed.sorted {
+                let l = $0.item.publishedDate ?? .distantFuture
+                let r = $1.item.publishedDate ?? .distantFuture
+                return l == r ? $0.index < $1.index : l > r
+            }
+        }
+        return ordered.map { $0.item }
     }
 
     public enum SidebarFilter: Equatable {
-        case all, unread, starred, later
+        case all, unread, starred
         case feed(UUID)
         case folder(UUID)
+        case category(UUID)
     }
 
-    @Published public var selectedSidebarFilter: SidebarFilter = .all
+    @Published public var selectedSidebarFilter: SidebarFilter = .all {
+        didSet {
+            invalidateDerivedState()
+            // The sidebar's current-feed highlight follows this filter —
+            // leaving a feed for All/Unread/Starred/Category clears it.
+            guard case .feed = selectedSidebarFilter else {
+                selectedFeedID = nil
+                return
+            }
+        }
+    }
 
     /// All folders loaded from SwiftData.
     @Published public var folders: [FolderRecord] = []
@@ -53,8 +166,11 @@ public final class ArticleListViewModel: ObservableObject {
         Dictionary(grouping: allFeeds, by: \.folder?.id)
     }
 
-    /// All feeds loaded from SwiftData.
-    @Published public var allFeeds: [FeedRecord] = []
+    /// All feeds loaded from SwiftData. Category/folder filters resolve
+    /// through this, so it feeds the derived-state cache as well.
+    @Published public var allFeeds: [FeedRecord] = [] {
+        didSet { invalidateDerivedState() }
+    }
 
     public func loadFolders(context: ModelContext) {
         do {
@@ -85,20 +201,28 @@ public final class ArticleListViewModel: ObservableObject {
     }
 
     public func unreadCountInFolder(_ folderID: UUID) -> Int {
-        items.filter { item in
-            guard let itemFeedID = item.feedID,
-                  let feed = allFeeds.first(where: { $0.id == itemFeedID }),
-                  feed.folder?.id == folderID else { return false }
-            return !item.isRead
-        }.count
+        if unreadCountsByFeedCache == nil { rebuildCountCaches() }
+        guard let counts = unreadCountsByFeedCache else { return 0 }
+        var total = 0
+        for feed in allFeeds where feed.folder?.id == folderID {
+            total += counts[feed.id] ?? 0
+        }
+        return total
     }
 
     public func unreadCount(forFeed feedID: UUID) -> Int {
-        items.filter { $0.feedID == feedID && !$0.isRead }.count
+        if unreadCountsByFeedCache == nil { rebuildCountCaches() }
+        return unreadCountsByFeedCache?[feedID] ?? 0
     }
 
     public var totalUnreadCount: Int {
-        items.filter { !$0.isRead }.count
+        if unreadTotalCache == nil { rebuildCountCaches() }
+        return unreadTotalCache ?? 0
+    }
+
+    public var totalStarredCount: Int {
+        if starredTotalCache == nil { rebuildCountCaches() }
+        return starredTotalCache ?? 0
     }
 
     private let articleRepository: ArticleRepositoryProtocol
@@ -136,6 +260,29 @@ public final class ArticleListViewModel: ObservableObject {
         self.selectedItemID = items.first?.id
         self.selectedFeedID = nil
         self.articleRepository = articleRepository
+
+        // The Settings window writes "defaultSortOrder" from another window —
+        // observe it and republish so the list re-sorts the moment it changes
+        // (an unused @AppStorage alone was not invalidating the list).
+        sortObserver = NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification,
+            object: UserDefaults.standard,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                let updated = UserDefaults.standard.string(forKey: "defaultSortOrder") ?? "newest"
+                if self.sortPreference != updated {
+                    self.sortPreference = updated
+                }
+            }
+        }
+    }
+
+    deinit {
+        if let sortObserver {
+            NotificationCenter.default.removeObserver(sortObserver)
+        }
     }
 
     public var selectedItem: ArticleListItem? {
@@ -147,13 +294,15 @@ public final class ArticleListViewModel: ObservableObject {
         do {
             let records = try articleRepository.fetchAll(context: context)
             if records.isEmpty {
-                let seeded = try seedSampleRecords(in: context)
-                items = seeded.map(ArticleListItem.init(record:))
-                selectedFeedID = seeded.first?.feed?.id
-            } else {
-                items = records.map(ArticleListItem.init(record:))
-                selectedFeedID = items.first?.id != nil ? nil : nil
+                // An empty store stays empty — no demo seeding, so a freshly
+                // wiped library opens as a genuine blank slate.
+                items = []
+                selectedFeedID = nil
+                selectedItemID = nil
+                return
             }
+            rebuildItems(from: records, in: context)
+            selectedFeedID = nil
             selectedItemID = items.first?.id
         } catch {
             selectedItemID = items.first?.id
@@ -163,13 +312,77 @@ public final class ArticleListViewModel: ObservableObject {
     public func loadArticles(for feedID: UUID?, context: ModelContext) {
         do {
             let records = try articleRepository.fetchAll(context: context)
-            let filtered = feedID == nil ? records : records.filter { $0.feed?.id == feedID }
-            items = filtered.map(ArticleListItem.init(record:))
+            // Always keep `items` as the FULL library: the sidebar pills count
+            // unread/starred across every feed, and the `.feed` sidebar filter
+            // narrows the visible rows. `rebuildItems` reuses already-parsed
+            // entries, so reloading after every refresh is cheap even with
+            // thousands of articles across hundreds of feeds.
+            rebuildItems(from: records, in: context)
             selectedFeedID = feedID
-            selectedItemID = items.first?.id
+            // Keep the selection inside the feed the user just opened.
+            let scoped = feedID == nil ? items : items.filter { $0.feedID == feedID }
+            selectedItemID = (scoped.first ?? items.first)?.id
         } catch {
             selectedFeedID = feedID
             selectedItemID = items.first?.id
+        }
+    }
+
+    /// Rebuilds `items` from fetched records, REUSING already-parsed entries.
+    ///
+    /// The old code ran `ArticleListItem(record:)` for every article on every
+    /// reload: that re-decoded raw + extracted content into Strings and
+    /// re-ran the HTML-stripping regex over each body. During a refresh-all
+    /// the reload fired after EVERY feed, so a 400-feed pass re-normalized the
+    /// whole 6k-article library 400 times on the main thread — the sampled
+    /// main thread spent most of its time in exactly this path.
+    ///
+    /// Article content is immutable once saved (`saveIfNew` never updates an
+    /// existing row), so a seen record only needs its mutable flags refreshed.
+    private func rebuildItems(from records: [ArticleRecord], in context: ModelContext) {
+        var existing: [UUID: ArticleListItem] = [:]
+        existing.reserveCapacity(items.count)
+        for item in items {
+            existing[item.id] = item
+        }
+
+        // Resolve feed titles from the already-loaded feed list instead of
+        // faulting `record.feed` once per article.
+        var feedTitles: [UUID: String] = [:]
+        for feed in allFeeds {
+            feedTitles[feed.id] = feed.title
+        }
+
+        var rebuilt: [ArticleListItem] = []
+        rebuilt.reserveCapacity(records.count)
+        var didBackfillNormalizedText = false
+
+        for record in records {
+            if var reused = existing[record.id] {
+                reused.isRead = record.isRead
+                reused.isStarred = record.isStarred
+                if let feedID = reused.feedID,
+                   let title = feedTitles[feedID],
+                   reused.feedTitle != title {
+                    reused.feedTitle = title
+                }
+                rebuilt.append(reused)
+                continue
+            }
+
+            let item = ArticleListItem(record: record)
+            // Persist the plain-text render on first sight so no later launch
+            // has to re-run the HTML-stripping pass over this article.
+            if record.normalizedText == nil {
+                record.normalizedText = item.cleanSnippet
+                didBackfillNormalizedText = true
+            }
+            rebuilt.append(item)
+        }
+
+        items = rebuilt
+        if didBackfillNormalizedText {
+            try? context.save()
         }
     }
 
@@ -190,6 +403,14 @@ public final class ArticleListViewModel: ObservableObject {
             Feed(title: discoveryResult.title, url: discoveryResult.normalizedURL)
         )
 
+        // Show the feed's own channel title (e.g. "BBC Sport") instead of a
+        // URL/host placeholder (e.g. "feeds.bbci.co.uk")
+        let displayTitle = FeedDiscoveryService.displayTitle(current: feed.title, parsedTitle: parsed.title)
+        if displayTitle != feed.title {
+            feed.title = displayTitle
+            try context.save()
+        }
+
         for entry in parsed.entries {
             let record = ArticleRecord(
                 feed: feed,
@@ -208,12 +429,12 @@ public final class ArticleListViewModel: ObservableObject {
         }
 
         let records = try articleRepository.fetchAll(context: context)
-        items = records.map(ArticleListItem.init(record:))
+        rebuildItems(from: records, in: context)
         selectedItemID = items.first?.id
     }
 
     public func generateSummary(for item: ArticleListItem, in context: ModelContext) async throws -> SummaryRecord? {
-        guard let articleRecord = try articleRepository.fetchAll(context: context).first(where: { $0.id == item.id }) else {
+        guard let articleRecord = try articleRepository.fetch(id: item.id, context: context) else {
             return nil
         }
 
@@ -261,9 +482,26 @@ public final class ArticleListViewModel: ObservableObject {
         }
     }
 
+    /// In-flight summary run. Launch fires `generateFeedWideSummary` from
+    /// several places at once; stacked runs each toggled isGeneratingSummary,
+    /// forcing full-window layout passes that stalled the first right-click.
+    /// Callers now share a single run instead.
+    private var feedWideSummaryTask: Task<Void, Never>?
+
     /// Generate a bullet-point summary of articles from the last 12 hours.
     /// If feedID is provided, only summarizes articles from that feed.
     public func generateFeedWideSummary(context: ModelContext, feedID: UUID? = nil) async {
+        if let running = feedWideSummaryTask {
+            await running.value
+            return
+        }
+        let task = Task { await self.performFeedWideSummary(context: context, feedID: feedID) }
+        feedWideSummaryTask = task
+        await task.value
+        feedWideSummaryTask = nil
+    }
+
+    private func performFeedWideSummary(context: ModelContext, feedID: UUID?) async {
         do {
             let allRecords = try articleRepository.fetchAll(context: context)
             let twelveHoursAgo = Calendar.current.date(byAdding: .hour, value: -12, to: Date()) ?? Date()
@@ -336,22 +574,36 @@ public final class ArticleListViewModel: ObservableObject {
         }
     }
 
-    public func select(_ item: ArticleListItem) {
+    public func select(_ item: ArticleListItem, context: ModelContext? = nil) {
         selectedItemID = item.id
+        // Opening an article marks it read, so the unread pills drop right
+        // away instead of staying until "d" or Mark All Read is pressed.
+        guard let context, !item.isRead else { return }
+        toggleRead(item, context: context)
     }
 
     public func selectNext() {
-        guard let currentID = selectedItemID,
-              let index = filteredItems.firstIndex(where: { $0.id == currentID }),
-              index + 1 < filteredItems.count else { return }
-        selectedItemID = filteredItems[index + 1].id
+        guard !filteredItems.isEmpty else { return }
+        if let currentID = selectedItemID,
+           let index = filteredItems.firstIndex(where: { $0.id == currentID }) {
+            guard index + 1 < filteredItems.count else { return }
+            selectedItemID = filteredItems[index + 1].id
+        } else {
+            // The selection just left the list (it was marked read while the
+            // Unread filter is active) — resume from the top row, don't stall.
+            selectedItemID = filteredItems[0].id
+        }
     }
 
     public func selectPrevious() {
-        guard let currentID = selectedItemID,
-              let index = filteredItems.firstIndex(where: { $0.id == currentID }),
-              index - 1 >= 0 else { return }
-        selectedItemID = filteredItems[index - 1].id
+        guard !filteredItems.isEmpty else { return }
+        if let currentID = selectedItemID,
+           let index = filteredItems.firstIndex(where: { $0.id == currentID }) {
+            guard index - 1 >= 0 else { return }
+            selectedItemID = filteredItems[index - 1].id
+        } else {
+            selectedItemID = filteredItems[filteredItems.count - 1].id
+        }
     }
 
     public func toggleRead(_ item: ArticleListItem, context: ModelContext? = nil) {
@@ -363,13 +615,17 @@ public final class ArticleListViewModel: ObservableObject {
         }
 
         do {
-            let record = try articleRepository.fetchAll(context: context).first(where: { $0.id == item.id })
+            let record = try articleRepository.fetch(id: item.id, context: context)
             guard let record else { return }
 
             try articleRepository.markRead(record, read: !record.isRead, context: context)
 
+            // markRead already mutated `record.isRead` to the NEW value, so
+            // mirror that value directly — the old `!record.isRead` computed
+            // the OLD value here, which is why the first click never updated
+            // the UI (the "double click to mark read" bug).
             if let index = items.firstIndex(where: { $0.id == item.id }) {
-                items[index].isRead = !record.isRead
+                items[index].isRead = record.isRead
             }
         } catch {
             if let index = items.firstIndex(where: { $0.id == item.id }) {
@@ -411,7 +667,7 @@ public final class ArticleListViewModel: ObservableObject {
         }
 
         do {
-            let record = try articleRepository.fetchAll(context: context).first(where: { $0.id == item.id })
+            let record = try articleRepository.fetch(id: item.id, context: context)
             guard let record else { return }
 
             try articleRepository.toggleStarred(record, context: context)
@@ -426,53 +682,4 @@ public final class ArticleListViewModel: ObservableObject {
         }
     }
 
-    private func seedSampleRecords(in context: ModelContext) throws -> [ArticleRecord] {
-        let folder = FolderRecord(name: "News")
-        let feedRepository = FeedRepository()
-        let feed = try feedRepository.create(
-            title: "The Verge",
-            url: "https://www.theverge.com/rss/index.xml",
-            folder: folder,
-            context: context
-        )
-
-        let records = [
-            ArticleRecord(
-                feed: feed,
-                title: "The quiet power of good reading interfaces",
-                author: "The Verge",
-                publishedDate: Date().addingTimeInterval(-180),
-                rawContent: "Quiet interfaces don’t subtract from the reading experience — they make it easier to trust the words in front of you.",
-                extractedContent: "Quiet interfaces don’t subtract from the reading experience — they make it easier to trust the words in front of you.",
-                isRead: false,
-                isStarred: true
-            ),
-            ArticleRecord(
-                feed: feed,
-                title: "How Apple Intelligence changes local summaries",
-                author: "MacStories",
-                publishedDate: Date().addingTimeInterval(-1260),
-                rawContent: "Local inference is quietly becoming a major part of the reading experience on Apple devices.",
-                extractedContent: "Local inference is quietly becoming a major part of the reading experience on Apple devices.",
-                isRead: false,
-                isStarred: false
-            ),
-            ArticleRecord(
-                feed: feed,
-                title: "Why RSS still feels essential on a focused machine",
-                author: "Signals",
-                publishedDate: Date().addingTimeInterval(-3600),
-                rawContent: "The core appeal of RSS is not novelty; it is control, speed, and intentional reading.",
-                extractedContent: "The core appeal of RSS is not novelty; it is control, speed, and intentional reading.",
-                isRead: true,
-                isStarred: false
-            )
-        ]
-
-        for record in records {
-            try articleRepository.save(record, context: context)
-        }
-
-        return records
-    }
 }

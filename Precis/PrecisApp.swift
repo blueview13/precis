@@ -43,4 +43,6 @@ extension Notification.Name {
     /// Posted by the app menu's Settings command. The main window observes it
     /// and calls its `openWindow` action (commands have no window environment).
     static let precisOpenSettings = Notification.Name("PrecisOpenSettings")
-}
+    /// Posted after an OPML import completes in the Settings window so the
+    /// main window reloads its sidebar feed list.
+    static let precisFeedsImported = Notification.Name("PrecisFeedsImported")}

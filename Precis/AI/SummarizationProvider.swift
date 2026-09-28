@@ -12,11 +12,8 @@ public protocol SummarizationProvider {
 /// Falls back to a smart heuristic if FoundationModels is unavailable.
 public final class AppleIntelligenceSummarizationProvider: SummarizationProvider {
     public let providerName = "Apple Intelligence"
-    private let model: SystemLanguageModel
 
-    public init() {
-        self.model = SystemLanguageModel.default
-    }
+    public init() {}
 
     public func summarize(_ text: String) async throws -> Summary {
         let cleaned = Self.clean(text)
@@ -53,7 +50,12 @@ public final class AppleIntelligenceSummarizationProvider: SummarizationProvider
     private func summarizeWithFoundationModels(_ text: String) async throws -> Summary {
         let truncated = text.count > 2000 ? String(text.prefix(2000)) + "..." : text
 
-        let session = LanguageModelSession(model: model)
+        // Resolve the model here, not in init(): init runs synchronously on
+        // the caller's actor (the main actor at launch), and the first touch of
+        // SystemLanguageModel loads large system frameworks on that thread —
+        // on main that produced a 1-2s beachball on first interaction. This
+        // method is nonisolated async, so it runs off the main actor.
+        let session = LanguageModelSession(model: SystemLanguageModel.default)
 
         let prompt = """
         Summarize this article in exactly 1-2 concise sentences. \

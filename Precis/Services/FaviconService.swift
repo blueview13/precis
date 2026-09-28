@@ -1,11 +1,25 @@
 import Foundation
 
 /// Fetches and caches favicons for feed domains.
-public enum FaviconService {
-    private static nonisolated(unsafe) var cache: [String: Data] = [:]
+///
+/// An actor rather than the previous `nonisolated(unsafe)` static dictionary:
+/// with a large sidebar every row kicks off a fetch on appear, so the old
+/// cache was written from multiple tasks at once. Lookups/writes are now
+/// serialized; the network requests themselves still run concurrently.
+public actor FaviconService {
+    public static let shared = FaviconService()
+
+    private var cache: [String: Data] = [:]
+
+    public init() {}
 
     /// Fetch the favicon for a given URL (tries /favicon.ico on the domain).
     public static func favicon(for urlString: String) async -> Data? {
+        await shared.favicon(for: urlString)
+    }
+
+    /// Fetch the favicon for a given URL (tries /favicon.ico on the domain).
+    public func favicon(for urlString: String) async -> Data? {
         guard let url = URL(string: urlString),
               let host = url.host else { return nil }
 
@@ -40,7 +54,11 @@ public enum FaviconService {
     }
 
     /// Clear the favicon cache.
-    public static func clearCache() {
+    public func clearCache() {
         cache.removeAll()
+    }
+
+    public static func clearCache() async {
+        await shared.clearCache()
     }
 }

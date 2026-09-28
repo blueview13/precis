@@ -247,6 +247,13 @@ struct AddFeedIntent: AppIntent {
             Feed(title: discoveryResult.title, url: discoveryResult.normalizedURL)
         )
 
+        // Show the feed's own channel title instead of a URL/host placeholder
+        let displayTitle = FeedDiscoveryService.displayTitle(current: feed.title, parsedTitle: parsed.title)
+        if displayTitle != feed.title {
+            feed.title = displayTitle
+            try context.save()
+        }
+
         for entry in parsed.entries {
             let record = ArticleRecord(
                 feed: feed,

@@ -89,9 +89,10 @@ private final class OPMLParser: NSObject, XMLParserDelegate {
     let data: Data
     var feeds: [OPMLFeed] = []
 
-    private var currentFolder: String?
-    private var currentAttributes: [String: String] = [:]
-    private var inOutline = false
+    /// Folder names currently open, innermost last.
+    private var folderStack: [String] = []
+    /// One entry per outline start: the folder name it pushed, or nil.
+    private var scopeStack: [String?] = []
 
     init(data: Data) {
         self.data = data
@@ -114,13 +115,21 @@ private final class OPMLParser: NSObject, XMLParserDelegate {
     ) {
         guard elementName == "outline" else { return }
 
-        if let xmlURL = attributeDict["xmlUrl"], !xmlURL.isEmpty {
-            // This is a feed outline
+        // `xmlUrl` is the OPML standard; some exporters write `xmlURL`.
+        let xmlURL = attributeDict["xmlUrl"] ?? attributeDict["xmlURL"]
+        if let xmlURL, !xmlURL.isEmpty {
+            // Feed outline — belongs to the innermost folder still open.
             let title = attributeDict["title"] ?? attributeDict["text"] ?? xmlURL
-            feeds.append(OPMLFeed(title: title, url: xmlURL, folderName: currentFolder))
+            feeds.append(OPMLFeed(title: title, url: xmlURL, folderName: folderStack.last))
+            scopeStack.append(nil)
         } else {
-            // This is a folder outline
-            currentFolder = attributeDict["title"] ?? attributeDict["text"]
+            // Folder outline — remember what to pop when it closes.
+            if let name = attributeDict["title"] ?? attributeDict["text"] {
+                folderStack.append(name)
+                scopeStack.append(name)
+            } else {
+                scopeStack.append(nil)
+            }
         }
     }
 
@@ -131,9 +140,13 @@ private final class OPMLParser: NSObject, XMLParserDelegate {
         qualifiedName qName: String?
     ) {
         guard elementName == "outline" else { return }
-        // If we were tracking a folder, check if we're leaving it
-        // (The parser will call didEndElement for nested outlines first,
-        //  so only clear the folder when we see the folder's own end element)
+        // Pop this outline's scope. `popLast()` on [String?] yields String??,
+        // so unwrap TWICE: only a scope that actually pushed a folder name
+        // should pop that name from the folder stack.
+        guard let pushed = scopeStack.popLast(), pushed != nil else { return }
+        if !folderStack.isEmpty {
+            folderStack.removeLast()
+        }
     }
 }
 

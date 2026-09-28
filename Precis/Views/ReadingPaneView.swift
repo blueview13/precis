@@ -7,6 +7,8 @@ struct ReadingPaneView: View {
     let isGeneratingSummary: Bool
     let onGenerateSummary: (() -> Void)?
     let onOpenInBrowser: (() -> Void)?
+    @AppStorage("readingFontSize") private var readingFontSize: Double = 15
+    @AppStorage("showReadingTime") private var showReadingTime: Bool = true
     @Environment(\.colorScheme) private var colorScheme
 
     init(
@@ -38,7 +40,7 @@ struct ReadingPaneView: View {
         if raw.isEmpty {
             return AttributedString("No article content is available yet.")
         }
-        return HTMLAttributedStringRenderer.render(raw)
+        return HTMLAttributedStringRenderer.render(raw, size: readingFontSize)
     }
 
     private var summaryText: String {
@@ -48,7 +50,9 @@ struct ReadingPaneView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
+            // Lazy so full-window layout passes don't re-measure the entire
+            // article body below the fold on every invalidation.
+            LazyVStack(alignment: .leading, spacing: 0) {
                 // Feed-wide 12-hour summary — always shown at top
                 if let feedWideSummary, !feedWideSummary.isEmpty {
                     VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
@@ -69,7 +73,7 @@ if isGeneratingSummary {
                         }
 
                         Text(feedWideSummary)
-                            .font(PrecisTypography.body)
+                            .font(.system(size: readingFontSize))
                             .lineSpacing(5)
                             .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.85))
                     }
@@ -112,20 +116,23 @@ if isGeneratingSummary {
                 }
 
                 HStack(spacing: PrecisSpacing.sm) {
-                    Text(item?.feedTitle ?? "Inbox")
+                    Text(item.map { FeedDiscoveryService.conciseTitle($0.feedTitle) } ?? "Inbox")
                         .font(PrecisTypography.metadata)
                         .foregroundStyle(PrecisDesignSystem.marginalia)
 
-                    Text("•")
-                        .foregroundStyle(PrecisDesignSystem.rule(for: colorScheme))
+                    if let item, showReadingTime {
+                        Text("•")
+                            .foregroundStyle(Color.accentColor)
 
-                    if let item {
                         Text("\(item.readingTimeMinutes) min read")
                             .font(PrecisTypography.metadata)
                             .foregroundStyle(PrecisDesignSystem.marginalia)
 
                         Text("•")
-                            .foregroundStyle(PrecisDesignSystem.rule(for: colorScheme))
+                            .foregroundStyle(Color.accentColor)
+                    } else if item == nil {
+                        Text("•")
+                            .foregroundStyle(Color.accentColor)
                     }
 
                     Text(item?.publishedDate.map { relativeDateString(from: $0) } ?? "No date")
@@ -144,14 +151,14 @@ if isGeneratingSummary {
                                 .tracking(1.2)
 
                             Text(summaryText)
-                                .font(PrecisTypography.body)
+                                .font(.system(size: readingFontSize))
                                 .lineSpacing(7)
                                 .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.85))
                         }
                     }
 
                     Text(articleAttributedText)
-                        .font(PrecisTypography.body)
+                        .font(.system(size: readingFontSize))
                         .lineSpacing(7)
                         .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
                 }
@@ -163,7 +170,7 @@ if isGeneratingSummary {
 
     private func relativeDateString(from date: Date) -> String {
         let delta = Int(Date().timeIntervalSince(date))
-        if delta < 60 { return "just now" }
+        if delta < 60 { return "now" }
         if delta < 3600 { return "\(delta / 60) minutes ago" }
         if delta < 86400 { return "\(delta / 3600) hours ago" }
         return "\(delta / 86400) days ago"

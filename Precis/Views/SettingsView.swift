@@ -8,6 +8,8 @@ struct SettingsView: View {
     @AppStorage("defaultSortOrder") private var defaultSortOrder: String = "newest"
     @AppStorage("showReadingTime") private var showReadingTime: Bool = true
     @AppStorage("showThumbnails") private var showThumbnails: Bool = true
+    @State private var opmlStatus = ""
+    @State private var opmlStatusIsError = false
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
 
@@ -148,6 +150,13 @@ struct SettingsView: View {
                             }
                             .buttonStyle(.plain)
                             .disabled(!canExport)
+
+                            if !opmlStatus.isEmpty {
+                                Text(opmlStatus)
+                                    .font(PrecisTypography.metadata)
+                                    .foregroundStyle(opmlStatusIsError ? Color.red : Color.accentColor)
+                                    .lineLimit(3)
+                            }
                         }
                     }
 
@@ -168,25 +177,48 @@ struct SettingsView: View {
 
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
+            opmlStatus = "Reading OPML file…"
+            opmlStatusIsError = false
             Task {
                 do {
                     let opmlFeeds = try OPMLService.parse(contentsOf: url)
+                    guard !opmlFeeds.isEmpty else {
+                        opmlStatus = "No feeds found in that OPML file"
+                        opmlStatusIsError = true
+                        return
+                    }
                     let feedRepository = FeedRepository()
                     let articleRepository = ArticleRepository()
                     let refreshService = FeedRefreshService()
 
-                    for opmlFeed in opmlFeeds {
+                    // Skip URLs already subscribed so re-importing a file is
+                    // a no-op instead of duplicating every feed.
+                    let existing = (try? feedRepository.fetchAll(context: modelContext)) ?? []
+                    var seenURLs = Set(existing.map(\.url))
+                    var added = 0
+
+                    for (index, opmlFeed) in opmlFeeds.enumerated() {
+                        guard seenURLs.insert(opmlFeed.url).inserted else { continue }
+                        opmlStatus = "Importing feed \(index + 1) of \(opmlFeeds.count)…"
                         let feed = try feedRepository.create(
                             title: opmlFeed.title,
                             url: opmlFeed.url,
                             folder: nil,
                             context: modelContext
                         )
+                        added += 1
                         if let feedURL = URL(string: opmlFeed.url) {
                             do {
                                 let parsed = try await refreshService.fetchAndParse(
                                     Feed(title: opmlFeed.title, url: feedURL)
                                 )
+                                // Use the feed's real channel title when the
+                                // OPML entry only carried a URL
+                                let displayTitle = FeedDiscoveryService.displayTitle(current: feed.title, parsedTitle: parsed.title)
+                                if displayTitle != feed.title {
+                                    feed.title = displayTitle
+                                    try modelContext.save()
+                                }
                                 for entry in parsed.entries {
                                     let record = ArticleRecord(
                                         feed: feed,
@@ -202,10 +234,25 @@ struct SettingsView: View {
                                     )
                                     try articleRepository.saveIfNew(record, context: modelContext)
                                 }
-                            } catch {}
+                            } catch {
+                                // Feed still imported without articles.
+                                PrecisLogger.error("OPML: could not fetch \(opmlFeed.url) — \(error.localizedDescription)")
+                            }
                         }
                     }
-                } catch {}
+
+                    opmlStatus = added > 0
+                        ? "Imported \(added) feed\(added == 1 ? "" : "s") (\(opmlFeeds.count - added) already subscribed)"
+                        : "All \(opmlFeeds.count) feeds were already subscribed"
+                    opmlStatusIsError = false
+                    PrecisLogger.info("OPML import finished: \(added) added of \(opmlFeeds.count)")
+                    // Tell the main window to reload its sidebar feed list.
+                    NotificationCenter.default.post(name: .precisFeedsImported, object: nil)
+                } catch {
+                    PrecisLogger.error("OPML import failed: \(error.localizedDescription)")
+                    opmlStatus = "OPML import failed: \(error.localizedDescription)"
+                    opmlStatusIsError = true
+                }
             }
         }
     }

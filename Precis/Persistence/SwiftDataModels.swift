@@ -28,6 +28,8 @@ public final class FeedRecord {
     public var title: String
     public var url: String
     public var folder: FolderRecord?
+    // Optional to-one relationship so existing stores migrate in-place (nullable column)
+    public var category: CategoryRecord?
     public var muted: Bool
     public var lastFetched: Date?
     @Relationship(deleteRule: .cascade, inverse: \ArticleRecord.feed) public var articles: [ArticleRecord] = []
@@ -37,6 +39,7 @@ public final class FeedRecord {
         title: String,
         url: String,
         folder: FolderRecord? = nil,
+        category: CategoryRecord? = nil,
         muted: Bool = false,
         lastFetched: Date? = nil
     ) {
@@ -44,6 +47,7 @@ public final class FeedRecord {
         self.title = title
         self.url = url
         self.folder = folder
+        self.category = category
         self.muted = muted
         self.lastFetched = lastFetched
     }
@@ -59,6 +63,11 @@ public final class ArticleRecord {
     public var link: String?
     @Attribute(.externalStorage) public var rawContent: Data?
     @Attribute(.externalStorage) public var extractedContent: Data?
+    /// Plain-text rendering of the article body, computed once and persisted
+    /// so app launch never re-runs the HTML-stripping pass over the whole
+    /// library (regex over every article was ~0.5s of main-thread work per
+    /// open with 6k+ articles). Nullable so existing stores migrate in-place.
+    public var normalizedText: String?
     public var isRead: Bool
     public var isStarred: Bool
     public var imageURL: String?
@@ -108,6 +117,9 @@ public final class CategoryRecord {
     // Optional so stores created before this column existed migrate in-place
     // (a mandatory attribute would fail lightweight migration with 134110).
     public var sortOrder: Int?
+    // Deleting a category nullifies its feeds' category rather than deleting them
+    @Relationship(deleteRule: .nullify, inverse: \FeedRecord.category)
+    public var feeds: [FeedRecord] = []
 
     public init(
         id: UUID = UUID(),

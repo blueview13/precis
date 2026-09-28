@@ -15,12 +15,22 @@ struct MainWindowLayout: View {
     @State private var isRefreshing = false
     @State private var isGeneratingSummary = false
     @State private var isRefreshingAll = false
-    @State private var refreshingFeedID: UUID?
+    /// One or more feeds awaiting the delete confirmation — a single row's
+    /// trash icon, a multi-selection, or every feed in a category.
+    @State private var feedsPendingDeletion: [FeedRecord] = []
+    /// Feeds checked for bulk actions via the row checkboxes (⌘/Shift still
+    /// accelerate this, but nothing requires them — see the sidebar's
+    /// "N selected" action bar).
+    @State private var selectedFeedIDs: Set<UUID> = []
+    /// Range anchor for Shift-click — the last feed clicked directly.
+    @State private var selectionAnchorID: UUID?
+    /// The sidebar takes key focus when a multi-selection exists so the
+    /// Delete key lands on it (focus effect suppressed — no ring).
+    @FocusState private var sidebarFocused: Bool
     @State private var importStatus = ""
     @State private var importStatusKind: ImportStatusKind = .neutral
     @State private var importedFeeds: [FeedRecord] = []
     @State private var showAddFeedSheet = false
-    @State private var faviconCache: [String: Data] = [:]
     @State private var categories: [CategoryRecord] = []
     @State private var isAddingCategory = false
     @State private var newCategoryName = ""
@@ -31,7 +41,9 @@ struct MainWindowLayout: View {
     @State private var categoryDropTargetID: UUID?
     @State private var categoryRowHeights: [UUID: CGFloat] = [:]
     @State private var articleListHeight: CGFloat = 350
+    @State private var windowHeight: CGFloat = 900
     @State private var sidebarWidth: CGFloat = 260
+    @State private var isSidebarHidden = false
     @Environment(\.openWindow) private var openWindow
     private var selectedSummaryText: String? {
         guard let selectedItem = viewModel.selectedItem else { return nil }
@@ -44,13 +56,26 @@ struct MainWindowLayout: View {
 
     var body: some View {
         HStack(spacing: 0) {
+            // The sidebar slides out to the left (offset) while its layout
+            // slot collapses, so the main pane expands smoothly instead of
+            // the hide/show snapping instantly.
             sidebarView
                 .frame(width: sidebarWidth)
+                .overlay(alignment: .trailing) {
+                    // Full-height sidebar border in the macOS accent color.
+                    Rectangle()
+                        .fill(Color.accentColor)
+                        .frame(width: 1)
+                }
+                .offset(x: isSidebarHidden ? -sidebarWidth : 0)
+                .frame(width: isSidebarHidden ? 0 : sidebarWidth, alignment: .leading)
+                .clipped()
 
-            // Draggable vertical divider for sidebar resize
+            // Draggable vertical divider for sidebar resize — collapses with
+            // the sidebar so no dead zone is left behind when it is hidden.
             Rectangle()
                 .fill(Color.clear)
-                .frame(width: 6)
+                .frame(width: isSidebarHidden ? 0 : 6)
                 .contentShape(Rectangle())
                 .gesture(
                     DragGesture(minimumDistance: 1)
@@ -68,8 +93,12 @@ struct MainWindowLayout: View {
                 }
 
             VStack(spacing: 0) {
-                ArticleListView(viewModel: viewModel)
-                    .frame(height: articleListHeight)
+                ArticleListView(
+                    viewModel: viewModel,
+                    isSidebarHidden: isSidebarHidden,
+                    onRevealSidebar: { isSidebarHidden = false }
+                )
+                .frame(height: articleListHeight)
 
                 ResizableDivider()
                     .frame(height: 4)
@@ -77,8 +106,11 @@ struct MainWindowLayout: View {
                         DragGesture(minimumDistance: 1)
                             .onChanged { value in
                                 let newHeight = articleListHeight + value.translation.height
-                                let maxHeight = NSScreen.main?.frame.height ?? 900
-                                articleListHeight = max(150, min(newHeight, maxHeight * 0.6))
+                                // Clamp against the window itself (not a fixed
+                                // fraction of the screen) so the divider can be
+                                // dragged to any position down to the last 140pt.
+                                let maxHeight = max(150, windowHeight - 140)
+                                articleListHeight = max(150, min(newHeight, maxHeight))
                             }
                     )
 
@@ -104,6 +136,21 @@ struct MainWindowLayout: View {
             }
         }
         .background(PrecisDesignSystem.background(for: colorScheme))
+        // Drives the sidebar slide-in/slide-out; every layout change keyed to
+        // `isSidebarHidden` (sidebar slot, drag handle) animates together.
+        .animation(.easeInOut(duration: 0.3), value: isSidebarHidden)
+        .onGeometryChange(for: CGFloat.self) { proxy in
+            proxy.size.height
+        } action: { height in
+            // Used to clamp the horizontal divider to the real window height.
+            windowHeight = height
+            // If the window shrank below the current list height, pull it back
+            // so the reading pane never gets pushed off-screen.
+            let cap = max(150, height - 140)
+            if articleListHeight > cap {
+                articleListHeight = cap
+            }
+        }
         .onChange(of: viewModel.selectedFeedID) { _, _ in
             // Feed selection changed — regenerate digest for the new feed scope
             Task {
@@ -116,6 +163,7 @@ struct MainWindowLayout: View {
             refreshFeeds()
             refreshCategories()
             viewModel.loadFromContext(modelContext)
+            Task { await repairURLTitledFeeds() }
             viewModel.loadFolders(context: modelContext)
             startBackgroundRefresh()
             // Auto-generate feed-wide 12-hour summary on launch
@@ -134,6 +182,11 @@ struct MainWindowLayout: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .precisOpenSettings)) { _ in
             openWindow(id: "settings")
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .precisFeedsImported)) { _ in
+            // OPML import finished in the Settings window — reload the feed
+            // list so the sidebar shows the new feeds immediately.
+            refreshFeeds()
         }
     }
 
@@ -297,14 +350,265 @@ struct MainWindowLayout: View {
         normalizeCategoryOrder()
     }
 
-    private func refreshSingleFeed(_ feed: FeedRecord) async {
-        refreshingFeedID = feed.id
+    // MARK: - Feed ↔ Category
+
+    private var uncategorizedFeeds: [FeedRecord] {
+        importedFeeds.filter { $0.category == nil }
+    }
+
+    private func feeds(in category: CategoryRecord) -> [FeedRecord] {
+        importedFeeds.filter { $0.category?.id == category.id }
+    }
+
+    private func moveFeed(_ feed: FeedRecord, to category: CategoryRecord?) {
+        guard feed.category?.id != category?.id else { return }
+        feed.category = category
+        do {
+            try modelContext.save()
+        } catch {
+            PrecisLogger.error("Failed to move feed to category: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Feed multi-select & bulk delete
+
+    /// Feed-row click (the checkbox toggles separately via
+    /// `toggleFeedChecked`): a plain click just navigates to the feed and
+    /// moves the Shift-range anchor, ⌘-click checks/unchecks, Shift-click
+    /// checks the range between the anchor and this row *within its section*
+    /// (a category's children and the ungrouped list are separate ranges —
+    /// cross-section ranges would be ambiguous to read visually).
+    private func handleFeedClick(_ feed: FeedRecord, group: [FeedRecord]) {
+        let flags = NSEvent.modifierFlags
+        let isCommand = flags.contains(.command)
+        let isShift = flags.contains(.shift)
+
+        if isShift,
+           let anchorID = selectionAnchorID,
+           let anchorIndex = group.firstIndex(where: { $0.id == anchorID }),
+           let clickedIndex = group.firstIndex(where: { $0.id == feed.id }) {
+            let lower = min(anchorIndex, clickedIndex)
+            let upper = max(anchorIndex, clickedIndex)
+            let rangeIDs = Set(group[lower...upper].map(\.id))
+            if isCommand {
+                selectedFeedIDs.formUnion(rangeIDs)
+            } else {
+                selectedFeedIDs = rangeIDs
+            }
+            if !selectedFeedIDs.isEmpty {
+                // Arm the Delete-key shortcut, same as ticking a checkbox —
+                // deferred so it can't disturb the click that set it.
+                Task { @MainActor in
+                    sidebarFocused = true
+                }
+            }
+        } else if isCommand {
+            toggleFeedChecked(feed)
+            return
+        }
+
+        selectionAnchorID = feed.id
+        viewModel.loadArticles(for: feed.id, context: modelContext)
+        viewModel.selectedSidebarFilter = .feed(feed.id)
+        selectedSidebarItem = feed.title
+    }
+
+    /// Checks/unchecks a feed's row checkbox. Checking arms the Delete-key
+    /// shortcut — deferred to the next run-loop turn so the focus change
+    /// can't interfere with the very tap that triggered it (a synchronous
+    /// focus write inside the tap was suspect when checks didn't stick).
+    private func toggleFeedChecked(_ feed: FeedRecord) {
+        if selectedFeedIDs.contains(feed.id) {
+            selectedFeedIDs.remove(feed.id)
+        } else {
+            selectedFeedIDs.insert(feed.id)
+            selectionAnchorID = feed.id
+        }
+        // Diagnostic trail (Console.app): proves whether the tap reached
+        // this point if checkbox behavior regresses again.
+        PrecisLogger.info("Checkbox: \(feed.title) → checked=\(selectedFeedIDs.contains(feed.id)) total=\(selectedFeedIDs.count)")
+        if !selectedFeedIDs.isEmpty {
+            Task { @MainActor in
+                sidebarFocused = true
+            }
+        }
+    }
+
+    /// Arms the shared delete confirmation for the current multi-selection.
+    private func beginBulkDelete() {
+        feedsPendingDeletion = importedFeeds.filter { selectedFeedIDs.contains($0.id) }
+    }
+
+    /// Runs after the confirmation alert: deletes every pending feed
+    /// (articles cascade) in one pass and clears the selection.
+    private func deletePendingFeeds() {
+        let repository = FeedRepository()
+        let count = feedsPendingDeletion.count
+        do {
+            for feed in feedsPendingDeletion {
+                try repository.delete(feed, context: modelContext)
+            }
+            feedsPendingDeletion = []
+            selectedFeedIDs.removeAll()
+            selectionAnchorID = nil
+            refreshFeeds()
+            importStatus = count == 1 ? "Feed removed" : "\(count) feeds removed"
+            importStatusKind = .success
+        } catch {
+            importStatus = "Could not remove feed"
+            importStatusKind = .error
+        }
+    }
+
+    /// "Remove from Category" — ungroup the feeds without deleting them.
+    private func ungroupFeeds(_ feeds: [FeedRecord]) {
+        for feed in feeds {
+            feed.category = nil
+        }
+        do {
+            try modelContext.save()
+        } catch {
+            PrecisLogger.error("Failed to ungroup feeds: \(error.localizedDescription)")
+        }
+        refreshFeeds()
+    }
+
+    private func sidebarFeedRow(_ feed: FeedRecord, indent: CGFloat = 0, compact: Bool = false, group: [FeedRecord] = []) -> some View {
+        HStack {
+            // Visible selection affordance — tick boxes make multi-select
+            // discoverable without any keyboard combinations.
+            //
+            // Deliberately a tap gesture, not a Button: the category row
+            // proves plain taps fire reliably in this sidebar, and the hit
+            // area is padded past the 12pt circle so the size reduction
+            // didn't leave a fussy target.
+            Image(systemName: selectedFeedIDs.contains(feed.id) ? "checkmark.circle.fill" : "circle")
+                // caption (10pt, down from body's 13pt) + 12pt box —
+                // the checkbox shrunk ~25% to give titles more room.
+                .font(.caption)
+                .foregroundStyle(
+                    selectedFeedIDs.contains(feed.id)
+                        ? Color.accentColor
+                        : PrecisDesignSystem.marginalia.opacity(0.35)
+                )
+                .frame(width: 12, height: 12)
+                .contentShape(Rectangle().inset(by: -5))
+                .onTapGesture { toggleFeedChecked(feed) }
+                .help("Check to select for bulk actions")
+
+            Button(action: {
+                handleFeedClick(feed, group: group)
+            }) {
+                HStack(spacing: 8) {
+                    FeedFaviconView(url: feed.url)
+                        .frame(width: 16, height: 16)
+                    Text(FeedDiscoveryService.conciseTitle(feed.title))
+                        .font(PrecisTypography.body)
+                        .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.8))
+                }
+            }
+            .buttonStyle(.plain)
+
+            let feedUnread = viewModel.unreadCount(forFeed: feed.id)
+            if feedUnread > 0 {
+                Text("\(feedUnread)")
+                    .font(PrecisTypography.caption)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.accentColor)
+                    .clipShape(Capsule())
+            }
+
+            Spacer()
+
+            if !compact, let lastFetched = feed.lastFetched {
+                Text(relativeTimeString(from: lastFetched))
+                    .font(PrecisTypography.caption)
+                    .foregroundStyle(PrecisDesignSystem.marginalia.opacity(0.7))
+            }
+            // Refresh and delete no longer have per-row icons — refresh lives
+            // in the context menu; delete is the checkbox action bar (and
+            // also in the context menu).
+        }
+        .padding(.leading, indent)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(
+                    viewModel.selectedFeedID == feed.id || selectedFeedIDs.contains(feed.id)
+                        ? Color.accentColor.opacity(0.12)
+                        : Color.clear
+                )
+        )
+        .contextMenu {
+            Button {
+                Task { await refreshSingleFeed(feed) }
+            } label: {
+                Label("Refresh Feed", systemImage: "arrow.clockwise")
+            }
+            Divider()
+            if selectedFeedIDs.count >= 2 && selectedFeedIDs.contains(feed.id) {
+                Button(role: .destructive) {
+                    beginBulkDelete()
+                } label: {
+                    Label("Delete \(selectedFeedIDs.count) Feeds…", systemImage: "trash")
+                }
+            } else {
+                Button(role: .destructive) {
+                    // Deletion happens only after the confirmation alert.
+                    feedsPendingDeletion = [feed]
+                } label: {
+                    Label("Delete Feed…", systemImage: "trash")
+                }
+            }
+            Divider()
+            Menu {
+                Button {
+                    moveFeed(feed, to: nil)
+                } label: {
+                    Label("No Category", systemImage: feed.category == nil ? "checkmark" : "square")
+                }
+                Divider()
+                if categories.isEmpty {
+                    Text("No categories yet")
+                } else {
+                    ForEach(categories) { category in
+                        Button {
+                            moveFeed(feed, to: category)
+                        } label: {
+                            Label(category.name, systemImage: feed.category?.id == category.id ? "checkmark" : "square")
+                        }
+                    }
+                }
+            } label: {
+                Label("Move to Category", systemImage: "folder")
+            }
+        }
+        .onAppear {
+            // Diagnostic trail: a category-nested row logging
+            // indent=0/compact=false means the stale-row bug is back.
+            PrecisLogger.info("Row appeared: \(feed.title) indent=\(indent) compact=\(compact)")
+        }
+    }
+
+    /// `reload: false` skips the full UI/library reload — refresh-all passes
+    /// it for every feed and reloads ONCE at the end. Reloading per feed made
+    /// a 400-feed pass rebuild the whole article library 400 times on the
+    /// main thread (sampled: the main thread spent most of its time there).
+    private func refreshSingleFeed(_ feed: FeedRecord, reload: Bool = true) async {
         importStatus = "Refreshing \(feed.title)…"
         importStatusKind = .neutral
 
         do {
             let feedURL = URL(string: feed.url) ?? URL(string: "https://example.com/feed.xml")!
             let parsed = try await FeedRefreshService().fetchAndParse(Feed(title: feed.title, url: feedURL))
+
+            // Swap a URL/host placeholder name for the feed's real channel
+            // title (e.g. "BBC Sport") — also backfills older imports
+            let betterTitle = FeedDiscoveryService.displayTitle(current: feed.title, parsedTitle: parsed.title)
+            if betterTitle != feed.title {
+                feed.title = betterTitle
+            }
 
             for entry in parsed.entries {
                 let article = ArticleRecord(
@@ -323,22 +627,46 @@ struct MainWindowLayout: View {
             }
 
             try FeedRepository().update(feed, context: modelContext)
-            refreshFeeds()
+            if reload {
+                refreshFeeds()
+            }
             importStatus = "\(feed.title) refreshed"
             importStatusKind = .success
         } catch {
             importStatus = "Refresh failed: \(error.localizedDescription)"
             importStatusKind = .error
         }
+    }
 
-        refreshingFeedID = nil
+    /// One-shot pass at launch: feeds imported before real channel titles were
+    /// captured still store a URL/host as their name — fetch the feed and swap
+    /// in its actual title (e.g. "BBC Sport" for feeds.bbci.co.uk/sport/rss.xml).
+    private func repairURLTitledFeeds() async {
+        let broken = importedFeeds.filter { FeedDiscoveryService.looksLikeURL($0.title) }
+        guard !broken.isEmpty else { return }
+
+        let service = FeedRefreshService()
+        for feed in broken {
+            guard let url = URL(string: feed.url),
+                  let parsed = try? await service.fetchAndParse(Feed(title: feed.title, url: url))
+            else { continue }
+
+            let betterTitle = FeedDiscoveryService.displayTitle(current: feed.title, parsedTitle: parsed.title)
+            if betterTitle != feed.title {
+                feed.title = betterTitle
+                try? modelContext.save()
+            }
+        }
+        refreshFeeds()
     }
 
     private func refreshAllFeeds() async {
         isRefreshingAll = true
         for feed in importedFeeds {
-            await refreshSingleFeed(feed)
+            // No per-feed UI reload — reload once after the whole pass.
+            await refreshSingleFeed(feed, reload: false)
         }
+        refreshFeeds()
         isRefreshingAll = false
         importStatus = "All feeds refreshed"
         importStatusKind = .success
@@ -346,7 +674,7 @@ struct MainWindowLayout: View {
 
     private func relativeTimeString(from date: Date) -> String {
         let delta = Int(Date().timeIntervalSince(date))
-        if delta < 60 { return "just now" }
+        if delta < 60 { return "now" }
         if delta < 3600 { return "\(delta / 60)m ago" }
         if delta < 86400 { return "\(delta / 3600)h ago" }
         return "\(delta / 86400)d ago"
@@ -398,6 +726,13 @@ struct MainWindowLayout: View {
                                 let parsed = try await refreshService.fetchAndParse(
                                     Feed(title: opmlFeed.title, url: feedURL)
                                 )
+                                // Use the feed's real channel title when the
+                                // OPML entry only carried a URL
+                                let displayTitle = FeedDiscoveryService.displayTitle(current: feed.title, parsedTitle: parsed.title)
+                                if displayTitle != feed.title {
+                                    feed.title = displayTitle
+                                    try modelContext.save()
+                                }
                                 for entry in parsed.entries {
                                     let record = ArticleRecord(
                                         feed: feed,
@@ -469,6 +804,7 @@ struct MainWindowLayout: View {
                         .foregroundStyle(PrecisDesignSystem.marginalia)
                 }
                 .buttonStyle(.plain)
+                .help("Settings")
 
                 Button(action: { showAddFeedSheet = true }) {
                     Image(systemName: "plus.circle")
@@ -476,8 +812,17 @@ struct MainWindowLayout: View {
                         .foregroundStyle(PrecisDesignSystem.marginalia)
                 }
                 .buttonStyle(.plain)
+                .help("Add feed")
 
                 Spacer()
+
+                Button(action: { isSidebarHidden = true }) {
+                    Image(systemName: "sidebar.left")
+                        .font(.title3)
+                        .foregroundStyle(PrecisDesignSystem.marginalia)
+                }
+                .buttonStyle(.plain)
+                .help("Hide sidebar")
 
                 Button(action: {
                     Task { await refreshAllFeeds() }
@@ -493,10 +838,13 @@ struct MainWindowLayout: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(isRefreshingAll)
+                .help("Refresh all feeds")
             }
             .padding(PrecisSpacing.md)
 
-            VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
+            // Spacing 9 (was PrecisSpacing.sm = 12) + row padding 6 (was 8)
+            // = 25% tighter vertical rhythm between sidebar items.
+            VStack(alignment: .leading, spacing: 9) {
                 // Library section
                 SidebarSection(title: "Library")
                 SidebarItem(title: "All Items", icon: "tray.full", badge: viewModel.totalUnreadCount, active: selectedSidebarItem == "All Items") {
@@ -507,15 +855,19 @@ struct MainWindowLayout: View {
                     selectedSidebarItem = "Unread"
                     viewModel.selectedSidebarFilter = .unread
                 }
-                SidebarItem(title: "Starred", icon: "star", active: selectedSidebarItem == "Starred") {
+                SidebarItem(title: "Starred", icon: "star", badge: viewModel.totalStarredCount, active: selectedSidebarItem == "Starred") {
                     selectedSidebarItem = "Starred"
                     viewModel.selectedSidebarFilter = .starred
                 }
-                SidebarItem(title: "Later", icon: "clock.arrow.circlepath", active: selectedSidebarItem == "Later") {
-                    selectedSidebarItem = "Later"
-                    viewModel.selectedSidebarFilter = .later
-                }
+            }
+            .padding(.horizontal, PrecisSpacing.md)
 
+            // Categories + feeds scroll lazily. With a 400-feed import this
+            // content is thousands of rows tall: the old eager, non-scrolling
+            // VStack laid out EVERY row on every render and clipped whatever
+            // extended past the window edge — most feeds were unreachable.
+            ScrollView {
+            LazyVStack(alignment: .leading, spacing: 9) {
                 // Categories section
                 SidebarSection(title: "Categories", addActive: isAddingCategory) {
                     isAddingCategory.toggle()
@@ -553,25 +905,39 @@ struct MainWindowLayout: View {
                             }
                             .padding(.vertical, 4)
                     } else {
+                        let isCategorySelected = selectedSidebarItem == category.name
                         HStack(spacing: 10) {
-                            Color.clear
-                                .frame(width: 4, height: 18)
+                            if isCategorySelected {
+                                Capsule()
+                                    .frame(width: 4, height: 18)
+                                    .foregroundStyle(Color.accentColor)
+                            } else {
+                                Color.clear
+                                    .frame(width: 4, height: 18)
+                            }
 
                             Image(systemName: "square.grid.2x2")
                                 .font(.body)
                                 .frame(width: 18)
-                                .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.6))
+                                .foregroundStyle(isCategorySelected ? Color.accentColor : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.6))
 
                             Text(category.name)
                                 .font(PrecisTypography.body)
-                                .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.75))
+                                .fontWeight(isCategorySelected ? .semibold : nil)
+                                .foregroundStyle(isCategorySelected ? Color.accentColor : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.75))
 
                             Spacer(minLength: 0)
                         }
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 6)
                         .padding(.horizontal, 4)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .contentShape(Rectangle())
+                        .onTapGesture {
+                            // Show only the feeds indented under this category;
+                            // the view model merges and sorts them across feeds.
+                            selectedSidebarItem = category.name
+                            viewModel.selectedSidebarFilter = .category(category.id)
+                        }
                         .background(
                             RoundedRectangle(cornerRadius: 10)
                                 .fill(
@@ -626,96 +992,111 @@ struct MainWindowLayout: View {
                             } label: {
                                 Label("Rename…", systemImage: "pencil")
                             }
+                            Divider()
+                            Button {
+                                ungroupFeeds(feeds(in: category))
+                            } label: {
+                                Label("Remove from Category", systemImage: "folder.badge.minus")
+                            }
+                            .disabled(feeds(in: category).isEmpty)
+                            Button(role: .destructive) {
+                                feedsPendingDeletion = feeds(in: category)
+                            } label: {
+                                Label("Delete All Feeds in Category", systemImage: "trash")
+                            }
+                            .disabled(feeds(in: category).isEmpty)
+                            Divider()
                             Button(role: .destructive) {
                                 deleteCategory(category)
                             } label: {
-                                Label("Delete", systemImage: "trash")
+                                Label("Delete Category", systemImage: "trash")
                             }
                         }
                     }
+
+                    // Feeds moved into this category, indented beneath it.
+                    //
+                    // The `.id()` keys are load-bearing: when a feed moves
+                    // between sections the lazy stack tried to keep the old
+                    // row instance at its new position — frozen with the
+                    // previous section's parameters (no indent, timestamp
+                    // visible) and ignoring selection-state repaints. Keying
+                    // on section + feed + checked forces a fresh row whenever
+                    // any of those change.
+                    let categoryFeeds = feeds(in: category)
+                    ForEach(categoryFeeds) { feed in
+                        sidebarFeedRow(feed, indent: 32, compact: true, group: categoryFeeds)
+                            .id("cat-\(category.id)-\(feed.id)-\(selectedFeedIDs.contains(feed.id))")
+                    }
                 }
 
-                // Feeds
-                if !importedFeeds.isEmpty {
+                // Feeds not assigned to a category
+                if !uncategorizedFeeds.isEmpty {
                     SidebarSection(title: "Feeds")
                 }
 
-                ForEach(importedFeeds) { feed in
-                    HStack {
-                        Button(action: {
-                            viewModel.loadArticles(for: feed.id, context: modelContext)
-                            viewModel.selectedSidebarFilter = .feed(feed.id)
-                            selectedSidebarItem = feed.title
-                        }) {
-                            HStack(spacing: 8) {
-                                FeedFaviconView(url: feed.url, faviconCache: $faviconCache)
-                                    .frame(width: 16, height: 16)
-                                Text(feed.title)
-                                    .font(PrecisTypography.body)
-                                    .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.8))
-                            }
-                        }
-                        .buttonStyle(.plain)
-
-                        let feedUnread = viewModel.unreadCount(forFeed: feed.id)
-                        if feedUnread > 0 {
-                            Text("\(feedUnread)")
-                                .font(PrecisTypography.caption)
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(PrecisDesignSystem.flag)
-                                .clipShape(Capsule())
-                        }
-
-                        Spacer()
-
-                        if let lastFetched = feed.lastFetched {
-                            Text(relativeTimeString(from: lastFetched))
-                                .font(PrecisTypography.caption)
-                                .foregroundStyle(PrecisDesignSystem.marginalia.opacity(0.7))
-                        }
-
-                        Button(action: {
-                            Task { await refreshSingleFeed(feed) }
-                        }) {
-                            if refreshingFeedID == feed.id {
-                                ProgressView()
-                                    .scaleEffect(0.6)
-                                    .frame(width: 14, height: 14)
-                            } else {
-                                Image(systemName: "arrow.clockwise")
-                                    .font(.caption)
-                                    .foregroundStyle(PrecisDesignSystem.marginalia)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(refreshingFeedID != nil)
-
-                        Button(action: {
-                            do {
-                                try FeedRepository().delete(feed, context: modelContext)
-                                refreshFeeds()
-                                importStatus = "\(feed.title) removed"
-                                importStatusKind = .neutral
-                            } catch {
-                                importStatus = "Could not remove feed"
-                                importStatusKind = .error
-                            }
-                        }) {
-                            Image(systemName: "trash")
-                                .font(.caption)
-                                .foregroundStyle(.red)
-                        }
-                        .buttonStyle(.plain)
-                    }
+                ForEach(uncategorizedFeeds) { feed in
+                    sidebarFeedRow(feed, group: uncategorizedFeeds)
+                        .id("uncat-\(feed.id)-\(selectedFeedIDs.contains(feed.id))")
                 }
             }
             .padding(.horizontal, PrecisSpacing.md)
+            }
 
-            Spacer(minLength: 0)
+            // Action bar — appears as soon as any feed is checked, so the
+            // flow (tick boxes → Delete) is visible with zero chrome when
+            // nothing is selected and no keyboard knowledge required.
+            if !selectedFeedIDs.isEmpty {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(Color.accentColor)
+
+                    Text("\(selectedFeedIDs.count) selected")
+                        .font(PrecisTypography.caption)
+                        .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
+
+                    Spacer()
+
+                    Button {
+                        selectedFeedIDs.removeAll()
+                    } label: {
+                        Text("Clear")
+                            .font(PrecisTypography.caption)
+                            .foregroundStyle(PrecisDesignSystem.marginalia)
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        beginBulkDelete()
+                    } label: {
+                        Text(selectedFeedIDs.count == 1 ? "Delete" : "Delete \(selectedFeedIDs.count)")
+                            .font(PrecisTypography.caption)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color.red, in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .help("Delete the checked feeds after confirmation")
+                }
+                .padding(.horizontal, PrecisSpacing.md)
+                .padding(.vertical, 8)
+            }
         }
-        .background(PrecisDesignSystem.surface(for: colorScheme))
+        .background(colorScheme == .dark ? PrecisDesignSystem.surface(for: colorScheme) : Color.white)
+        // Key focus for the Delete-key shortcut; focus follows the checks
+        // (armed in toggleFeedChecked / the Shift-range branch) and the
+        // focus ring stays suppressed.
+        .focusable()
+        .focused($sidebarFocused)
+        .focusEffectDisabled(true)
+        .onKeyPress(.delete) {
+            guard !selectedFeedIDs.isEmpty else { return .ignored }
+            beginBulkDelete()
+            return .handled
+        }
         .sheet(isPresented: $showAddFeedSheet) {
             AddFeedSheet(
                 feedURLInput: $feedURLInput,
@@ -728,15 +1109,20 @@ struct MainWindowLayout: View {
                         importStatus = ""
                         importStatusKind = .neutral
                         do {
+                            let before = (try? ArticleRepository().fetchAll(context: modelContext).count) ?? 0
                             try await viewModel.importFeed(from: feedURLInput, in: modelContext)
                             refreshFeeds()
                             viewModel.selectedSidebarFilter = .all
                             viewModel.loadArticles(for: nil, context: modelContext)
-                            let count = viewModel.items.count
-                            importStatus = "Imported \(count) articles"
+                            let after = (try? ArticleRepository().fetchAll(context: modelContext).count) ?? 0
+                            let added = max(0, after - before)
+                            // Stay open so several feeds can be added back-to-
+                            // back; "Done" (or the ✕) closes the sheet.
+                            importStatus = added > 0
+                                ? "Added \(added) new article\(added == 1 ? "" : "s") — paste another URL to add the next feed"
+                                : "Feed added — no new articles yet; paste another URL to add the next feed"
                             importStatusKind = .success
                             feedURLInput = ""
-                            showAddFeedSheet = false
                         } catch {
                             importStatus = "Could not import feed: \(error.localizedDescription)"
                             importStatusKind = .error
@@ -746,16 +1132,30 @@ struct MainWindowLayout: View {
                 }
             )
         }
-        .onAppear {
-            // Load favicons for all feeds
-            Task {
-                for feed in importedFeeds {
-                    if faviconCache[feed.url] == nil {
-                        if let data = await FaviconService.favicon(for: feed.url) {
-                            faviconCache[feed.url] = data
-                        }
-                    }
-                }
+        // Favicon loading moved into `FeedFaviconView` itself: the old
+        // warm-up loop wrote into a `@State` dictionary once PER feed, so
+        // each arrival re-rendered the whole window (sidebar + list + pane)
+        // — 400 times on launch, each pass rebuilding every sidebar row.
+        .alert(
+            feedsPendingDeletion.count > 1
+                ? "Delete \(feedsPendingDeletion.count) Feeds?"
+                : "Delete Feed?",
+            isPresented: Binding(
+                get: { !feedsPendingDeletion.isEmpty },
+                set: { if !$0 { feedsPendingDeletion = [] } }
+            )
+        ) {
+            Button("Delete", role: .destructive) {
+                deletePendingFeeds()
+            }
+            Button("Cancel", role: .cancel) {
+                feedsPendingDeletion = []
+            }
+        } message: {
+            if feedsPendingDeletion.count > 1 {
+                Text("These \(feedsPendingDeletion.count) feeds and all of their articles will be permanently deleted. This cannot be undone.")
+            } else if let feed = feedsPendingDeletion.first {
+                Text("\"\(feed.title)\" and all of its articles will be permanently removed. This cannot be undone.")
             }
         }
     }
@@ -770,6 +1170,7 @@ private struct AddFeedSheet: View {
     @Binding var importStatus: String
     @Binding var importStatusKind: ImportStatusKind
     let onAdd: () -> Void
+    @State private var didImport = false
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @FocusState private var isURLEntryFocused: Bool
@@ -800,28 +1201,54 @@ private struct AddFeedSheet: View {
                 .focused($isURLEntryFocused)
                 .onSubmit { onAdd() }
 
-            Button(action: onAdd) {
-                HStack {
-                    if isImporting {
-                        ProgressView()
-                            .frame(width: 12, height: 12)
+            HStack(spacing: 12) {
+                Button(action: onAdd) {
+                    HStack {
+                        if isImporting {
+                            ProgressView()
+                                .frame(width: 12, height: 12)
+                        }
+                        Text(isImporting ? "Importing..." : "Add Feed")
                     }
-                    Text(isImporting ? "Importing..." : "Add Feed")
+                    .frame(maxWidth: .infinity)
                 }
-                .frame(maxWidth: .infinity)
+                .buttonStyle(.borderedProminent)
+                .disabled(isImporting || feedURLInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                // Appears after the first successful import so further feeds
+                // can be added in the same session; closes the sheet.
+                if didImport {
+                    Button(action: { dismiss() }) {
+                        Text("Done")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(isImporting)
+                }
             }
-            .buttonStyle(.borderedProminent)
-            .disabled(isImporting || feedURLInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
             if !importStatus.isEmpty {
                 Text(importStatus)
                     .font(PrecisTypography.metadata)
-                    .foregroundStyle(importStatusKind == .success ? PrecisDesignSystem.flag : (importStatusKind == .error ? .red : PrecisDesignSystem.marginalia))
+                    .foregroundStyle(importStatusKind == .success ? Color.accentColor : (importStatusKind == .error ? .red : PrecisDesignSystem.marginalia))
                     .lineLimit(2)
             }
         }
         .padding(PrecisSpacing.lg)
         .frame(width: 420)
+        .onAppear {
+            // Fresh sheet state on every presentation.
+            importStatus = ""
+            importStatusKind = .neutral
+            didImport = false
+        }
+        .onChange(of: importStatusKind) { _, kind in
+            if kind == .success {
+                didImport = true
+                // Ready the field for the next feed URL.
+                isURLEntryFocused = true
+            }
+        }
     }
 }
 
@@ -829,11 +1256,16 @@ private struct AddFeedSheet: View {
 
 private struct FeedFaviconView: View {
     let url: String
-    @Binding var faviconCache: [String: Data]
+    /// Each row owns its fetch and its decoded image: the row re-renders
+    /// itself once when the icon arrives instead of invalidating a shared
+    /// dictionary that re-rendered every row in the sidebar. The decoded
+    /// `NSImage` is also held here — the old code re-ran `NSImage(data:)`
+    /// for every row on every sidebar render.
+    @State private var nsImage: NSImage?
 
     var body: some View {
         Group {
-            if let data = faviconCache[url], let nsImage = NSImage(data: data) {
+            if let nsImage {
                 Image(nsImage: nsImage)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
@@ -846,6 +1278,12 @@ private struct FeedFaviconView: View {
         }
         .frame(width: 16, height: 16)
         .clipShape(RoundedRectangle(cornerRadius: 3))
+        .task(id: url) {
+            guard nsImage == nil else { return }
+            guard let data = await FaviconService.favicon(for: url),
+                  let image = NSImage(data: data) else { return }
+            nsImage = image
+        }
     }
 }
 
@@ -877,15 +1315,17 @@ private struct SidebarSection: View {
                 Button(action: onAdd) {
                     Image(systemName: "plus")
                         .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(PrecisDesignSystem.flag)
+                        // Solid accent plus over a light, fairly transparent
+                        // accent wash so the + still stands out.
+                        .foregroundStyle(Color.accentColor)
                         .frame(width: 20, height: 20)
                         .background(
                             Circle()
-                                .fill(PrecisDesignSystem.flag.opacity(isHoveringAdd ? 0.28 : 0.15))
+                                .fill(Color.accentColor.opacity(isHoveringAdd ? 0.24 : 0.12))
                         )
                         .overlay(
                             Circle()
-                                .strokeBorder(PrecisDesignSystem.flag.opacity(isHoveringAdd ? 0.6 : 0.35), lineWidth: 1)
+                                .strokeBorder(Color.accentColor.opacity(isHoveringAdd ? 0.55 : 0.30), lineWidth: 1)
                         )
                         .rotationEffect(.degrees(addActive ? 45 : 0))
                         .scaleEffect(isHoveringAdd ? 1.08 : 1)
@@ -916,7 +1356,8 @@ private struct SidebarItem: View {
                 if active {
                     Capsule()
                         .frame(width: 4, height: 18)
-                        .foregroundStyle(PrecisDesignSystem.flag)
+                        // Short indicator bar beside the active sidebar item.
+                        .foregroundStyle(Color.accentColor)
                 } else {
                     Color.clear
                         .frame(width: 4, height: 18)
@@ -941,11 +1382,11 @@ private struct SidebarItem: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(PrecisDesignSystem.flag)
+                        .background(Color.accentColor)
                         .clipShape(Capsule())
                 }
             }
-            .padding(.vertical, 8)
+            .padding(.vertical, 6)
             .padding(.horizontal, 4)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(active ? PrecisDesignSystem.surface(for: colorScheme).opacity(0.8) : Color.clear)
@@ -1002,14 +1443,13 @@ private struct ArticleRow: View {
 
 private struct ResizableDivider: View {
     @Environment(\.colorScheme) private var colorScheme
-    @State private var isHovering = false
 
     var body: some View {
         Rectangle()
-            .fill(isHovering ? PrecisDesignSystem.flag : PrecisDesignSystem.rule(for: colorScheme))
+            // Always the neutral rule color — hover only changes the cursor.
+            .fill(PrecisDesignSystem.rule(for: colorScheme))
             .frame(height: 4)
             .onHover { hovering in
-                isHovering = hovering
                 if hovering {
                     NSCursor.resizeUpDown.push()
                 } else {

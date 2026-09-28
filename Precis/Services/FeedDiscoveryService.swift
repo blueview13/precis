@@ -122,6 +122,49 @@ public final class FeedDiscoveryService: FeedDiscoveryServiceProtocol {
             || lowerPath.contains("jsonfeed")
     }
 
+    // MARK: - Display Titles
+
+    /// True when a stored title is really a URL or bare host, e.g.
+    /// "feeds.bbci.co.uk" or "https://example.com/feed.xml".
+    public static func looksLikeURL(_ title: String) -> Bool {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+        if trimmed.contains("://") { return true }
+        // Scheme-less "host" or "host/path" — but require a dotted host so
+        // friendly names like "r/macapps" or "mancity" are never misread.
+        guard let host = URL(string: "https://\(trimmed)")?.host, host.contains(".") else { return false }
+        return trimmed == host || trimmed.hasPrefix(host + "/")
+    }
+
+    /// Keeps friendly names ("r/macapps", "YouTube • mancity") but replaces
+    /// URL-ish placeholders with the channel title read from the parsed feed.
+    public static func displayTitle(current: String, parsedTitle: String?) -> String {
+        guard looksLikeURL(current),
+              let parsed = parsedTitle?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !parsed.isEmpty
+        else { return current }
+        return parsed
+    }
+
+    /// Shortens a feed title for display: keeps the part before the first
+    /// separator ("Al Jazeera – Breaking News…" → "Al Jazeera") and caps it
+    /// at 4 words. Stored titles stay untouched.
+    public static func conciseTitle(_ title: String) -> String {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return trimmed }
+
+        var head = trimmed
+        for separator in [" – ", " — ", " | ", " - ", " · ", ": "] {
+            if let range = trimmed.range(of: separator) {
+                head = String(trimmed[..<range.lowerBound])
+                break
+            }
+        }
+
+        let words = head.split(separator: " ", omittingEmptySubsequences: true)
+        return words.count > 4 ? words.prefix(4).joined(separator: " ") : head
+    }
+
     private func validateAndClassifyDirectFeed(for url: URL) throws -> FeedDiscoveryResult? {
         guard validateFeedURL(url) else { return nil }
 

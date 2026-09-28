@@ -3,6 +3,7 @@ import SwiftData
 
 public protocol ArticleRepositoryProtocol {
     func fetchAll(context: ModelContext) throws -> [ArticleRecord]
+    func fetch(id: UUID, context: ModelContext) throws -> ArticleRecord?
     func save(_ article: ArticleRecord, context: ModelContext) throws
     @discardableResult func saveIfNew(_ article: ArticleRecord, context: ModelContext) throws -> Bool
     func markRead(_ article: ArticleRecord, read: Bool, context: ModelContext) throws
@@ -15,6 +16,17 @@ public final class ArticleRepository: ArticleRepositoryProtocol {
     public func fetchAll(context: ModelContext) throws -> [ArticleRecord] {
         let descriptor = FetchDescriptor<ArticleRecord>(sortBy: [SortDescriptor(\.publishedDate, order: .reverse)])
         return try context.fetch(descriptor)
+    }
+
+    /// Fetch one article by id. Per-click paths (toggle read/star, summary)
+    /// used to fetchAll() the entire library and scan it — with 6k+ articles
+    /// that materialized every record on every click.
+    public func fetch(id: UUID, context: ModelContext) throws -> ArticleRecord? {
+        let target = id
+        let descriptor = FetchDescriptor<ArticleRecord>(
+            predicate: #Predicate { $0.id == target }
+        )
+        return try context.fetch(descriptor).first
     }
 
     public func save(_ article: ArticleRecord, context: ModelContext) throws {
