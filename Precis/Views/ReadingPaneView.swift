@@ -12,12 +12,23 @@ struct ReadingPaneView: View {
     /// True while the full article page is being downloaded for the current
     /// selection — shown above the body as "Loading full article…".
     let isFetchingContent: Bool
+    /// Moves the selection one article up/down the visible list — wired to
+    /// the pane's ‹ › step controls.
+    let onPreviousArticle: (() -> Void)?
+    let onNextArticle: (() -> Void)?
+    /// Whether an article exists above/below the current selection; the
+    /// matching chevron greys out when it doesn't.
+    let canSelectPrevious: Bool
+    let canSelectNext: Bool
     @AppStorage("readingFontSize") private var readingFontSize: Double = 15
     @AppStorage("showReadingTime") private var showReadingTime: Bool = true
     @Environment(\.colorScheme) private var colorScheme
     /// Content height reported by the article web view — it grows as the
     /// document (and its images) finish measuring inside this scroll view.
     @State private var articleHeight: CGFloat = 320
+    /// Scroll anchor at the very top of the pane's content — a newly
+    /// selected article scrolls back here.
+    private static let topAnchorID = "readingPaneTop"
 
     init(
         item: ArticleListItem?,
@@ -26,7 +37,11 @@ struct ReadingPaneView: View {
         isGeneratingSummary: Bool = false,
         onGenerateSummary: (() -> Void)? = nil,
         onOpenInBrowser: (() -> Void)? = nil,
-        isFetchingContent: Bool = false
+        isFetchingContent: Bool = false,
+        onPreviousArticle: (() -> Void)? = nil,
+        onNextArticle: (() -> Void)? = nil,
+        canSelectPrevious: Bool = false,
+        canSelectNext: Bool = false
     ) {
         self.item = item
         self.summaryOverride = summaryOverride
@@ -35,6 +50,10 @@ struct ReadingPaneView: View {
         self.onGenerateSummary = onGenerateSummary
         self.onOpenInBrowser = onOpenInBrowser
         self.isFetchingContent = isFetchingContent
+        self.onPreviousArticle = onPreviousArticle
+        self.onNextArticle = onNextArticle
+        self.canSelectPrevious = canSelectPrevious
+        self.canSelectNext = canSelectNext
     }
 
     private var articleText: String {
@@ -98,10 +117,21 @@ struct ReadingPaneView: View {
     }
 
     var body: some View {
+        ScrollViewReader { proxy in
+            pane(proxy)
+        }
+    }
+
+    /// The scrollable pane content. Split out so the wrapper above can own
+    /// the scroll-reset proxy without disturbing this layout.
+    private func pane(_ proxy: ScrollViewProxy) -> some View {
         ScrollView {
             // Lazy so full-window layout passes don't re-measure the entire
             // article body below the fold on every invalidation.
             LazyVStack(alignment: .leading, spacing: 0) {
+                // Scroll anchor — selecting another article returns the pane
+                // to the top instead of inheriting the previous offset.
+                Color.clear.frame(height: 0).id(Self.topAnchorID)
                 // Feed-wide 12-hour summary — always shown at top
                 if let feedWideSummary, !feedWideSummary.isEmpty {
                     VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
@@ -134,7 +164,9 @@ if isGeneratingSummary {
 
                 HStack(alignment: .top) {
                     Text(item?.title ?? "Select an article")
-                        .font(PrecisTypography.title)
+                        // Same typeface as the article-list titles in the
+                        // window's top section.
+                        .font(PrecisTypography.headline)
                         .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
                         .padding(.bottom, PrecisSpacing.sm)
 
@@ -161,6 +193,10 @@ if isGeneratingSummary {
                             .buttonStyle(.bordered)
                             .disabled(isGeneratingSummary)
                         }
+                    }
+
+                    if onPreviousArticle != nil, onNextArticle != nil {
+                        articleNavigationControl
                     }
                 }
 
@@ -231,6 +267,55 @@ if isGeneratingSummary {
             }
             .padding(PrecisSpacing.xl)
         }
+        .onChange(of: item?.id) { _, _ in
+            // A new article starts at the top with a fresh height — the old
+            // scroll offset and web-view height otherwise left a blank
+            // region around the new, shorter content.
+            articleHeight = 320
+            proxy.scrollTo(Self.topAnchorID, anchor: .top)
+        }
+    }
+
+    // MARK: - Article step controls
+
+    /// Safari-style `‹ | ›` segment at the pane's top right — steps the
+    /// selection to the article above/below the current one.
+    private var articleNavigationControl: some View {
+        HStack(spacing: 0) {
+            Button(action: { onPreviousArticle?() }) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 13, weight: .semibold))
+                    .frame(width: 28, height: 22)
+            }
+            .buttonStyle(.plain)
+            .disabled(!canSelectPrevious)
+            .opacity(canSelectPrevious ? 1 : 0.35)
+            .help("Previous article")
+
+            Rectangle()
+                .fill(Color(nsColor: .separatorColor))
+                .frame(width: 1, height: 14)
+
+            Button(action: { onNextArticle?() }) {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .frame(width: 28, height: 22)
+            }
+            .buttonStyle(.plain)
+            .disabled(!canSelectNext)
+            .opacity(canSelectNext ? 1 : 0.35)
+            .help("Next article")
+        }
+        .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.75))
+        .padding(.horizontal, 4)
+        .background(
+            Capsule()
+                .fill(Color(nsColor: .controlBackgroundColor))
+        )
+        .overlay(
+            Capsule()
+                .stroke(Color(nsColor: .separatorColor), lineWidth: 1)
+        )
     }
 
     private func relativeDateString(from date: Date) -> String {
@@ -408,7 +493,8 @@ struct ArticleHTMLView: NSViewRepresentable {
         webView.underPageBackgroundColor = .clear
         webView.navigationDelegate = context.coordinator
         context.coordinator.lastDocument = document
-        webView.loadHTMLString(document, baseURL: baseURL)
+        context.coordinator.lastBaseURL = baseURL
+        context.coordinator.currentNavigation = webView.loadHTMLString(document, baseURL: baseURL)
         return webView
     }
 
@@ -416,7 +502,8 @@ struct ArticleHTMLView: NSViewRepresentable {
         context.coordinator.onHeightChange = onHeightChange
         guard context.coordinator.lastDocument != document else { return }
         context.coordinator.lastDocument = document
-        webView.loadHTMLString(document, baseURL: baseURL)
+        context.coordinator.lastBaseURL = baseURL
+        context.coordinator.currentNavigation = webView.loadHTMLString(document, baseURL: baseURL)
     }
 
     static func dismantleNSView(_ webView: WKWebView, coordinator: Coordinator) {
@@ -446,6 +533,14 @@ struct ArticleHTMLView: NSViewRepresentable {
 
     final class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
         var lastDocument: String?
+        var lastBaseURL: URL?
+        /// The navigation our own `loadHTMLString` started — failures are
+        /// only retried when THEY belong to it, never for sub-frame embeds.
+        var currentNavigation: WKNavigation?
+        /// Failed loads retry this many times before giving up, so a
+        /// crash-looping page can't spin the web view forever. Rearmed by
+        /// every successful load.
+        var loadAttempts = 0
         var onHeightChange: (CGFloat) -> Void
 
         init(onHeightChange: @escaping (CGFloat) -> Void) {
@@ -458,6 +553,8 @@ struct ArticleHTMLView: NSViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            // A clean load re-arms failure retries for this document.
+            loadAttempts = 0
             // Belt and braces for the injected reporter: measure once more
             // after the document settles.
             webView.evaluateJavaScript("Math.ceil(document.body.scrollHeight)") { [weak self] result, _ in
@@ -465,6 +562,44 @@ struct ArticleHTMLView: NSViewRepresentable {
                     self?.onHeightChange(CGFloat(height))
                 }
             }
+        }
+
+        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+            reloadAfterFailure(webView, navigation: navigation, error: error)
+        }
+
+        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+            reloadAfterFailure(webView, navigation: navigation, error: error)
+        }
+
+        /// The WebContent process was killed (memory pressure after a long
+        /// session) — without a reload the pane stayed blank until the app
+        /// was restarted.
+        func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+            retryLoad(webView)
+        }
+
+        /// A failed main-frame load used to leave `lastDocument` claiming the
+        /// pane was current, so every later `updateNSView` skipped the reload
+        /// and the blank web view never recovered. Retry a couple of times —
+        /// a fresh `loadHTMLString` also revives a killed render process.
+        private func reloadAfterFailure(_ webView: WKWebView, navigation: WKNavigation!, error: Error) {
+            // Only the document load WE issued — a failing sub-frame embed
+            // must not reset the article. With no recorded navigation (e.g.
+            // the load never started) fall through and let the retry help.
+            if let current = currentNavigation, let navigation, navigation !== current { return }
+            let nsError = error as NSError
+            // Loads superseded by a newer click and links cancelled by the
+            // policy handler are not failures.
+            if nsError.domain == NSURLErrorDomain, nsError.code == NSURLErrorCancelled { return }
+            if nsError.domain == "WebKitErrorDomain", nsError.code == 102 { return }
+            retryLoad(webView)
+        }
+
+        private func retryLoad(_ webView: WKWebView) {
+            guard loadAttempts < 2, let document = lastDocument else { return }
+            loadAttempts += 1
+            currentNavigation = webView.loadHTMLString(document, baseURL: lastBaseURL)
         }
 
         func webView(

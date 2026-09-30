@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 public enum PrecisDesignSystem {
     public static let paper = Color(hex: "#F3F0E8")
@@ -22,6 +23,29 @@ public enum PrecisDesignSystem {
 
     public static func rule(for colorScheme: ColorScheme) -> Color {
         colorScheme == .dark ? Color(hex: "#37342E") : rule
+    }
+
+    // MARK: - Persisted tints (category text/icon colors)
+
+    /// Reads a "#RRGGBB"/"RRGGBB" hex string; nil for malformed input.
+    public static func color(hex: String) -> Color? {
+        let digits = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        guard digits.count == 6, let value = UInt64(digits, radix: 16) else { return nil }
+        let red = Double((value >> 16) & 0xFF) / 255
+        let green = Double((value >> 8) & 0xFF) / 255
+        let blue = Double(value & 0xFF) / 255
+        return Color(.sRGB, red: red, green: green, blue: blue, opacity: 1)
+    }
+
+    /// "#RRGGBB" for any Color — the storage inverse of `color(hex:)`.
+    public static func hexString(from color: Color) -> String {
+        let nsColor = NSColor(color).usingColorSpace(.sRGB) ?? .black
+        return String(
+            format: "#%02X%02X%02X",
+            Int((nsColor.redComponent * 255).rounded()),
+            Int((nsColor.greenComponent * 255).rounded()),
+            Int((nsColor.blueComponent * 255).rounded())
+        )
     }
 }
 

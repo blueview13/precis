@@ -76,7 +76,28 @@ public enum ArticleContentLoader {
             ?? ""
         guard !html.isEmpty else { throw LoaderError.emptyPage }
 
-        return extractReadableHTML(from: html, base: url)
+        let fragment = extractReadableHTML(from: html, base: url)
+        // Pages that render via JavaScript (Reddit, some paywalls) answer with
+        // a near-empty shell — accepting it would overwrite the feed's own
+        // content with nothing and leave the reading pane blank permanently.
+        guard visibleTextLength(in: fragment) >= minimumArticleText else {
+            throw LoaderError.emptyPage
+        }
+        return fragment
+    }
+
+    /// Extracted fragments shorter than this many visible characters count as
+    /// a failed fetch — see the guard in `fetchReadableHTML`.
+    public static let minimumArticleText = 200
+
+    /// Visible characters in an HTML fragment — tags and collapsed
+    /// whitespace don't count.
+    public static func visibleTextLength(in fragment: String) -> Int {
+        let stripped = fragment.replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression)
+        let collapsed = stripped
+            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return collapsed.count
     }
 
     /// Picks the article body out of a full page and strips chrome.

@@ -131,6 +131,8 @@ public final class CategoryRecord {
     // Optional so stores created before this column existed migrate in-place
     // (a mandatory attribute would fail lightweight migration with 134110).
     public var sortOrder: Int?
+    // Optional "#RRGGBB" tint for the sidebar's category text + icon.
+    public var colorHex: String?
     // Deleting a category nullifies its feeds' category rather than deleting them
     @Relationship(deleteRule: .nullify, inverse: \FeedRecord.category)
     public var feeds: [FeedRecord] = []
@@ -138,11 +140,13 @@ public final class CategoryRecord {
     public init(
         id: UUID = UUID(),
         name: String,
-        sortOrder: Int? = nil
+        sortOrder: Int? = nil,
+        colorHex: String? = nil
     ) {
         self.id = id
         self.name = name
         self.sortOrder = sortOrder
+        self.colorHex = colorHex
     }
 }
 

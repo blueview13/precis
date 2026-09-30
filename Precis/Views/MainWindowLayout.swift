@@ -31,11 +31,14 @@ struct MainWindowLayout: View {
     @State private var importStatusKind: ImportStatusKind = .neutral
     @State private var importedFeeds: [FeedRecord] = []
     @State private var showAddFeedSheet = false
+    @State private var isHoveringAddFeeds = false
     @State private var categories: [CategoryRecord] = []
     @State private var isAddingCategory = false
     @State private var newCategoryName = ""
     @State private var editingCategoryID: UUID?
     @State private var editingCategoryName = ""
+    // Category whose color popover is open (set from its context menu).
+    @State private var colorEditingCategoryID: UUID?
     @FocusState private var isCategoryInputFocused: Bool
     @FocusState private var isCategoryEditFocused: Bool
     @State private var categoryDropTargetID: UUID?
@@ -138,7 +141,11 @@ struct MainWindowLayout: View {
                               let url = URL(string: link) else { return }
                         NSWorkspace.shared.open(url)
                     },
-                    isFetchingContent: viewModel.loadingFullContentID == viewModel.selectedItem?.id
+                    isFetchingContent: viewModel.loadingFullContentID == viewModel.selectedItem?.id,
+                    onPreviousArticle: { viewModel.selectPrevious() },
+                    onNextArticle: { viewModel.selectNext() },
+                    canSelectPrevious: viewModel.canSelectPrevious,
+                    canSelectNext: viewModel.canSelectNext
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -304,6 +311,65 @@ struct MainWindowLayout: View {
         isAddingCategory = false
         isCategoryInputFocused = false
         refreshCategories()
+    }
+
+    // MARK: - Category color
+
+    /// Live binding from the color popover into the category's persisted
+    /// tint — every picker change writes and saves so the sidebar row
+    /// re-renders as the user drags.
+    private func categoryColorBinding(for category: CategoryRecord) -> Binding<Color> {
+        Binding(
+            get: {
+                category.colorHex.flatMap { PrecisDesignSystem.color(hex: $0) } ?? Color.accentColor
+            },
+            set: { newColor in
+                category.colorHex = PrecisDesignSystem.hexString(from: newColor)
+                saveCategoryTint()
+            }
+        )
+    }
+
+    private func saveCategoryTint() {
+        do {
+            try modelContext.save()
+        } catch {
+            PrecisLogger.error("Failed to save category color: \(error.localizedDescription)")
+        }
+    }
+
+    /// Color picker popover for a category's text and icon tint.
+    private func categoryColorPopover(for category: CategoryRecord) -> some View {
+        VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
+            Text("Text & Icon Color")
+                .font(PrecisTypography.metadata)
+                .foregroundStyle(PrecisDesignSystem.marginalia)
+                .textCase(.uppercase)
+                .tracking(1.2)
+
+            ColorPicker(
+                "Color",
+                selection: categoryColorBinding(for: category),
+                supportsOpacity: false
+            )
+
+            HStack {
+                Button("Use Default") {
+                    category.colorHex = nil
+                    saveCategoryTint()
+                }
+                .disabled(category.colorHex == nil)
+
+                Spacer()
+
+                Button("Done") {
+                    colorEditingCategoryID = nil
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(PrecisSpacing.md)
+        .frame(minWidth: 260)
     }
 
     private func beginEditingCategory(_ category: CategoryRecord) {
@@ -905,11 +971,27 @@ struct MainWindowLayout: View {
                 .help("Settings")
 
                 Button(action: { showAddFeedSheet = true }) {
-                    Image(systemName: "plus.circle")
-                        .font(.title3)
-                        .foregroundStyle(PrecisDesignSystem.marginalia)
+                    HStack(spacing: 5) {
+                        Text("Add Feeds")
+                            .font(.system(size: 13, weight: .medium))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                        Image(systemName: "plus.circle")
+                            .font(.title3)
+                    }
+                    // macOS accent color on the label + icon, sitting on the
+                    // same faint accent wash as the add-category + chip.
+                    .foregroundStyle(Color.accentColor)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule()
+                            .fill(Color.accentColor.opacity(isHoveringAddFeeds ? 0.24 : 0.12))
+                    )
                 }
                 .buttonStyle(.plain)
+                .onHover { isHoveringAddFeeds = $0 }
+                .animation(.easeOut(duration: 0.15), value: isHoveringAddFeeds)
                 .help("Add feed")
 
                 Spacer()
@@ -1004,6 +1086,9 @@ struct MainWindowLayout: View {
                             .padding(.vertical, 4)
                     } else {
                         let isCategorySelected = selectedSidebarItem == category.name
+                        // User-chosen tint from "Change Color…" — nil keeps
+                        // the default selection/neutral row colors.
+                        let customTint = category.colorHex.flatMap { PrecisDesignSystem.color(hex: $0) }
                         HStack(spacing: 10) {
                             if isCategorySelected {
                                 Capsule()
@@ -1017,12 +1102,12 @@ struct MainWindowLayout: View {
                             Image(systemName: "square.grid.2x2")
                                 .font(.body)
                                 .frame(width: 18)
-                                .foregroundStyle(isCategorySelected ? Color.accentColor : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.6))
+                                .foregroundStyle(customTint ?? (isCategorySelected ? Color.accentColor : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.6)))
 
                             Text(category.name)
                                 .font(PrecisTypography.body)
                                 .fontWeight(isCategorySelected ? .semibold : nil)
-                                .foregroundStyle(isCategorySelected ? Color.accentColor : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.75))
+                                .foregroundStyle(customTint ?? (isCategorySelected ? Color.accentColor : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.75)))
 
                             Spacer(minLength: 0)
                         }
@@ -1105,6 +1190,11 @@ struct MainWindowLayout: View {
                             } label: {
                                 Label("Rename…", systemImage: "pencil")
                             }
+                            Button {
+                                colorEditingCategoryID = category.id
+                            } label: {
+                                Label("Change Color…", systemImage: "paintpalette")
+                            }
                             Divider()
                             Button {
                                 ungroupFeeds(feeds(in: category))
@@ -1124,6 +1214,18 @@ struct MainWindowLayout: View {
                             } label: {
                                 Label("Delete Category", systemImage: "trash")
                             }
+                        }
+                        .popover(isPresented: Binding(
+                            get: { colorEditingCategoryID == category.id },
+                            set: { presented in
+                                // Only clear when THIS row's popover dismissed —
+                                // switching to another category must not race it.
+                                if !presented, colorEditingCategoryID == category.id {
+                                    colorEditingCategoryID = nil
+                                }
+                            }
+                        )) {
+                            categoryColorPopover(for: category)
                         }
                     }
 
@@ -1161,55 +1263,7 @@ struct MainWindowLayout: View {
             // nothing is selected and no keyboard knowledge required.
             if !selectedFeedIDs.isEmpty {
                 HStack(spacing: 8) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.caption)
-                        .foregroundStyle(Color.accentColor)
-
-                    Text("\(selectedFeedIDs.count) selected")
-                        .font(PrecisTypography.caption)
-                        .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
-
                     Spacer()
-
-                    Menu {
-                        Button {
-                            moveCheckedFeeds(to: nil)
-                        } label: {
-                            Label("No Category", systemImage: "square")
-                        }
-                        Divider()
-                        if categories.isEmpty {
-                            Text("No categories yet")
-                        } else {
-                            ForEach(categories) { category in
-                                Button {
-                                    moveCheckedFeeds(to: category)
-                                } label: {
-                                    Label(category.name, systemImage: "folder")
-                                }
-                            }
-                        }
-                    } label: {
-                        Text(selectedFeedIDs.count == 1 ? "Move" : "Move \(selectedFeedIDs.count)")
-                            .font(PrecisTypography.caption)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(Color.accentColor)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(Color.accentColor.opacity(0.15), in: Capsule())
-                    }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
-                    .help("Move the checked feeds into a category")
-
-                    Button {
-                        selectedFeedIDs.removeAll()
-                    } label: {
-                        Text("Clear")
-                            .font(PrecisTypography.caption)
-                            .foregroundStyle(PrecisDesignSystem.marginalia)
-                    }
-                    .buttonStyle(.plain)
 
                     Button {
                         beginBulkDelete()

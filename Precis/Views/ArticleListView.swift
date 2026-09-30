@@ -116,6 +116,10 @@ struct ArticleListView: View {
                     }
                 }
             }
+            // Rebuild the scroll view when the sidebar filter changes so the
+            // new list opens at its top — a preserved offset landed on an
+            // arbitrary mid-list article instead.
+            .id(viewModel.selectedSidebarFilter)
         }
         .background(PrecisDesignSystem.background(for: colorScheme))
         .focusable()
@@ -250,17 +254,6 @@ private struct ArticleListRow: View {
         )
     }
 
-    private var thumbnailPlaceholder: some View {
-        RoundedRectangle(cornerRadius: 8)
-            .fill(PrecisDesignSystem.surface(for: colorScheme))
-            .frame(width: 64, height: 64)
-            .overlay(
-                Image(systemName: "photo")
-                    .foregroundStyle(PrecisDesignSystem.marginalia.opacity(0.3))
-                    .font(.title3)
-            )
-    }
-
     /// Compact approximate "time ago" for the row's right edge — "4h", "12m",
     /// "3d"; falls back to a short date ("Sep 5") past a week.
     private func publishedAgo(_ date: Date?) -> String {
@@ -278,14 +271,15 @@ private struct ArticleListRow: View {
     }
 }
 
-/// 64pt row thumbnail that decodes at THUMBNAIL resolution.
+/// 128×64pt landscape row thumbnail (roughly 2:1, matching the wide
+/// thumbnails in the design reference) that decodes at THUMBNAIL resolution.
 ///
 /// `AsyncImage` decodes the article image at full resolution — the sample
 /// showed ImageIO decode + `CA::Render::copy_image` IOSurface copies on the
 /// `SwiftUI.prepare-image` queues for every row. Across a busy list that
 /// churns hundreds of MB of bitmaps and shows up as black windows and mouse
 /// trails under memory pressure. This loads the bytes once and downsamples
-/// to 128px (2× for Retina) during decode, caching only the small result.
+/// to 256px (2× for Retina) during decode, caching only the small result.
 private struct ArticleThumbnailView: View {
     let url: URL
     @Environment(\.colorScheme) private var colorScheme
@@ -301,7 +295,7 @@ private struct ArticleThumbnailView: View {
                 placeholder
             }
         }
-        .frame(width: 64, height: 64)
+        .frame(width: 128, height: 64)
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .padding(.top, 4)
         .task(id: url) {
@@ -312,7 +306,7 @@ private struct ArticleThumbnailView: View {
     private var placeholder: some View {
         RoundedRectangle(cornerRadius: 8)
             .fill(PrecisDesignSystem.surface(for: colorScheme))
-            .frame(width: 64, height: 64)
+            .frame(width: 128, height: 64)
             .overlay(
                 Image(systemName: "photo")
                     .foregroundStyle(PrecisDesignSystem.marginalia.opacity(0.3))
@@ -343,12 +337,12 @@ private enum ArticleThumbnailLoader {
             kCGImageSourceCreateThumbnailFromImageAlways: true,
             kCGImageSourceCreateThumbnailWithTransform: true,
             kCGImageSourceShouldCacheImmediately: true,
-            kCGImageSourceThumbnailMaxPixelSize: 128
+            kCGImageSourceThumbnailMaxPixelSize: 256
         ]
         guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
             return nil
         }
-        let nsImage = NSImage(cgImage: cgImage, size: NSSize(width: 64, height: 64))
+        let nsImage = NSImage(cgImage: cgImage, size: NSSize(width: 128, height: 64))
         cache.setObject(
             nsImage,
             forKey: url as NSURL,

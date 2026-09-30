@@ -49,7 +49,7 @@ struct SettingsView: View {
                     settingsSection(title: "Reading") {
                         VStack(alignment: .leading, spacing: PrecisSpacing.md) {
                             HStack {
-                                Text("Font size")
+                                Text("Reading pane font size")
                                     .font(PrecisTypography.body)
                                     .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
                                 Spacer()

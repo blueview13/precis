@@ -7,7 +7,11 @@ public final class ArticleListViewModel: ObservableObject {
     @Published public var items: [ArticleListItem] {
         didSet { invalidateDerivedState() }
     }
-    @Published public var selectedItemID: UUID?
+    @Published public var selectedItemID: UUID? {
+        // The Unread filter keeps the selected row visible, so the filtered
+        // list now depends on the selection too.
+        didSet { invalidateDerivedState() }
+    }
     @Published public var selectedFeedID: UUID?
     @Published public var searchText: String = "" {
         didSet { invalidateDerivedState() }
@@ -74,7 +78,11 @@ public final class ArticleListViewModel: ObservableObject {
         case .all:
             base = items
         case .unread:
-            base = items.filter { !$0.isRead }
+            // The open article stays visible while it's selected — marking it
+            // read on click used to yank the row out from under the cursor and
+            // let a random article shift into its place. It drops out on the
+            // next selection change.
+            base = items.filter { !$0.isRead || $0.id == selectedItemID }
         case .starred:
             base = items.filter { $0.isStarred }
         case .feed(let feedID):
@@ -146,7 +154,7 @@ public final class ArticleListViewModel: ObservableObject {
         return ordered.map { $0.item }
     }
 
-    public enum SidebarFilter: Equatable {
+    public enum SidebarFilter: Equatable, Hashable {
         case all, unread, starred
         case feed(UUID)
         case folder(UUID)
@@ -326,12 +334,20 @@ public final class ArticleListViewModel: ObservableObject {
             // thousands of articles across hundreds of feeds.
             rebuildItems(from: records, in: context)
             selectedFeedID = feedID
-            // Keep the selection inside the feed the user just opened.
+            // Keep the selection inside the feed the user just opened — but
+            // never steal a still-valid one: refreshes run in the background,
+            // and resetting to the top article made the list jump at random.
             let scoped = feedID == nil ? items : items.filter { $0.feedID == feedID }
-            selectedItemID = (scoped.first ?? items.first)?.id
+            let selectionValid = selectedItemID.map { id in scoped.contains { $0.id == id } } ?? false
+            if !selectionValid {
+                selectedItemID = (scoped.first ?? items.first)?.id
+            }
         } catch {
             selectedFeedID = feedID
-            selectedItemID = items.first?.id
+            let stillValid = selectedItemID.map { id in items.contains { $0.id == id } } ?? false
+            if !stillValid {
+                selectedItemID = items.first?.id
+            }
         }
     }
 
@@ -612,9 +628,23 @@ public final class ArticleListViewModel: ObservableObject {
         guard let record else { return }
 
         if record.fullContentFetched == true {
+            let stored = record.contentHTMLText ?? ""
+            if !stored.isEmpty,
+               ArticleContentLoader.visibleTextLength(in: stored) < ArticleContentLoader.minimumArticleText {
+                // Saved before the quality gate existed (e.g. Reddit's JS
+                // shell overwrote the feed's body) — drop the junk so the
+                // pane falls back to the feed's own content, and don't trust
+                // a re-fetch this session.
+                record.contentHTML = nil
+                record.fullContentFetched = false
+                try? context.save()
+                fullContentFailed.insert(item.id)
+                applyRecord(record, to: item.id)
+                return
+            }
             // Already downloaded earlier — just make sure the visible item
             // carries the stored HTML (e.g. after an app relaunch).
-            if item.contentHTML.isEmpty, let stored = record.contentHTMLText, !stored.isEmpty {
+            if item.contentHTML.isEmpty, !stored.isEmpty {
                 applyRecord(record, to: item.id)
             }
             return
@@ -659,6 +689,24 @@ public final class ArticleListViewModel: ObservableObject {
     private func applyRecord(_ record: ArticleRecord, to id: UUID) {
         guard let index = items.firstIndex(where: { $0.id == id }) else { return }
         items[index] = ArticleListItem(record: record)
+    }
+
+    /// Whether the visible list has an article above/below the current
+    /// selection — greys out the matching ‹ › control in the reading pane.
+    /// An off-list selection (marked read under the Unread filter) counts as
+    /// navigable, matching `selectNext`/`selectPrevious`'s resume fallbacks.
+    public var canSelectPrevious: Bool {
+        guard !filteredItems.isEmpty else { return false }
+        guard let currentID = selectedItemID,
+              let index = filteredItems.firstIndex(where: { $0.id == currentID }) else { return true }
+        return index > 0
+    }
+
+    public var canSelectNext: Bool {
+        guard !filteredItems.isEmpty else { return false }
+        guard let currentID = selectedItemID,
+              let index = filteredItems.firstIndex(where: { $0.id == currentID }) else { return true }
+        return index + 1 < filteredItems.count
     }
 
     public func selectNext() {
