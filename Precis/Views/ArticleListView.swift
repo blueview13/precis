@@ -185,10 +185,28 @@ private struct ArticleListRow: View {
                             .foregroundStyle(Color.accentColor)
                     }
 
-                    Text(item.title)
-                        .font(PrecisTypography.headline)
-                        .foregroundStyle(item.isRead ? Color.gray : PrecisDesignSystem.foreground(for: colorScheme))
-                        .lineLimit(2)
+                    // Headline with the source name inline to its right,
+                    // baseline-aligned so it sits on the headline's first line.
+                    HStack(alignment: .firstTextBaseline, spacing: PrecisSpacing.sm) {
+                        Text(item.title)
+                            .font(PrecisTypography.headline)
+                            .foregroundStyle(item.isRead ? Color.gray : PrecisDesignSystem.foreground(for: colorScheme))
+                            .lineLimit(2)
+
+                        Text(FeedDiscoveryService.conciseTitle(item.feedTitle))
+                            .font(PrecisTypography.metadata)
+                            .foregroundStyle(PrecisDesignSystem.marginalia)
+
+                        if showReadingTime {
+                            Text("•")
+                                .font(PrecisTypography.metadata)
+                                .foregroundStyle(Color.accentColor)
+
+                            Text("\(item.readingTimeMinutes) min read")
+                                .font(PrecisTypography.metadata)
+                                .foregroundStyle(PrecisDesignSystem.marginalia.opacity(0.7))
+                        }
+                    }
 
                     Spacer()
 
@@ -201,22 +219,6 @@ private struct ArticleListRow: View {
                             .foregroundStyle(item.isStarred ? Color.accentColor : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.6))
                     }
                     .buttonStyle(.plain)
-                }
-
-                HStack(spacing: PrecisSpacing.sm) {
-                    Text(FeedDiscoveryService.conciseTitle(item.feedTitle))
-                        .font(PrecisTypography.metadata)
-                        .foregroundStyle(PrecisDesignSystem.marginalia)
-
-                    if showReadingTime {
-                        Text("•")
-                            .font(PrecisTypography.metadata)
-                            .foregroundStyle(Color.accentColor)
-
-                        Text("\(item.readingTimeMinutes) min read")
-                            .font(PrecisTypography.metadata)
-                            .foregroundStyle(PrecisDesignSystem.marginalia.opacity(0.7))
-                    }
                 }
 
                 Text(item.cleanSnippet)

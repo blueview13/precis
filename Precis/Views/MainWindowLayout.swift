@@ -42,6 +42,10 @@ struct MainWindowLayout: View {
     @State private var categoryRowHeights: [UUID: CGFloat] = [:]
     @State private var articleListHeight: CGFloat = 350
     @State private var windowHeight: CGFloat = 900
+    /// False at launch: the divider is parked halfway down the window on
+    /// every layout pass until the user drags it themselves, so it opens
+    /// dead-center no matter how the window reaches its size.
+    @State private var userAdjustedDivider = false
     @State private var sidebarWidth: CGFloat = 260
     @State private var isSidebarHidden = false
     @Environment(\.openWindow) private var openWindow
@@ -105,6 +109,9 @@ struct MainWindowLayout: View {
                     .gesture(
                         DragGesture(minimumDistance: 1)
                             .onChanged { value in
+                                // First drag hands the position over to the
+                                // user — launch centering no longer applies.
+                                userAdjustedDivider = true
                                 let newHeight = articleListHeight + value.translation.height
                                 // Clamp against the window itself (not a fixed
                                 // fraction of the screen) so the divider can be
@@ -144,11 +151,20 @@ struct MainWindowLayout: View {
         } action: { height in
             // Used to clamp the horizontal divider to the real window height.
             windowHeight = height
-            // If the window shrank below the current list height, pull it back
-            // so the reading pane never gets pushed off-screen.
-            let cap = max(150, height - 140)
-            if articleListHeight > cap {
-                articleListHeight = cap
+            if !userAdjustedDivider {
+                // Not touched yet: open with the divider halfway down the
+                // window (4pt is the divider itself). Re-applied on every
+                // geometry event so intermediate window sizes during launch
+                // can't leave it parked off-center.
+                articleListHeight = max(150, (height - 4) / 2)
+            } else {
+                // The user owns the position now — if the window shrank below
+                // the current list height, pull it back so the reading pane
+                // never gets pushed off-screen.
+                let cap = max(150, height - 140)
+                if articleListHeight > cap {
+                    articleListHeight = cap
+                }
             }
         }
         .onChange(of: viewModel.selectedFeedID) { _, _ in
