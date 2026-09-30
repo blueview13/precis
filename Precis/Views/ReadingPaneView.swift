@@ -4,6 +4,10 @@ import AppKit
 
 struct ReadingPaneView: View {
     let item: ArticleListItem?
+    /// Shown in place of an article when the current filter has nothing in
+    /// it (e.g. an empty category), so the pane doesn't keep showing the
+    /// last story that was read.
+    let emptyMessage: String?
     let summaryOverride: String?
     let feedWideSummary: String?
     let isGeneratingSummary: Bool
@@ -32,6 +36,7 @@ struct ReadingPaneView: View {
 
     init(
         item: ArticleListItem?,
+        emptyMessage: String? = nil,
         summaryOverride: String? = nil,
         feedWideSummary: String? = nil,
         isGeneratingSummary: Bool = false,
@@ -44,6 +49,7 @@ struct ReadingPaneView: View {
         canSelectNext: Bool = false
     ) {
         self.item = item
+        self.emptyMessage = emptyMessage
         self.summaryOverride = summaryOverride
         self.feedWideSummary = feedWideSummary
         self.isGeneratingSummary = isGeneratingSummary
@@ -75,7 +81,11 @@ struct ReadingPaneView: View {
 
     private var articleDocument: String {
         guard let item else {
-            return Self.document(body: "<p>Pick a story from the list to read it here.</p>", fontSize: readingFontSize, scheme: colorScheme)
+            let message = (emptyMessage ?? "Pick a story from the list to read it here.")
+                .replacingOccurrences(of: "&", with: "&amp;")
+                .replacingOccurrences(of: "<", with: "&lt;")
+                .replacingOccurrences(of: ">", with: "&gt;")
+            return Self.document(body: "<p>\(message)</p>", fontSize: readingFontSize, scheme: colorScheme)
         }
 
         let cacheKey = "\(item.id.uuidString)|\(item.rawArticleHTML.hashValue)"
@@ -163,7 +173,7 @@ if isGeneratingSummary {
                 }
 
                 HStack(alignment: .top) {
-                    Text(item?.title ?? "Select an article")
+                    Text(item?.title ?? emptyMessage ?? "Select an article")
                         // Same typeface as the article-list titles in the
                         // window's top section.
                         .font(PrecisTypography.headline)
@@ -195,36 +205,38 @@ if isGeneratingSummary {
                         }
                     }
 
-                    if onPreviousArticle != nil, onNextArticle != nil {
+                    if item != nil, onPreviousArticle != nil, onNextArticle != nil {
                         articleNavigationControl
                     }
                 }
 
-                HStack(spacing: PrecisSpacing.sm) {
-                    Text(item.map { FeedDiscoveryService.conciseTitle($0.feedTitle) } ?? "Inbox")
-                        .font(PrecisTypography.metadata)
-                        .foregroundStyle(PrecisDesignSystem.marginalia)
-
-                    if let item, showReadingTime {
-                        Text("•")
-                            .foregroundStyle(Color.accentColor)
-
-                        Text("\(item.readingTimeMinutes) min read")
+                // Source + reading time + date — only meaningful when an
+                // article is actually open; the empty state shows just its
+                // message.
+                if item != nil {
+                    HStack(spacing: PrecisSpacing.sm) {
+                        Text(item.map { FeedDiscoveryService.conciseTitle($0.feedTitle) } ?? "Inbox")
                             .font(PrecisTypography.metadata)
                             .foregroundStyle(PrecisDesignSystem.marginalia)
 
-                        Text("•")
-                            .foregroundStyle(Color.accentColor)
-                    } else if item == nil {
-                        Text("•")
-                            .foregroundStyle(Color.accentColor)
-                    }
+                        if let item, showReadingTime {
+                            Text("•")
+                                .foregroundStyle(Color.accentColor)
 
-                    Text(item?.publishedDate.map { relativeDateString(from: $0) } ?? "No date")
-                        .font(PrecisTypography.metadata)
-                        .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.7))
+                            Text("\(item.readingTimeMinutes) min read")
+                                .font(PrecisTypography.metadata)
+                                .foregroundStyle(PrecisDesignSystem.marginalia)
+
+                            Text("•")
+                                .foregroundStyle(Color.accentColor)
+                        }
+
+                        Text(item?.publishedDate.map { relativeDateString(from: $0) } ?? "No date")
+                            .font(PrecisTypography.metadata)
+                            .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.7))
+                    }
+                    .padding(.bottom, PrecisSpacing.md)
                 }
-                .padding(.bottom, PrecisSpacing.md)
 
                 VStack(alignment: .leading, spacing: PrecisSpacing.md) {
                     if item != nil {

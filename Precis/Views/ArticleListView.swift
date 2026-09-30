@@ -91,7 +91,7 @@ struct ArticleListView: View {
                             .font(.title2)
                             .foregroundStyle(PrecisDesignSystem.marginalia.opacity(0.6))
 
-                        Text(emptyStateTitle)
+                        Text(viewModel.emptyStateTitle)
                             .font(PrecisTypography.body)
                             .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.6))
                     }
@@ -146,22 +146,6 @@ struct ArticleListView: View {
                 viewModel.toggleStarred(item, context: modelContext)
             }
             return .handled
-        }
-    }
-
-    private var emptyStateTitle: String {
-        if !viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "No articles match your search"
-        }
-        switch viewModel.selectedSidebarFilter {
-        case .unread:
-            return "You're all caught up — no unread articles"
-        case .starred:
-            return "No starred articles yet"
-        case .category:
-            return "No articles in this category yet"
-        default:
-            return "No articles here yet"
         }
     }
 }

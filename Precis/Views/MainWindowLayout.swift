@@ -57,6 +57,17 @@ struct MainWindowLayout: View {
         return viewModel.summaryText(for: selectedItem, context: modelContext)
     }
 
+    /// True when the current sidebar filter has no rows to show.
+    private var listIsEmpty: Bool {
+        viewModel.filteredItems.isEmpty
+    }
+
+    /// The pane shows this instead of a stale article whenever the list is
+    /// empty — reuses the list's own wording so the two never disagree.
+    private var paneEmptyMessage: String? {
+        listIsEmpty ? viewModel.emptyStateTitle : nil
+    }
+
     init() {
         _viewModel = StateObject(wrappedValue: ArticleListViewModel())
     }
@@ -125,7 +136,8 @@ struct MainWindowLayout: View {
                     )
 
                 ReadingPaneView(
-                    item: viewModel.selectedItem,
+                    item: listIsEmpty ? nil : viewModel.selectedItem,
+                    emptyMessage: paneEmptyMessage,
                     summaryOverride: selectedSummaryText,
                     feedWideSummary: viewModel.feedWideSummaryText,
                     isGeneratingSummary: isGeneratingSummary,
@@ -141,7 +153,7 @@ struct MainWindowLayout: View {
                               let url = URL(string: link) else { return }
                         NSWorkspace.shared.open(url)
                     },
-                    isFetchingContent: viewModel.loadingFullContentID == viewModel.selectedItem?.id,
+                    isFetchingContent: !listIsEmpty && viewModel.loadingFullContentID == viewModel.selectedItem?.id,
                     onPreviousArticle: { viewModel.selectPrevious() },
                     onNextArticle: { viewModel.selectNext() },
                     canSelectPrevious: viewModel.canSelectPrevious,

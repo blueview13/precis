@@ -72,6 +72,25 @@ public final class ArticleListViewModel: ObservableObject {
         return computed
     }
 
+    /// Message shown when the current filter has no rows. Shared by the
+    /// list's empty state and the reading pane's empty state so both explain
+    /// an empty filter with the same words.
+    public var emptyStateTitle: String {
+        if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "No articles match your search"
+        }
+        switch selectedSidebarFilter {
+        case .unread:
+            return "You're all caught up — no unread articles"
+        case .starred:
+            return "No starred articles yet"
+        case .category:
+            return "No articles in this category yet"
+        default:
+            return "No articles here yet"
+        }
+    }
+
     private func computeFilteredItems() -> [ArticleListItem] {
         let base: [ArticleListItem]
         switch selectedSidebarFilter {
