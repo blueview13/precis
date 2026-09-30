@@ -13,6 +13,13 @@ public final class ArticleListViewModel: ObservableObject {
         didSet { invalidateDerivedState() }
     }
     @Published public var feedWideSummaryText: String = ""
+    /// The article whose full web page is currently being downloaded and
+    /// extracted — the reading pane shows a progress bar for it.
+    @Published public var loadingFullContentID: UUID?
+    /// Session-scoped guards so a dead link never re-hammers the network on
+    /// every selection and an in-flight fetch is never started twice.
+    private var fullContentInFlight: Set<UUID> = []
+    private var fullContentFailed: Set<UUID> = []
 
     // MARK: Derived state (filtered rows + badge counts)
 
@@ -420,6 +427,7 @@ public final class ArticleListViewModel: ObservableObject {
                 link: entry.link?.absoluteString,
                 rawContent: entry.content,
                 extractedContent: entry.content,
+                contentHTML: entry.contentHTML,
                 isRead: false,
                 isStarred: false,
                 imageURL: entry.imageURL?.absoluteString
@@ -580,6 +588,77 @@ public final class ArticleListViewModel: ObservableObject {
         // away instead of staying until "d" or Mark All Read is pressed.
         guard let context, !item.isRead else { return }
         toggleRead(item, context: context)
+    }
+
+    /// Fetches the article's full web page (once per article, persisted) and
+    /// swaps the reading pane from the feed's short intro to the complete,
+    /// formatted article — images and all. Falls back silently to whatever
+    /// the feed supplied when there is no link or the fetch fails.
+    public func loadFullContent(context: ModelContext) {
+        guard let item = selectedItem,
+              let link = item.link,
+              let url = URL(string: link),
+              let scheme = url.scheme?.lowercased(),
+              scheme == "http" || scheme == "https" else { return }
+        guard !fullContentInFlight.contains(item.id),
+              !fullContentFailed.contains(item.id) else { return }
+
+        let record: ArticleRecord?
+        do {
+            record = try articleRepository.fetch(id: item.id, context: context)
+        } catch {
+            return
+        }
+        guard let record else { return }
+
+        if record.fullContentFetched == true {
+            // Already downloaded earlier — just make sure the visible item
+            // carries the stored HTML (e.g. after an app relaunch).
+            if item.contentHTML.isEmpty, let stored = record.contentHTMLText, !stored.isEmpty {
+                applyRecord(record, to: item.id)
+            }
+            return
+        }
+
+        let id = item.id
+        fullContentInFlight.insert(id)
+        loadingFullContentID = id
+
+        Task {
+            defer {
+                fullContentInFlight.remove(id)
+                if loadingFullContentID == id {
+                    loadingFullContentID = nil
+                }
+            }
+            do {
+                let html = try await ArticleContentLoader.fetchReadableHTML(from: url)
+                guard let fetched = try articleRepository.fetch(id: id, context: context) else { return }
+                fetched.contentHTML = html.data(using: .utf8)
+                fetched.fullContentFetched = true
+                // Promote the full plain text too, so row previews, search,
+                // reading time and summaries see the whole article instead
+                // of the feed's intro paragraph.
+                let plain = HTMLAttributedStringRenderer.plainText(from: html)
+                if !plain.isEmpty {
+                    fetched.normalizedText = plain
+                    fetched.extractedContent = plain.data(using: .utf8)
+                }
+                try context.save()
+                applyRecord(fetched, to: id)
+            } catch {
+                // Offline, paywalled or a non-article page — keep the feed's
+                // version and don't retry this article this session.
+                fullContentFailed.insert(id)
+            }
+        }
+    }
+
+    /// Swaps one entry in `items` for a fresh parse of its record so the
+    /// reading pane, reading time and row preview pick up new content.
+    private func applyRecord(_ record: ArticleRecord, to id: UUID) {
+        guard let index = items.firstIndex(where: { $0.id == id }) else { return }
+        items[index] = ArticleListItem(record: record)
     }
 
     public func selectNext() {

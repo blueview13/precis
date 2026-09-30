@@ -23,7 +23,11 @@ public struct ParsedFeedEntry: Sendable {
     public let author: String?
     public let publishedDate: Date?
     public let link: URL?
+    /// Plain-text rendering of the entry — snippets, rows, summaries.
     public let content: String?
+    /// Raw HTML exactly as the feed delivered it (`content:encoded`,
+    /// description, Atom content…) — rendered richly in the reading pane.
+    public let contentHTML: String?
     public let imageURL: URL?
 
     public init(
@@ -32,6 +36,7 @@ public struct ParsedFeedEntry: Sendable {
         publishedDate: Date? = nil,
         link: URL? = nil,
         content: String? = nil,
+        contentHTML: String? = nil,
         imageURL: URL? = nil
     ) {
         self.title = title
@@ -39,8 +44,12 @@ public struct ParsedFeedEntry: Sendable {
         self.publishedDate = publishedDate
         self.link = link
         self.imageURL = imageURL
-        // Clean HTML content: decode entities and strip tags
-        self.content = content.map { Self.cleanHTML($0) }
+        // Keep the raw HTML for the reading pane, and derive the plain-text
+        // rendering from it (entity decoding + tag stripping) for rows,
+        // search and summaries.
+        let rawHTML = contentHTML ?? content
+        self.contentHTML = rawHTML
+        self.content = rawHTML.map { Self.cleanHTML($0) }
     }
 
     /// Strip HTML tags and decode entities from content.
@@ -113,14 +122,16 @@ public final class FeedParserService: FeedParserServiceProtocol {
                     let enclosureRaw = item.enclosure?.attributes?.url
                     let enclosureImage = enclosureRaw.flatMap { Self.resolveURL($0, base: url) }
                     let mediaImage = item.media?.mediaThumbnails?.first?.attributes?.url.flatMap { Self.resolveURL($0, base: url) }
-                    let htmlImage = Self.extractFirstImage(from: item.description ?? "")
+                    let htmlImage = Self.extractFirstImage(from: item.content?.contentEncoded ?? item.description ?? "")
 
                     return ParsedFeedEntry(
                         title: item.title ?? "Untitled",
                         author: item.author,
                         publishedDate: item.pubDate,
                         link: item.link.flatMap(URL.init(string:)),
-                        content: item.description,
+                        // Prefer the full `content:encoded` body over the
+                        // short `description` summary when the feed has it.
+                        contentHTML: item.content?.contentEncoded ?? item.description,
                         imageURL: enclosureImage ?? mediaImage ?? htmlImage
                     )
                 }
@@ -143,7 +154,7 @@ public final class FeedParserService: FeedParserServiceProtocol {
                     author: entry.authors?.first?.name,
                     publishedDate: entry.published ?? entry.updated,
                     link: entry.links?.first?.attributes?.href.flatMap(URL.init(string:)),
-                    content: content,
+                    contentHTML: content,
                     imageURL: imageURL
                 )
             }
@@ -163,7 +174,7 @@ public final class FeedParserService: FeedParserServiceProtocol {
                         author: item.author?.name,
                         publishedDate: item.datePublished,
                         link: item.url.flatMap(URL.init(string:)),
-                        content: item.contentText ?? item.contentHtml,
+                        contentHTML: item.contentHtml ?? item.contentText,
                         imageURL: item.image.flatMap(URL.init(string:))
                     )
                 }

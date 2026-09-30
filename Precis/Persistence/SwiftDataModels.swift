@@ -63,6 +63,13 @@ public final class ArticleRecord {
     public var link: String?
     @Attribute(.externalStorage) public var rawContent: Data?
     @Attribute(.externalStorage) public var extractedContent: Data?
+    /// Raw HTML of the full article — either what the feed shipped
+    /// (`content:encoded`) or the readable content fetched from the article
+    /// link. Rendered richly (formatting + images) in the reading pane.
+    @Attribute(.externalStorage) public var contentHTML: Data?
+    /// True once the article's web page has been fetched and its readable
+    /// content extracted, so a re-selection never re-downloads it.
+    public var fullContentFetched: Bool?
     /// Plain-text rendering of the article body, computed once and persisted
     /// so app launch never re-runs the HTML-stripping pass over the whole
     /// library (regex over every article was ~0.5s of main-thread work per
@@ -82,6 +89,7 @@ public final class ArticleRecord {
         link: String? = nil,
         rawContent: String? = nil,
         extractedContent: String? = nil,
+        contentHTML: String? = nil,
         isRead: Bool = false,
         isStarred: Bool = false,
         imageURL: String? = nil
@@ -94,6 +102,7 @@ public final class ArticleRecord {
         self.link = link
         self.rawContent = rawContent?.data(using: .utf8)
         self.extractedContent = extractedContent?.data(using: .utf8)
+        self.contentHTML = contentHTML?.data(using: .utf8)
         self.isRead = isRead
         self.isStarred = isStarred
         self.imageURL = imageURL
@@ -107,6 +116,11 @@ public final class ArticleRecord {
     public var extractedContentText: String? {
         guard let extractedContent else { return nil }
         return String(data: extractedContent, encoding: .utf8)
+    }
+
+    public var contentHTMLText: String? {
+        guard let contentHTML else { return nil }
+        return String(data: contentHTML, encoding: .utf8)
     }
 }
 

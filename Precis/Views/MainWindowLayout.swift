@@ -137,7 +137,8 @@ struct MainWindowLayout: View {
                         guard let link = viewModel.selectedItem?.link,
                               let url = URL(string: link) else { return }
                         NSWorkspace.shared.open(url)
-                    }
+                    },
+                    isFetchingContent: viewModel.loadingFullContentID == viewModel.selectedItem?.id
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -167,6 +168,12 @@ struct MainWindowLayout: View {
                 }
             }
         }
+        .onChange(of: viewModel.selectedItemID) { _, _ in
+            // A new story is being read — pull its full page (once per
+            // article) so the pane shows the complete formatted article
+            // instead of the feed's intro text.
+            viewModel.loadFullContent(context: modelContext)
+        }
         .onChange(of: viewModel.selectedFeedID) { _, _ in
             // Feed selection changed — regenerate digest for the new feed scope
             Task {
@@ -179,6 +186,9 @@ struct MainWindowLayout: View {
             refreshFeeds()
             refreshCategories()
             viewModel.loadFromContext(modelContext)
+            // The launch selection needs its full content too — the
+            // selection-change observer only fires for later clicks.
+            viewModel.loadFullContent(context: modelContext)
             Task { await repairURLTitledFeeds() }
             viewModel.loadFolders(context: modelContext)
             startBackgroundRefresh()
@@ -635,6 +645,7 @@ struct MainWindowLayout: View {
                     link: entry.link?.absoluteString,
                     rawContent: entry.content,
                     extractedContent: entry.content,
+                    contentHTML: entry.contentHTML,
                     isRead: false,
                     isStarred: false,
                     imageURL: entry.imageURL?.absoluteString
@@ -758,6 +769,7 @@ struct MainWindowLayout: View {
                                         link: entry.link?.absoluteString,
                                         rawContent: entry.content,
                                         extractedContent: entry.content,
+                                        contentHTML: entry.contentHTML,
                                         isRead: false,
                                         isStarred: false,
                                         imageURL: entry.imageURL?.absoluteString

@@ -263,6 +263,7 @@ struct AddFeedIntent: AppIntent {
                 link: entry.link?.absoluteString,
                 rawContent: entry.content,
                 extractedContent: entry.content,
+                contentHTML: entry.contentHTML,
                 isRead: false,
                 isStarred: false,
                 imageURL: entry.imageURL?.absoluteString

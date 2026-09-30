@@ -12,6 +12,9 @@ public struct ArticleListItem: Identifiable, Hashable {
     public var snippet: String
     public var link: String?
     public var imageURL: String?
+    /// Raw HTML for the reading pane — feed-supplied markup or the full
+    /// article fetched from `link`. Empty when only plain text is known.
+    public var contentHTML: String
 
     /// Estimated reading time in minutes based on article body word count.
     public var readingTimeMinutes: Int {
@@ -29,8 +32,10 @@ public struct ArticleListItem: Identifiable, Hashable {
     }
 
     /// Original HTML content for rich rendering in the reading pane.
+    /// Falls back to the plain snippet when no HTML has been stored yet.
     public var rawArticleHTML: String {
-        snippet.isEmpty ? title : snippet
+        if !contentHTML.isEmpty { return contentHTML }
+        return snippet.isEmpty ? title : snippet
     }
 
     /// Clean display text with HTML stripped.
@@ -47,7 +52,8 @@ public struct ArticleListItem: Identifiable, Hashable {
         isStarred: Bool = false,
         snippet: String = "",
         link: String? = nil,
-        imageURL: String? = nil
+        imageURL: String? = nil,
+        contentHTML: String = ""
     ) {
         self.id = id
         self.title = title
@@ -58,6 +64,7 @@ public struct ArticleListItem: Identifiable, Hashable {
         self.snippet = snippet
         self.link = link
         self.imageURL = imageURL
+        self.contentHTML = contentHTML
         self.normalizedBody = Self.normalizeArticleText(snippet)
     }
 
@@ -73,6 +80,7 @@ public struct ArticleListItem: Identifiable, Hashable {
         self.snippet = rawSnippet
         self.link = record.link
         self.imageURL = record.imageURL
+        self.contentHTML = record.contentHTMLText ?? ""
         // Reuse the persisted plain-text render when available — recomputing
         // it for every article on every load pegged the main thread at scale.
         self.normalizedBody = record.normalizedText ?? Self.normalizeArticleText(rawSnippet)
