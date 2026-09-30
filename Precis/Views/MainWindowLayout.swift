@@ -396,6 +396,56 @@ struct MainWindowLayout: View {
         }
     }
 
+    /// Moves every checked feed in one save, then clears the selection so
+    /// the action bar retires — the move is visibly "done".
+    private func moveCheckedFeeds(to category: CategoryRecord?) {
+        let checked = importedFeeds.filter { selectedFeedIDs.contains($0.id) }
+        for feed in checked where feed.category?.id != category?.id {
+            feed.category = category
+        }
+        do {
+            try modelContext.save()
+        } catch {
+            PrecisLogger.error("Failed to move feeds to category: \(error.localizedDescription)")
+        }
+        selectedFeedIDs.removeAll()
+        selectionAnchorID = nil
+        refreshFeeds()
+    }
+
+    // MARK: - Drag-to-category
+
+    /// Prefix marks a drag payload as a feed multi-selection rather than a
+    /// category reorder (both travel as plain `String`s).
+    private static let feedDragPrefix = "precis-feeds:"
+
+    /// Dragging a checked row carries the whole selection; dragging an
+    /// unchecked row carries just that feed — either way it can be dropped
+    /// on a category header.
+    private func feedDragPayload(_ feed: FeedRecord) -> String {
+        let ids = selectedFeedIDs.contains(feed.id) ? Array(selectedFeedIDs) : [feed.id]
+        return Self.feedDragPrefix + ids.map(\.uuidString).joined(separator: ",")
+    }
+
+    private func moveFeeds(ids: [UUID], to category: CategoryRecord?) {
+        let moved = importedFeeds.filter { ids.contains($0.id) }
+        for feed in moved where feed.category?.id != category?.id {
+            feed.category = category
+        }
+        do {
+            try modelContext.save()
+        } catch {
+            PrecisLogger.error("Failed to drop feeds into category: \(error.localizedDescription)")
+        }
+        refreshFeeds()
+    }
+
+    /// True when this row is part of a multi-selection — the context menu's
+    /// Move item then targets every checked feed, not just the row clicked.
+    private func movesWholeSelection(_ feed: FeedRecord) -> Bool {
+        selectedFeedIDs.count >= 2 && selectedFeedIDs.contains(feed.id)
+    }
+
     // MARK: - Feed multi-select & bulk delete
 
     /// Feed-row click (the checkbox toggles separately via
@@ -589,10 +639,13 @@ struct MainWindowLayout: View {
             }
             Divider()
             Menu {
+                // Right-clicking a checked row moves the whole selection —
+                // same payload as the drag gesture; single rows behave as
+                // before.
                 Button {
-                    moveFeed(feed, to: nil)
+                    if movesWholeSelection(feed) { moveCheckedFeeds(to: nil) } else { moveFeed(feed, to: nil) }
                 } label: {
-                    Label("No Category", systemImage: feed.category == nil ? "checkmark" : "square")
+                    Label("No Category", systemImage: !movesWholeSelection(feed) && feed.category == nil ? "checkmark" : "square")
                 }
                 Divider()
                 if categories.isEmpty {
@@ -600,20 +653,37 @@ struct MainWindowLayout: View {
                 } else {
                     ForEach(categories) { category in
                         Button {
-                            moveFeed(feed, to: category)
+                            if movesWholeSelection(feed) { moveCheckedFeeds(to: category) } else { moveFeed(feed, to: category) }
                         } label: {
-                            Label(category.name, systemImage: feed.category?.id == category.id ? "checkmark" : "square")
+                            Label(category.name, systemImage: !movesWholeSelection(feed) && feed.category?.id == category.id ? "checkmark" : "square")
                         }
                     }
                 }
             } label: {
-                Label("Move to Category", systemImage: "folder")
+                Label(movesWholeSelection(feed) ? "Move \(selectedFeedIDs.count) Feeds to Category" : "Move to Category", systemImage: "folder")
             }
         }
         .onAppear {
             // Diagnostic trail: a category-nested row logging
             // indent=0/compact=false means the stale-row bug is back.
             PrecisLogger.info("Row appeared: \(feed.title) indent=\(indent) compact=\(compact)")
+        }
+        // Drag the row onto a category header to move it (or the whole
+        // checked selection, if this row is part of one). Visual payload is
+        // a simple label — the ID list rides in the payload string.
+        .draggable(feedDragPayload(feed)) {
+            HStack(spacing: 8) {
+                Image(systemName: "square.stack.3d.up")
+                    .foregroundStyle(Color.accentColor)
+                Text(selectedFeedIDs.contains(feed.id) && selectedFeedIDs.count > 1
+                     ? "\(selectedFeedIDs.count) feeds"
+                     : FeedDiscoveryService.conciseTitle(feed.title))
+                    .font(PrecisTypography.body)
+                    .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
         }
     }
 
@@ -992,8 +1062,23 @@ struct MainWindowLayout: View {
                             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
                         }
                         .dropDestination(for: String.self) { items, location in
-                            guard let first = items.first,
-                                  let sourceID = UUID(uuidString: first),
+                            guard let first = items.first else { return false }
+
+                            // Feed payload: drop checked rows (or a single
+                            // dragged feed) into this category.
+                            if first.hasPrefix(Self.feedDragPrefix) {
+                                let ids = first
+                                    .dropFirst(Self.feedDragPrefix.count)
+                                    .split(separator: ",")
+                                    .compactMap { UUID(uuidString: String($0)) }
+                                guard !ids.isEmpty else { return false }
+                                categoryDropTargetID = nil
+                                PrecisLogger.info("Feed drop → category: \(ids.count) feed(s)")
+                                moveFeeds(ids: ids, to: category)
+                                return true
+                            }
+
+                            guard let sourceID = UUID(uuidString: first),
                                   categories.contains(where: { $0.id == sourceID })
                             else { return false }
 
@@ -1085,6 +1170,37 @@ struct MainWindowLayout: View {
                         .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
 
                     Spacer()
+
+                    Menu {
+                        Button {
+                            moveCheckedFeeds(to: nil)
+                        } label: {
+                            Label("No Category", systemImage: "square")
+                        }
+                        Divider()
+                        if categories.isEmpty {
+                            Text("No categories yet")
+                        } else {
+                            ForEach(categories) { category in
+                                Button {
+                                    moveCheckedFeeds(to: category)
+                                } label: {
+                                    Label(category.name, systemImage: "folder")
+                                }
+                            }
+                        }
+                    } label: {
+                        Text(selectedFeedIDs.count == 1 ? "Move" : "Move \(selectedFeedIDs.count)")
+                            .font(PrecisTypography.caption)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Color.accentColor)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color.accentColor.opacity(0.15), in: Capsule())
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                    .help("Move the checked feeds into a category")
 
                     Button {
                         selectedFeedIDs.removeAll()
