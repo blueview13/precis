@@ -10,6 +10,7 @@ struct ArticleListView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage("showThumbnails") private var showThumbnails: Bool = true
+    @FocusState private var isSearchFieldFocused: Bool
     // Backup invalidation: the view model also observes this key directly and
     // republishes `sortPreference`, so the list re-sorts the moment Settings
     // changes it.
@@ -70,6 +71,7 @@ struct ArticleListView: View {
                 TextField("Search articles...", text: $viewModel.searchText)
                     .textFieldStyle(.plain)
                     .font(PrecisTypography.body)
+                    .focused($isSearchFieldFocused)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
@@ -128,20 +130,24 @@ struct ArticleListView: View {
         // nav (arrows/d/s) still works; selection shows via the row flag bar.
         .focusEffectDisabled(true)
         .onKeyPress(.upArrow) {
+            guard !isSearchFieldFocused else { return .ignored }
             viewModel.selectPrevious()
             return .handled
         }
         .onKeyPress(.downArrow) {
+            guard !isSearchFieldFocused else { return .ignored }
             viewModel.selectNext()
             return .handled
         }
         .onKeyPress("d") {
+            guard !isSearchFieldFocused else { return .ignored }
             if let item = viewModel.selectedItem {
                 viewModel.toggleRead(item, context: modelContext)
             }
             return .handled
         }
         .onKeyPress("s") {
+            guard !isSearchFieldFocused else { return .ignored }
             if let item = viewModel.selectedItem {
                 viewModel.toggleStarred(item, context: modelContext)
             }

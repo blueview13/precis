@@ -122,11 +122,6 @@ struct ReadingPaneView: View {
         return Self.document(body: bodyHTML, fontSize: readingFontSize, scheme: colorScheme, showImages: showArticleImages)
     }
 
-    private var summaryText: String {
-        guard let item else { return "Pick a story to inspect it here." }
-        return summaryOverride ?? "No summary generated yet. Select an article to auto-generate."
-    }
-
     var body: some View {
         ScrollViewReader { proxy in
             pane(proxy)
@@ -240,7 +235,7 @@ if isGeneratingSummary {
                 }
 
                 VStack(alignment: .leading, spacing: PrecisSpacing.md) {
-                    if item != nil {
+                    if item != nil, let summaryOverride, !summaryOverride.isEmpty {
                         VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
                             Text("Summary")
                                 .font(PrecisTypography.caption)
@@ -248,7 +243,7 @@ if isGeneratingSummary {
                                 .textCase(.uppercase)
                                 .tracking(1.2)
 
-                            Text(summaryText)
+                            Text(summaryOverride)
                                 .font(.system(size: readingFontSize))
                                 .lineSpacing(7)
                                 .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.85))
