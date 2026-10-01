@@ -35,31 +35,35 @@ struct ArticleListView: View {
 
                 Spacer()
 
-                if viewModel.items.contains(where: { !$0.isRead }) {
-                    Button(action: { viewModel.markAllAsRead(context: modelContext) }) {
-                        Text("Mark All Read")
-                            .font(PrecisTypography.caption)
-                            .foregroundStyle(colorScheme == .dark ? Color.white : Color.black)
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                if viewModel.items.contains(where: { $0.isRead }) {
-                    Button(action: { viewModel.markAllAsUnread(context: modelContext) }) {
-                        Text("Mark All Unread")
-                            .font(PrecisTypography.caption)
+                if viewModel.filteredItems.contains(where: { !$0.isRead }) {
+                    Button(action: {
+                        let visibleArticleIDs = Set(viewModel.filteredItems.map(\.id))
+                        viewModel.markAllAsRead(context: modelContext, articleIDs: visibleArticleIDs)
+                    }) {
+                        Image(systemName: "checkmark.circle")
+                            .font(.system(size: 15, weight: .medium))
                             .foregroundStyle(PrecisDesignSystem.marginalia)
+                            .frame(width: 28, height: 28)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .help("Mark visible articles as read")
                 }
 
-                Text("\(viewModel.filteredItems.count)")
-                    .font(PrecisTypography.metadata)
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.accentColor)
-                    .clipShape(Capsule())
+                if viewModel.filteredItems.contains(where: { $0.isRead }) {
+                    Button(action: {
+                        let visibleArticleIDs = Set(viewModel.filteredItems.map(\.id))
+                        viewModel.markAllAsUnread(context: modelContext, articleIDs: visibleArticleIDs)
+                    }) {
+                        Image(systemName: "envelope.badge")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(PrecisDesignSystem.marginalia)
+                            .frame(width: 28, height: 28)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help("Mark visible articles as unread")
+                }
             }
             .padding(PrecisSpacing.md)
 

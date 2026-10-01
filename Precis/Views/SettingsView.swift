@@ -181,7 +181,8 @@ struct SettingsView: View {
                                                 notificationPermissionIsError = true
                                                 notificationPermissionMessage = "Allow notifications for Precis in System Settings to receive alerts."
                                             } else {
-                                                notificationPermissionMessage = ""
+                                                notificationPermissionIsError = false
+                                                notificationPermissionMessage = await NewArticleNotificationService.settingsGuidance() ?? ""
                                             }
                                         } catch {
                                             notificationPermissionIsError = true
@@ -195,6 +196,11 @@ struct SettingsView: View {
                                     .font(PrecisTypography.caption)
                                     .foregroundStyle(notificationPermissionIsError ? Color.red : PrecisDesignSystem.marginalia)
                             }
+                        }
+                        .task {
+                            guard notifyOnNewArticles else { return }
+                            notificationPermissionMessage = await NewArticleNotificationService.settingsGuidance() ?? ""
+                            notificationPermissionIsError = notificationPermissionMessage.hasPrefix("Allow notifications")
                         }
                     }
 

@@ -20,6 +20,17 @@ public final class UnreadBadgeService: UnreadBadgeServiceProtocol {
 
 @MainActor
 public enum NewArticleNotificationService {
+    public static func settingsGuidance() async -> String? {
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        if settings.authorizationStatus == .denied {
+            return "Allow notifications for Precis in System Settings to receive alerts."
+        }
+        if settings.showPreviewsSetting == .never {
+            return "macOS is hiding notification details. Set Show Previews to Always in System Settings > Notifications > Precis to see feed names."
+        }
+        return nil
+    }
+
     public static func requestAuthorization() async throws -> Bool {
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
@@ -39,16 +50,20 @@ public enum NewArticleNotificationService {
     public static func sendNewArticlesNotification(count: Int, feedNames: [String]) async throws {
         guard count > 0 else { return }
 
-        let uniqueFeedNames = Array(Set(feedNames)).sorted()
+        let uniqueFeedNames = Array(Set(feedNames.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty })).sorted()
         let content = UNMutableNotificationContent()
-        content.title = count == 1 ? "1 New Article" : "\(count) New Articles"
-        if uniqueFeedNames.count == 1, let feedName = uniqueFeedNames.first {
-            content.body = "New stories from \(feedName)."
-        } else if uniqueFeedNames.count > 1 {
-            content.body = "New stories from \(uniqueFeedNames.count) feeds."
+        if uniqueFeedNames.isEmpty {
+            content.title = "New articles in your feeds"
+        } else if uniqueFeedNames.count == 1, let feedName = uniqueFeedNames.first {
+            content.title = "New articles from \(feedName)"
+        } else if uniqueFeedNames.count == 2 {
+            content.title = "New articles from \(uniqueFeedNames[0]) and \(uniqueFeedNames[1])"
         } else {
-            content.body = "Your feeds have new stories."
+            let displayedFeedNames = uniqueFeedNames.prefix(2).joined(separator: ", ")
+            let remainingFeedCount = uniqueFeedNames.count - 2
+            content.title = "New articles from \(displayedFeedNames), and \(remainingFeedCount) more feeds"
         }
+        content.body = count == 1 ? "1 new article arrived." : "\(count) new articles arrived."
         content.sound = .default
 
         let request = UNNotificationRequest(

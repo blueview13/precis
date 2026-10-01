@@ -780,25 +780,27 @@ public final class ArticleListViewModel: ObservableObject {
         }
     }
 
-    public func markAllAsRead(context: ModelContext) {
+    public func markAllAsRead(context: ModelContext, articleIDs: Set<UUID>? = nil) {
         do {
             let records = try articleRepository.fetchAll(context: context)
-            for record in records where !record.isRead {
+            let targetIDs = articleIDs ?? Set(records.map(\.id))
+            for record in records where !record.isRead && targetIDs.contains(record.id) {
                 try articleRepository.markRead(record, read: true, context: context)
             }
-            for index in items.indices {
+            for index in items.indices where targetIDs.contains(items[index].id) {
                 items[index].isRead = true
             }
         } catch {}
     }
 
-    public func markAllAsUnread(context: ModelContext) {
+    public func markAllAsUnread(context: ModelContext, articleIDs: Set<UUID>? = nil) {
         do {
             let records = try articleRepository.fetchAll(context: context)
-            for record in records where record.isRead {
+            let targetIDs = articleIDs ?? Set(records.map(\.id))
+            for record in records where record.isRead && targetIDs.contains(record.id) {
                 try articleRepository.markRead(record, read: false, context: context)
             }
-            for index in items.indices {
+            for index in items.indices where targetIDs.contains(items[index].id) {
                 items[index].isRead = false
             }
         } catch {}
