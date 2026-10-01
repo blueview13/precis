@@ -352,7 +352,7 @@ if isGeneratingSummary {
         let surface = css(PrecisDesignSystem.surface(for: scheme))
         let rule = css(PrecisDesignSystem.rule(for: scheme))
         let marginalia = css(PrecisDesignSystem.marginalia)
-        let accent = css(Color(nsColor: NSColor.controlAccentColor))
+        let accent = css(PrecisDesignSystem.marginalia)
 
         return """
         <!DOCTYPE html>

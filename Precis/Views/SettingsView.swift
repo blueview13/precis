@@ -2,6 +2,7 @@ import SwiftUI
 import AppKit
 
 struct SettingsView: View {
+    @AppStorage(PrecisTheme.storageKey) private var selectedThemeRawValue = PrecisTheme.standard.rawValue
     @AppStorage("readingFontSize") private var readingFontSize: Double = 15
     @AppStorage("summaryAutoGenerate") private var summaryAutoGenerate: Bool = false
     @AppStorage("refreshIntervalMinutes") private var refreshIntervalMinutes: Int = 15
@@ -17,6 +18,10 @@ struct SettingsView: View {
     @State private var isOPMLBusy = false
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
+
+    private var selectedTheme: PrecisTheme {
+        PrecisTheme(rawValue: selectedThemeRawValue) ?? .standard
+    }
 
     let onImportOPML: (() -> Void)?
     let onExportOPML: (() -> Void)?
@@ -51,6 +56,48 @@ struct SettingsView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: PrecisSpacing.lg) {
+                    settingsSection(title: "Appearance") {
+                        VStack(spacing: PrecisSpacing.xs) {
+                            ForEach(PrecisTheme.allCases) { theme in
+                                Button {
+                                    selectedThemeRawValue = theme.rawValue
+                                } label: {
+                                    HStack(spacing: PrecisSpacing.sm) {
+                                        themePreview(theme)
+
+                                        VStack(alignment: .leading, spacing: 3) {
+                                            Text(theme.name)
+                                                .font(PrecisTypography.body.weight(.medium))
+                                                .foregroundStyle(selectedTheme.foreground)
+                                            Text(theme.detail)
+                                                .font(PrecisTypography.caption)
+                                                .foregroundStyle(selectedTheme.foreground.opacity(0.65))
+                                        }
+
+                                        Spacer(minLength: PrecisSpacing.xs)
+
+                                        if selectedTheme == theme {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .foregroundStyle(theme.accent)
+                                        }
+                                    }
+                                    .padding(PrecisSpacing.xs)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(
+                                        selectedTheme == theme ? theme.accent.opacity(0.08) : Color.clear,
+                                        in: RoundedRectangle(cornerRadius: 8)
+                                    )
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(selectedTheme == theme ? theme.accent : theme.rule, lineWidth: 1)
+                                    }
+                                    .contentShape(RoundedRectangle(cornerRadius: 8))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+
                     settingsSection(title: "Reading") {
                         VStack(alignment: .leading, spacing: PrecisSpacing.md) {
                             HStack {
@@ -183,6 +230,44 @@ struct SettingsView: View {
             }
         }
         .background(PrecisDesignSystem.background(for: colorScheme))
+        .preferredColorScheme(selectedTheme.colorScheme)
+        .tint(selectedTheme.accent)
+    }
+
+    private func themePreview(_ theme: PrecisTheme) -> some View {
+        VStack(spacing: 5) {
+            HStack(spacing: 4) {
+                Circle().fill(theme.flag).frame(width: 4, height: 4)
+                Circle().fill(theme.rule).frame(width: 4, height: 4)
+                Circle().fill(theme.rule).frame(width: 4, height: 4)
+                Spacer()
+                RoundedRectangle(cornerRadius: 1).fill(theme.rule).frame(width: 19, height: 3)
+            }
+
+            HStack(spacing: 5) {
+                VStack(spacing: 4) {
+                    RoundedRectangle(cornerRadius: 1).fill(theme.accent).frame(height: 4)
+                    RoundedRectangle(cornerRadius: 1).fill(theme.rule).frame(height: 3)
+                    RoundedRectangle(cornerRadius: 1).fill(theme.rule).frame(height: 3)
+                }
+                .frame(width: 20)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    RoundedRectangle(cornerRadius: 1).fill(theme.foreground.opacity(0.75)).frame(width: 36, height: 4)
+                    RoundedRectangle(cornerRadius: 1).fill(theme.rule).frame(height: 3)
+                    RoundedRectangle(cornerRadius: 1).fill(theme.rule).frame(width: 27, height: 3)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .padding(6)
+        .frame(width: 82, height: 48)
+        .background(theme.background, in: RoundedRectangle(cornerRadius: 5))
+        .overlay {
+            RoundedRectangle(cornerRadius: 5)
+                .stroke(theme.rule, lineWidth: 1)
+        }
+        .accessibilityHidden(true)
     }
 
     private func performImportOPML() {

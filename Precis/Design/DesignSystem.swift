@@ -1,28 +1,119 @@
 import SwiftUI
 import AppKit
 
+enum PrecisTheme: String, CaseIterable, Identifiable {
+    case standard
+    case modernLight
+    case dark
+
+    static let storageKey = "colorTheme"
+
+    static var current: PrecisTheme {
+        guard let rawValue = UserDefaults.standard.string(forKey: storageKey) else { return .standard }
+        return PrecisTheme(rawValue: rawValue) ?? .standard
+    }
+
+    var id: String { rawValue }
+
+    var name: String {
+        switch self {
+        case .standard: "Standard Light"
+        case .modernLight: "Modern Light"
+        case .dark: "Dark"
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .standard: "Paper, ink, and forest green"
+        case .modernLight: "Cool surfaces and clear blue accents"
+        case .dark: "Charcoal surfaces with soft teal accents"
+        }
+    }
+
+    var colorScheme: ColorScheme {
+        self == .dark ? .dark : .light
+    }
+
+    var paper: Color {
+        switch self {
+        case .standard: Color(hex: "#F3F0E8")
+        case .modernLight: Color(hex: "#F4F7FA")
+        case .dark: Color(hex: "#222930")
+        }
+    }
+
+    var background: Color {
+        switch self {
+        case .standard: Color(hex: "#FFFFFF")
+        case .modernLight: Color(hex: "#F4F7FA")
+        case .dark: Color(hex: "#171C21")
+        }
+    }
+
+    var foreground: Color {
+        switch self {
+        case .standard: Color(hex: "#211F1A")
+        case .modernLight: Color(hex: "#1C2732")
+        case .dark: Color(hex: "#E8EDF1")
+        }
+    }
+
+    var surface: Color {
+        switch self {
+        case .standard: Color(hex: "#EAE6DA")
+        case .modernLight: Color(hex: "#FFFFFF")
+        case .dark: Color(hex: "#222930")
+        }
+    }
+
+    var rule: Color {
+        switch self {
+        case .standard: Color(hex: "#D8D2C2")
+        case .modernLight: Color(hex: "#D9E1E8")
+        case .dark: Color(hex: "#38434D")
+        }
+    }
+
+    var accent: Color {
+        switch self {
+        case .standard: Color(hex: "#3C5A45")
+        case .modernLight: Color(hex: "#176B87")
+        case .dark: Color(hex: "#67B6A5")
+        }
+    }
+
+    var flag: Color {
+        switch self {
+        case .standard: Color(hex: "#A8672B")
+        case .modernLight: Color(hex: "#B45B37")
+        case .dark: Color(hex: "#E7AB65")
+        }
+    }
+}
+
 public enum PrecisDesignSystem {
-    public static let paper = Color(hex: "#F3F0E8")
-    public static let ink = Color(hex: "#211F1A")
-    public static let marginalia = Color(hex: "#3C5A45")
-    public static let flag = Color(hex: "#A8672B")
-    public static let rule = Color(hex: "#D8D2C2")
-    public static let surface = Color(hex: "#EAE6DA")
+    public static var paper: Color { PrecisTheme.current.paper }
+    public static var ink: Color { PrecisTheme.current.foreground }
+    public static var marginalia: Color { PrecisTheme.current.accent }
+    public static var flag: Color { PrecisTheme.current.flag }
+    public static var rule: Color { PrecisTheme.current.rule }
+    public static var surface: Color { PrecisTheme.current.surface }
 
-    public static func background(for colorScheme: ColorScheme) -> Color {
-        colorScheme == .dark ? Color(hex: "#171613") : Color.white
+    public static func background(for _: ColorScheme) -> Color {
+        PrecisTheme.current.background
     }
 
-    public static func foreground(for colorScheme: ColorScheme) -> Color {
-        colorScheme == .dark ? Color(hex: "#F0EDE7") : ink
+    public static func foreground(for _: ColorScheme) -> Color {
+        PrecisTheme.current.foreground
     }
 
-    public static func surface(for colorScheme: ColorScheme) -> Color {
-        colorScheme == .dark ? Color(hex: "#1F1D1A") : surface
+    public static func surface(for _: ColorScheme) -> Color {
+        PrecisTheme.current.surface
     }
 
-    public static func rule(for colorScheme: ColorScheme) -> Color {
-        colorScheme == .dark ? Color(hex: "#37342E") : rule
+    public static func rule(for _: ColorScheme) -> Color {
+        PrecisTheme.current.rule
     }
 
     // MARK: - Persisted tints (category text/icon colors)

@@ -3,6 +3,8 @@ import SwiftData
 
 @main
 struct PrecisApp: App {
+    @AppStorage(PrecisTheme.storageKey) private var selectedThemeRawValue = PrecisTheme.standard.rawValue
+
     private let modelContainer: ModelContainer = {
         do {
             return try ModelContainerProvider.makeContainer()
@@ -11,10 +13,16 @@ struct PrecisApp: App {
         }
     }()
 
+    private var selectedTheme: PrecisTheme {
+        PrecisTheme(rawValue: selectedThemeRawValue) ?? .standard
+    }
+
     var body: some Scene {
         WindowGroup {
             MainWindowLayout()
                 .modelContainer(modelContainer)
+                .preferredColorScheme(selectedTheme.colorScheme)
+                .tint(selectedTheme.accent)
         }
 
         Window("Settings", id: "settings") {
@@ -25,6 +33,8 @@ struct PrecisApp: App {
             )
             .modelContainer(modelContainer)
             .frame(width: 480, height: 560)
+            .preferredColorScheme(selectedTheme.colorScheme)
+            .tint(selectedTheme.accent)
         }
         .defaultSize(width: 480, height: 560)
         .commands {
