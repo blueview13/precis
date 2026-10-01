@@ -11,6 +11,10 @@ struct SettingsView: View {
     @AppStorage("showArticleImages") private var showArticleImages: Bool = true
     @State private var opmlStatus = ""
     @State private var opmlStatusIsError = false
+    /// 0…1 fill of the OPML progress bar; nil while no import/export runs.
+    @State private var opmlProgress: Double? = nil
+    /// Locks both OPML buttons while an import/export is in flight.
+    @State private var isOPMLBusy = false
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
 
@@ -112,55 +116,63 @@ struct SettingsView: View {
 
                     settingsSection(title: "OPML") {
                         VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
-                            Button(action: {
-                                if let onImportOPML {
-                                    onImportOPML()
-                                } else {
-                                    performImportOPML()
+                            // Compact paired buttons — same `.bordered` style as
+                            // the reading pane's actions, rather than two
+                            // full-width slabs.
+                            HStack(spacing: PrecisSpacing.xs) {
+                                Button(action: {
+                                    if let onImportOPML {
+                                        onImportOPML()
+                                    } else {
+                                        performImportOPML()
+                                    }
+                                }) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "arrow.up.doc")
+                                            .font(.caption)
+                                        Text("Import OPML")
+                                            .font(PrecisTypography.metadata)
+                                    }
                                 }
-                            }) {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "arrow.up.doc")
-                                    Text("Import OPML")
-                                }
-                                .font(PrecisTypography.body)
-                                .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.vertical, 8)
-                                .padding(.horizontal, 12)
-                                .background(PrecisDesignSystem.surface(for: colorScheme))
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                            }
-                            .buttonStyle(.plain)
+                                .buttonStyle(.bordered)
+                                .disabled(isOPMLBusy)
 
-                            let canExport = hasFeeds || feedCount > 0
-                            Button(action: {
-                                if let onExportOPML {
-                                    onExportOPML()
-                                } else {
-                                    performExportOPML()
+                                let canExport = hasFeeds || feedCount > 0
+                                Button(action: {
+                                    if let onExportOPML {
+                                        onExportOPML()
+                                    } else {
+                                        performExportOPML()
+                                    }
+                                }) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "arrow.down.doc")
+                                            .font(.caption)
+                                        Text("Export OPML")
+                                            .font(PrecisTypography.metadata)
+                                    }
                                 }
-                            }) {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "arrow.down.doc")
-                                    Text("Export OPML")
-                                }
-                                .font(PrecisTypography.body)
-                                .foregroundStyle(canExport ? PrecisDesignSystem.foreground(for: colorScheme) : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.4))
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.vertical, 8)
-                                .padding(.horizontal, 12)
-                                .background(PrecisDesignSystem.surface(for: colorScheme))
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                            }
-                            .buttonStyle(.plain)
-                            .disabled(!canExport)
+                                .buttonStyle(.bordered)
+                                .disabled(!canExport || isOPMLBusy)
 
-                            if !opmlStatus.isEmpty {
-                                Text(opmlStatus)
-                                    .font(PrecisTypography.metadata)
-                                    .foregroundStyle(opmlStatusIsError ? Color.red : Color.accentColor)
-                                    .lineLimit(3)
+                                Spacer(minLength: 0)
+                            }
+
+                            if opmlProgress != nil || !opmlStatus.isEmpty {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    if let progress = opmlProgress {
+                                        ProgressView(value: progress)
+                                            .progressViewStyle(.linear)
+                                            .tint(PrecisDesignSystem.marginalia)
+                                            .animation(.easeInOut(duration: 0.2), value: progress)
+                                    }
+                                    if !opmlStatus.isEmpty {
+                                        Text(opmlStatus)
+                                            .font(PrecisTypography.metadata)
+                                            .foregroundStyle(opmlStatusIsError ? Color.red : PrecisDesignSystem.marginalia)
+                                            .lineLimit(3)
+                                    }
+                                }
                             }
                         }
                     }
@@ -184,7 +196,13 @@ struct SettingsView: View {
             guard response == .OK, let url = panel.url else { return }
             opmlStatus = "Reading OPML file…"
             opmlStatusIsError = false
-            Task {
+            isOPMLBusy = true
+            opmlProgress = 0
+            Task { @MainActor in
+                defer {
+                    isOPMLBusy = false
+                    opmlProgress = nil
+                }
                 do {
                     let opmlFeeds = try OPMLService.parse(contentsOf: url)
                     guard !opmlFeeds.isEmpty else {
@@ -195,16 +213,26 @@ struct SettingsView: View {
                     let feedRepository = FeedRepository()
                     let articleRepository = ArticleRepository()
                     let refreshService = FeedRefreshService()
+                    let total = opmlFeeds.count
 
                     // Skip URLs already subscribed so re-importing a file is
                     // a no-op instead of duplicating every feed.
                     let existing = (try? feedRepository.fetchAll(context: modelContext)) ?? []
                     var seenURLs = Set(existing.map(\.url))
                     var added = 0
+                    var processed = 0
 
-                    for (index, opmlFeed) in opmlFeeds.enumerated() {
-                        guard seenURLs.insert(opmlFeed.url).inserted else { continue }
-                        opmlStatus = "Importing feed \(index + 1) of \(opmlFeeds.count)…"
+                    for opmlFeed in opmlFeeds {
+                        defer {
+                            processed += 1
+                            opmlProgress = Double(processed) / Double(total)
+                            opmlStatus = "Imported \(processed) of \(total) feeds"
+                        }
+                        guard seenURLs.insert(opmlFeed.url).inserted else {
+                            // Duplicates never suspend — yield so the bar still repaints.
+                            await Task.yield()
+                            continue
+                        }
                         let feed = try feedRepository.create(
                             title: opmlFeed.title,
                             url: opmlFeed.url,
@@ -214,16 +242,23 @@ struct SettingsView: View {
                         added += 1
                         if let feedURL = URL(string: opmlFeed.url) {
                             do {
+                                let resolved = await FeedDiscoveryService.resolveFeedURL(feedURL)
                                 let parsed = try await refreshService.fetchAndParse(
-                                    Feed(title: opmlFeed.title, url: feedURL)
+                                    Feed(title: opmlFeed.title, url: resolved)
                                 )
+                                // Persist the resolved feed URL so future
+                                // refreshes fetch the XML directly instead of
+                                // repeating discovery on the home page.
+                                if resolved.absoluteString != feed.url {
+                                    feed.url = resolved.absoluteString
+                                }
                                 // Use the feed's real channel title when the
                                 // OPML entry only carried a URL
                                 let displayTitle = FeedDiscoveryService.displayTitle(current: feed.title, parsedTitle: parsed.title)
                                 if displayTitle != feed.title {
                                     feed.title = displayTitle
-                                    try modelContext.save()
                                 }
+                                try modelContext.save()
                                 for entry in parsed.entries {
                                     let record = ArticleRecord(
                                         feed: feed,
@@ -271,12 +306,36 @@ struct SettingsView: View {
 
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
-            do {
-                let feeds = try FeedRepository().fetchAll(context: modelContext)
-                let opmlFeeds = feeds.map { OPMLFeed(title: $0.title, url: $0.url, folderName: $0.folder?.name) }
-                let xml = OPMLService.generate(feeds: opmlFeeds)
-                try xml.write(to: url, atomically: true, encoding: .utf8)
-            } catch {}
+            isOPMLBusy = true
+            opmlProgress = 0
+            opmlStatusIsError = false
+            Task { @MainActor in
+                defer {
+                    isOPMLBusy = false
+                    opmlProgress = nil
+                }
+                do {
+                    let feeds = try FeedRepository().fetchAll(context: modelContext)
+                    let total = feeds.count
+                    // Serialize in small steps so the bar reflects real work
+                    // instead of jumping 0 → 100 at the end.
+                    var opmlFeeds: [OPMLFeed] = []
+                    opmlFeeds.reserveCapacity(total)
+                    for (index, feed) in feeds.enumerated() {
+                        opmlFeeds.append(OPMLFeed(title: feed.title, url: feed.url, folderName: feed.folder?.name))
+                        opmlProgress = Double(index + 1) / Double(max(total, 1))
+                        opmlStatus = "Exported \(index + 1) of \(total) feeds"
+                        if index % 16 == 15 { await Task.yield() }
+                    }
+                    let xml = OPMLService.generate(feeds: opmlFeeds)
+                    try xml.write(to: url, atomically: true, encoding: .utf8)
+                    opmlStatus = "Exported \(total) feed\(total == 1 ? "" : "s")"
+                } catch {
+                    PrecisLogger.error("OPML export failed: \(error.localizedDescription)")
+                    opmlStatus = "Export failed: \(error.localizedDescription)"
+                    opmlStatusIsError = true
+                }
+            }
         }
     }
 

@@ -124,6 +124,135 @@ public final class FeedDiscoveryService: FeedDiscoveryServiceProtocol {
 
     // MARK: - Display Titles
 
+    /// Resolves a URL that may just be a site's home page (hand-written OPML
+    /// files often record `xmlUrl` as `https://example.com`) to the site's
+    /// actual feed URL.
+    ///
+    /// Strategy, in order:
+    /// 1. A URL that already looks like a feed passes straight through.
+    /// 2. Each candidate (as-is, http→https, bare host→www) is fetched and
+    ///    scanned for a typed `<link rel="alternate">` RSS/Atom declaration.
+    /// 3. Failing that, well-known feed paths (`/feed/`, `/rss`, …) are probed
+    ///    and accepted when the response is feed-shaped.
+    ///
+    /// Returns `url` unchanged when nothing is found, so the caller can still
+    /// attempt a direct fetch (and log the failure as before).
+    public static func resolveFeedURL(_ url: URL) async -> URL {
+        let service = FeedDiscoveryService()
+        guard !service.validateFeedURL(url) else { return url }
+
+        for candidate in service.homePageCandidates(for: url) {
+            // Typed <link rel="alternate"> declaration in the page head.
+            if let html = try? await service.fetchHTML(from: candidate),
+               let link = service.feedLink(in: html, baseURL: candidate) {
+                return link
+            }
+            // Well-known paths (WordPress, Ghost, Hugo…).
+            for path in ["/feed/", "/rss", "/atom.xml", "/feed.xml", "/rss.xml"] {
+                guard let probe = URL(string: path, relativeTo: candidate)?.absoluteURL else { continue }
+                if await service.looksLikeFeed(probe) {
+                    return probe
+                }
+            }
+        }
+        return url
+    }
+
+    /// The URLs worth trying for a possibly-home-page URL: the URL itself,
+    /// its https twin (plain http is blocked by App Transport Security), and
+    /// its www twin (bare hosts sometimes redirect into an http www host).
+    func homePageCandidates(for url: URL) -> [URL] {
+        var candidates: [URL] = [url]
+
+        if url.scheme?.lowercased() == "http",
+           var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+            components.scheme = "https"
+            if let upgraded = components.url { candidates.append(upgraded) }
+        }
+
+        if let host = url.host, !host.lowercased().hasPrefix("www."), host.contains("."),
+           var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+            components.scheme = "https"
+            components.host = "www." + host
+            if let wwwURL = components.url { candidates.append(wwwURL) }
+        }
+
+        return candidates
+    }
+
+    /// A feed URL advertised by a `<link rel="alternate">` tag — prefers a
+    /// typed RSS/Atom/JSON declaration, then any href that is feed-shaped.
+    /// Deliberately stricter than `findAlternateFeedLink` (used by `discover`):
+    /// it must never pick oEmbed/mobile/hreflang alternates, because its
+    /// result is probed no further.
+    func feedLink(in html: String, baseURL: URL) -> URL? {
+        guard let tagRegex = try? NSRegularExpression(pattern: #"<link\b[^>]*>"#, options: [.caseInsensitive]) else {
+            return nil
+        }
+        let range = NSRange(html.startIndex..<html.endIndex, in: html)
+        var feedShapedFallback: URL?
+
+        for match in tagRegex.matches(in: html, range: range) {
+            guard let tagRange = Range(match.range, in: html) else { continue }
+            let tag = String(html[tagRange])
+
+            guard let rel = linkAttribute("rel", in: tag),
+                  rel.lowercased().contains("alternate") else { continue }
+            guard let href = linkAttribute("href", in: tag),
+                  let link = resolveRelativeURL(href, baseURL: baseURL) else { continue }
+
+            let type = (linkAttribute("type", in: tag) ?? "").lowercased()
+            let typedFeed = type.contains("rss") || type.contains("atom")
+                || type.contains("jsonfeed") || type.contains("feed+json")
+            if typedFeed { return link }
+
+            if feedShapedFallback == nil, validateFeedURL(link) {
+                feedShapedFallback = link
+            }
+        }
+        return feedShapedFallback
+    }
+
+    /// Attribute value from a single tag: `name="…"` or `name='…'`.
+    private func linkAttribute(_ name: String, in tag: String) -> String? {
+        let pattern = #"(?:^|\s)\(name)\s*=\s*"([^"]*)"|(?:^|\s)\(name)\s*=\s*'([^']*)'"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { return nil }
+        let range = NSRange(tag.startIndex..<tag.endIndex, in: tag)
+        guard let match = regex.firstMatch(in: tag, range: range) else { return nil }
+        for group in [1, 2] where match.numberOfRanges > group {
+            if let r = Range(match.range(at: group), in: tag), !r.isEmpty {
+                return String(tag[r])
+            }
+        }
+        return nil
+    }
+
+    /// True when `url` answers 2xx with something that is not HTML and either
+    /// a feed content type or a feed XML/JSON payload.
+    private func looksLikeFeed(_ url: URL) async -> Bool {
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalAndRemoteCacheData, timeoutInterval: 15)
+        request.setValue(
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
+            forHTTPHeaderField: "User-Agent"
+        )
+        request.setValue("application/rss+xml, application/atom+xml, application/xml, text/xml, */*", forHTTPHeaderField: "Accept")
+
+        guard let (data, response) = try? await URLSession.shared.data(for: request),
+              let http = response as? HTTPURLResponse,
+              (200...299).contains(http.statusCode) else { return false }
+
+        let contentType = http.value(forHTTPHeaderField: "Content-Type")?.lowercased() ?? ""
+        if contentType.contains("html") { return false }
+        if contentType.contains("rss") || contentType.contains("atom") || contentType.contains("xml") {
+            return true
+        }
+        // Generic or missing content type — sniff the payload instead.
+        guard let head = String(data: data.prefix(2048), encoding: .utf8) else { return false }
+        let lowered = head.lowercased()
+        return lowered.contains("<rss") || lowered.contains("<feed")
+            || lowered.contains("https://jsonfeed.org/version")
+    }
+
     /// True when a stored title is really a URL or bare host, e.g.
     /// "feeds.bbci.co.uk" or "https://example.com/feed.xml".
     public static func looksLikeURL(_ title: String) -> Bool {
