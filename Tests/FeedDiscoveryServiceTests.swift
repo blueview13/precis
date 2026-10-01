@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 import Testing
 
 @testable import Precis
@@ -22,6 +23,22 @@ struct FeedDiscoveryServiceTests {
     func preservesExplicitScheme() throws {
         let url = try FeedDiscoveryService().normalizeURL("http://example.com/feed.xml")
         #expect(url.absoluteString == "http://example.com/feed.xml")
+    }
+
+    @Test("Feed creation rejects an equivalent normalized URL")
+    func rejectsDuplicateFeedURLs() throws {
+        let schema = ModelContainerProvider.schema
+        let configuration = ModelConfiguration("FeedRepositoryTests", schema: schema, isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: schema, configurations: configuration)
+        let context = ModelContext(container)
+        let repository = FeedRepository()
+
+        try repository.create(title: "Example", url: "https://EXAMPLE.com:443/rss.xml/", folder: nil, context: context)
+
+        #expect(throws: FeedRepositoryError.self) {
+            try repository.create(title: "Duplicate", url: "https://example.com/rss.xml", folder: nil, context: context)
+        }
+        #expect(try repository.fetchAll(context: context).count == 1)
     }
 
     @Test("Surrounding whitespace is trimmed")

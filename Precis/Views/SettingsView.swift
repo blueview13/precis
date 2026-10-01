@@ -10,8 +10,11 @@ struct SettingsView: View {
     @AppStorage("showReadingTime") private var showReadingTime: Bool = true
     @AppStorage("showThumbnails") private var showThumbnails: Bool = true
     @AppStorage("showArticleImages") private var showArticleImages: Bool = true
+    @AppStorage("notifyOnNewArticles") private var notifyOnNewArticles = false
     @State private var opmlStatus = ""
     @State private var opmlStatusIsError = false
+    @State private var notificationPermissionMessage = ""
+    @State private var notificationPermissionIsError = false
     /// 0…1 fill of the OPML progress bar; nil while no import/export runs.
     @State private var opmlProgress: Double? = nil
     /// Locks both OPML buttons while an import/export is in flight.
@@ -161,6 +164,40 @@ struct SettingsView: View {
                         }
                     }
 
+                    settingsSection(title: "Notifications") {
+                        VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
+                            Toggle("Notify when new articles arrive", isOn: $notifyOnNewArticles)
+                                .font(PrecisTypography.body)
+                                .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
+                                .onChange(of: notifyOnNewArticles) { _, isEnabled in
+                                    guard isEnabled else {
+                                        notificationPermissionMessage = ""
+                                        return
+                                    }
+                                    Task {
+                                        do {
+                                            let authorized = try await NewArticleNotificationService.requestAuthorization()
+                                            if !authorized {
+                                                notificationPermissionIsError = true
+                                                notificationPermissionMessage = "Allow notifications for Precis in System Settings to receive alerts."
+                                            } else {
+                                                notificationPermissionMessage = ""
+                                            }
+                                        } catch {
+                                            notificationPermissionIsError = true
+                                            notificationPermissionMessage = "Could not enable notifications: \(error.localizedDescription)"
+                                        }
+                                    }
+                                }
+
+                            if !notificationPermissionMessage.isEmpty {
+                                Text(notificationPermissionMessage)
+                                    .font(PrecisTypography.caption)
+                                    .foregroundStyle(notificationPermissionIsError ? Color.red : PrecisDesignSystem.marginalia)
+                            }
+                        }
+                    }
+
                     settingsSection(title: "OPML") {
                         VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
                             // Compact paired buttons — same `.bordered` style as
@@ -303,7 +340,7 @@ struct SettingsView: View {
                     // Skip URLs already subscribed so re-importing a file is
                     // a no-op instead of duplicating every feed.
                     let existing = (try? feedRepository.fetchAll(context: modelContext)) ?? []
-                    var seenURLs = Set(existing.map(\.url))
+                    var seenURLs = Set(existing.map { FeedRepository.canonicalURLString($0.url) })
                     var added = 0
                     var processed = 0
 
@@ -313,30 +350,35 @@ struct SettingsView: View {
                             opmlProgress = Double(processed) / Double(total)
                             opmlStatus = "Imported \(processed) of \(total) feeds"
                         }
-                        guard seenURLs.insert(opmlFeed.url).inserted else {
+                        let inputURL = FeedRepository.canonicalURLString(opmlFeed.url)
+                        guard seenURLs.insert(inputURL).inserted else {
                             // Duplicates never suspend — yield so the bar still repaints.
                             await Task.yield()
                             continue
                         }
+                        let resolvedURL: URL?
+                        if let url = URL(string: opmlFeed.url), url.host != nil {
+                            resolvedURL = await FeedDiscoveryService.resolveFeedURL(url)
+                        } else {
+                            resolvedURL = nil
+                        }
+                        let storedURL = resolvedURL?.absoluteString ?? opmlFeed.url
+                        let storedURLKey = FeedRepository.canonicalURLString(storedURL)
+                        if storedURLKey != inputURL && !seenURLs.insert(storedURLKey).inserted {
+                            continue
+                        }
                         let feed = try feedRepository.create(
                             title: opmlFeed.title,
-                            url: opmlFeed.url,
+                            url: storedURL,
                             folder: nil,
                             context: modelContext
                         )
                         added += 1
-                        if let feedURL = URL(string: opmlFeed.url) {
+                        if let feedURL = resolvedURL ?? URL(string: storedURL) {
                             do {
-                                let resolved = await FeedDiscoveryService.resolveFeedURL(feedURL)
                                 let parsed = try await refreshService.fetchAndParse(
-                                    Feed(title: opmlFeed.title, url: resolved)
+                                    Feed(title: opmlFeed.title, url: feedURL)
                                 )
-                                // Persist the resolved feed URL so future
-                                // refreshes fetch the XML directly instead of
-                                // repeating discovery on the home page.
-                                if resolved.absoluteString != feed.url {
-                                    feed.url = resolved.absoluteString
-                                }
                                 // Use the feed's real channel title when the
                                 // OPML entry only carried a URL
                                 let displayTitle = FeedDiscoveryService.displayTitle(current: feed.title, parsedTitle: parsed.title)

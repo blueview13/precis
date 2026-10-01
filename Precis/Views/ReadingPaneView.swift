@@ -375,6 +375,14 @@ if isGeneratingSummary {
         p { margin: 0 0 1.05em; }
         a { color: \(accent); text-decoration: none; }
         a:hover { text-decoration: underline; }
+        nav, footer, aside, form, [role="navigation"], [role="complementary"],
+        [aria-label*="share" i], [aria-label*="social" i], [aria-label*="breadcrumb" i],
+        a[rel~="tag"], .tags, .tag-list, .tag-links, .tags-links, .post-tags, .entry-tags,
+        .cat-links, .category-links, .entry-categories, .post-categories, .breadcrumbs,
+        .social-links, .social-share, .social-sharing, .share-links, .share-buttons,
+        .sharing-buttons, .sharedaddy, .sd-sharing, .addtoany_share_save_container,
+        .heateor_sss_sharing_container, .wp-block-social-links, .related-posts,
+        .related-articles, .newsletter, .newsletter-signup { display: none !important; }
         img, video { \(showImages ? "display: block; max-width: 100%; height: auto; margin: 1.2em auto; border-radius: 8px;" : "display: none !important;") }
         figure { \(showImages ? "margin: 1.2em 0;" : "display: none !important;") }
         picture, iframe, embed, object { \(showImages ? "" : "display: none !important;") }

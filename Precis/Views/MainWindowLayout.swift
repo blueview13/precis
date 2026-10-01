@@ -9,6 +9,7 @@ struct MainWindowLayout: View {
     @StateObject private var viewModel: ArticleListViewModel
     @AppStorage("refreshIntervalMinutes") private var refreshIntervalMinutes: Int = 15
     @State private var backgroundRefresh = BackgroundRefreshService()
+    @AppStorage("notifyOnNewArticles") private var notifyOnNewArticles = false
     @State private var selectedSidebarItem = "All Items"
     @State private var feedURLInput = ""
     @State private var isImporting = false
@@ -37,10 +38,13 @@ struct MainWindowLayout: View {
     @State private var newCategoryName = ""
     @State private var editingCategoryID: UUID?
     @State private var editingCategoryName = ""
+    @State private var editingFeedID: UUID?
+    @State private var editingFeedName = ""
     // Category whose color popover is open (set from its context menu).
     @State private var colorEditingCategoryID: UUID?
     @FocusState private var isCategoryInputFocused: Bool
     @FocusState private var isCategoryEditFocused: Bool
+    @FocusState private var isFeedEditFocused: Bool
     @State private var categoryDropTargetID: UUID?
     @State private var categoryRowHeights: [UUID: CGFloat] = [:]
     @State private var articleListHeight: CGFloat = 350
@@ -420,6 +424,42 @@ struct MainWindowLayout: View {
         isCategoryEditFocused = false
     }
 
+    private func beginEditingFeed(_ feed: FeedRecord) {
+        editingFeedID = feed.id
+        editingFeedName = feed.sidebarTitle ?? FeedDiscoveryService.conciseTitle(feed.title)
+        DispatchQueue.main.async {
+            isFeedEditFocused = true
+        }
+    }
+
+    private func commitFeedRename(_ feed: FeedRecord) {
+        guard editingFeedID == feed.id else { return }
+        let name = editingFeedName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !name.isEmpty {
+            feed.sidebarTitle = name
+            do {
+                try modelContext.save()
+            } catch {
+                PrecisLogger.error("Failed to rename feed: \(error.localizedDescription)")
+            }
+        }
+        editingFeedID = nil
+        isFeedEditFocused = false
+    }
+
+    private func cancelFeedRename() {
+        editingFeedID = nil
+        editingFeedName = ""
+        isFeedEditFocused = false
+    }
+
+    private func sidebarDisplayTitle(for feed: FeedRecord) -> String {
+        if let sidebarTitle = feed.sidebarTitle?.trimmingCharacters(in: .whitespacesAndNewlines), !sidebarTitle.isEmpty {
+            return sidebarTitle
+        }
+        return FeedDiscoveryService.conciseTitle(feed.title)
+    }
+
     private func deleteCategory(_ category: CategoryRecord) {
         modelContext.delete(category)
         do {
@@ -650,18 +690,32 @@ struct MainWindowLayout: View {
                 .onTapGesture { toggleFeedChecked(feed) }
                 .help("Check to select for bulk actions")
 
-            Button(action: {
-                handleFeedClick(feed, group: group)
-            }) {
-                HStack(spacing: 8) {
-                    FeedFaviconView(url: feed.url)
-                        .frame(width: 16, height: 16)
-                    Text(FeedDiscoveryService.conciseTitle(feed.title))
-                        .font(PrecisTypography.body)
-                        .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.8))
+            if editingFeedID == feed.id {
+                TextField("Feed name", text: $editingFeedName)
+                    .textFieldStyle(.roundedBorder)
+                    .font(PrecisTypography.body)
+                    .focused($isFeedEditFocused)
+                    .onSubmit { commitFeedRename(feed) }
+                    .onExitCommand { cancelFeedRename() }
+                    .onChange(of: isFeedEditFocused) { _, focused in
+                        if !focused && editingFeedID == feed.id {
+                            commitFeedRename(feed)
+                        }
+                    }
+            } else {
+                Button(action: {
+                    handleFeedClick(feed, group: group)
+                }) {
+                    HStack(spacing: 8) {
+                        FeedFaviconView(url: feed.url)
+                            .frame(width: 16, height: 16)
+                        Text(sidebarDisplayTitle(for: feed))
+                            .font(PrecisTypography.body)
+                            .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.8))
+                    }
                 }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
 
             let feedUnread = viewModel.unreadCount(forFeed: feed.id)
             if feedUnread > 0 {
@@ -696,9 +750,14 @@ struct MainWindowLayout: View {
         )
         .contextMenu {
             Button {
-                Task { await refreshSingleFeed(feed) }
+                Task { _ = await refreshSingleFeed(feed) }
             } label: {
                 Label("Refresh Feed", systemImage: "arrow.clockwise")
+            }
+            Button {
+                beginEditingFeed(feed)
+            } label: {
+                Label("Rename Feed…", systemImage: "pencil")
             }
             Divider()
             if selectedFeedIDs.count >= 2 && selectedFeedIDs.contains(feed.id) {
@@ -755,7 +814,7 @@ struct MainWindowLayout: View {
                     .foregroundStyle(Color.accentColor)
                 Text(selectedFeedIDs.contains(feed.id) && selectedFeedIDs.count > 1
                      ? "\(selectedFeedIDs.count) feeds"
-                     : FeedDiscoveryService.conciseTitle(feed.title))
+                     : sidebarDisplayTitle(for: feed))
                     .font(PrecisTypography.body)
                     .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
             }
@@ -769,13 +828,14 @@ struct MainWindowLayout: View {
     /// it for every feed and reloads ONCE at the end. Reloading per feed made
     /// a 400-feed pass rebuild the whole article library 400 times on the
     /// main thread (sampled: the main thread spent most of its time there).
-    private func refreshSingleFeed(_ feed: FeedRecord, reload: Bool = true) async {
+    private func refreshSingleFeed(_ feed: FeedRecord, reload: Bool = true, sendNotification: Bool = true) async -> Int {
         importStatus = "Refreshing \(feed.title)…"
         importStatusKind = .neutral
 
         do {
             let feedURL = URL(string: feed.url) ?? URL(string: "https://example.com/feed.xml")!
             let parsed = try await FeedRefreshService().fetchAndParse(Feed(title: feed.title, url: feedURL))
+            var newArticleCount = 0
 
             // Swap a URL/host placeholder name for the feed's real channel
             // title (e.g. "BBC Sport") — also backfills older imports
@@ -798,18 +858,28 @@ struct MainWindowLayout: View {
                     isStarred: false,
                     imageURL: entry.imageURL?.absoluteString
                 )
-                try ArticleRepository().saveIfNew(article, context: modelContext)
+                if try ArticleRepository().saveIfNew(article, context: modelContext) {
+                    newArticleCount += 1
+                }
             }
 
             try FeedRepository().update(feed, context: modelContext)
             if reload {
                 refreshFeeds()
             }
+            if sendNotification, notifyOnNewArticles, newArticleCount > 0 {
+                try? await NewArticleNotificationService.sendNewArticlesNotification(
+                    count: newArticleCount,
+                    feedNames: [sidebarDisplayTitle(for: feed)]
+                )
+            }
             importStatus = "\(feed.title) refreshed"
             importStatusKind = .success
+            return newArticleCount
         } catch {
             importStatus = "Refresh failed: \(error.localizedDescription)"
             importStatusKind = .error
+            return 0
         }
     }
 
@@ -837,12 +907,24 @@ struct MainWindowLayout: View {
 
     private func refreshAllFeeds() async {
         isRefreshingAll = true
+        var totalNewArticles = 0
+        var refreshedFeedNames: [String] = []
         for feed in importedFeeds {
             // No per-feed UI reload — reload once after the whole pass.
-            await refreshSingleFeed(feed, reload: false)
+            let newArticleCount = await refreshSingleFeed(feed, reload: false, sendNotification: false)
+            if newArticleCount > 0 {
+                totalNewArticles += newArticleCount
+                refreshedFeedNames.append(sidebarDisplayTitle(for: feed))
+            }
         }
         refreshFeeds()
         isRefreshingAll = false
+        if notifyOnNewArticles, totalNewArticles > 0 {
+            try? await NewArticleNotificationService.sendNewArticlesNotification(
+                count: totalNewArticles,
+                feedNames: refreshedFeedNames
+            )
+        }
         importStatus = "All feeds refreshed"
         importStatusKind = .success
     }
@@ -872,10 +954,29 @@ struct MainWindowLayout: View {
                     let feedRepository = FeedRepository()
                     let articleRepository = ArticleRepository()
                     let refreshService = FeedRefreshService()
+                    var seenFeedURLs = Set(
+                        try feedRepository.fetchAll(context: modelContext)
+                            .map { FeedRepository.canonicalURLString($0.url) }
+                    )
+                    var importedCount = 0
 
                     var folderCache: [String: FolderRecord] = [:]
 
                     for opmlFeed in opmlFeeds {
+                        let inputURL = FeedRepository.canonicalURLString(opmlFeed.url)
+                        guard seenFeedURLs.insert(inputURL).inserted else { continue }
+                        let resolvedURL: URL?
+                        if let url = URL(string: opmlFeed.url), url.host != nil {
+                            resolvedURL = await FeedDiscoveryService.resolveFeedURL(url)
+                        } else {
+                            resolvedURL = nil
+                        }
+                        let storedURL = resolvedURL?.absoluteString ?? opmlFeed.url
+                        let storedURLKey = FeedRepository.canonicalURLString(storedURL)
+                        if storedURLKey != inputURL && !seenFeedURLs.insert(storedURLKey).inserted {
+                            continue
+                        }
+
                         // Resolve folder
                         var folderRecord: FolderRecord? = nil
                         if let folderName = opmlFeed.folderName {
@@ -890,13 +991,14 @@ struct MainWindowLayout: View {
 
                         let feed = try feedRepository.create(
                             title: opmlFeed.title,
-                            url: opmlFeed.url,
+                            url: storedURL,
                             folder: folderRecord,
                             context: modelContext
                         )
+                        importedCount += 1
 
                         // Fetch articles for each feed
-                        if let feedURL = URL(string: opmlFeed.url) {
+                        if let feedURL = resolvedURL ?? URL(string: storedURL) {
                             do {
                                 let parsed = try await refreshService.fetchAndParse(
                                     Feed(title: opmlFeed.title, url: feedURL)
@@ -931,7 +1033,10 @@ struct MainWindowLayout: View {
                     }
 
                     refreshFeeds()
-                    importStatus = "Imported \(opmlFeeds.count) feeds from OPML"
+                    let skippedCount = opmlFeeds.count - importedCount
+                    importStatus = skippedCount > 0
+                        ? "Imported \(importedCount) feeds; \(skippedCount) already subscribed"
+                        : "Imported \(importedCount) feeds from OPML"
                     importStatusKind = .success
                 } catch {
                     importStatus = "OPML import failed: \(error.localizedDescription)"
@@ -1313,14 +1418,14 @@ struct MainWindowLayout: View {
                 isImporting: $isImporting,
                 importStatus: $importStatus,
                 importStatusKind: $importStatusKind,
-                onAdd: {
+                onAdd: { feedURL in
                     Task {
                         isImporting = true
                         importStatus = ""
                         importStatusKind = .neutral
                         do {
                             let before = (try? ArticleRepository().fetchAll(context: modelContext).count) ?? 0
-                            try await viewModel.importFeed(from: feedURLInput, in: modelContext)
+                            try await viewModel.importFeed(from: feedURL, in: modelContext)
                             refreshFeeds()
                             viewModel.selectedSidebarFilter = .all
                             viewModel.loadArticles(for: nil, context: modelContext)
@@ -1329,10 +1434,13 @@ struct MainWindowLayout: View {
                             // Stay open so several feeds can be added back-to-
                             // back; "Done" (or the ✕) closes the sheet.
                             importStatus = added > 0
-                                ? "Added \(added) new article\(added == 1 ? "" : "s") — paste another URL to add the next feed"
-                                : "Feed added — no new articles yet; paste another URL to add the next feed"
+                                ? "Added \(added) new article\(added == 1 ? "" : "s") — add another feed to continue"
+                                : "Feed added — no new articles yet; add another feed to continue"
                             importStatusKind = .success
                             feedURLInput = ""
+                        } catch FeedRepositoryError.duplicateFeed(let existingTitle) {
+                            importStatus = "Already subscribed as \"\(existingTitle)\""
+                            importStatusKind = .neutral
                         } catch {
                             importStatus = "Could not import feed: \(error.localizedDescription)"
                             importStatusKind = .error
@@ -1379,8 +1487,9 @@ private struct AddFeedSheet: View {
     @Binding var isImporting: Bool
     @Binding var importStatus: String
     @Binding var importStatusKind: ImportStatusKind
-    let onAdd: () -> Void
+    let onAdd: (String) -> Void
     @State private var didImport = false
+    @State private var selectedFeedURL = ""
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @FocusState private var isURLEntryFocused: Bool
@@ -1403,16 +1512,20 @@ private struct AddFeedSheet: View {
                 .font(PrecisTypography.metadata)
                 .foregroundStyle(PrecisDesignSystem.marginalia)
 
+            Text("Or add a feed manually")
+                .font(PrecisTypography.metadata.weight(.medium))
+                .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
+
             TextField("", text: $feedURLInput, prompt: isURLEntryFocused
                 ? nil
                 : Text("https://example.com/feed.xml or any supported URL"))
                 .textFieldStyle(.roundedBorder)
                 .font(PrecisTypography.body)
                 .focused($isURLEntryFocused)
-                .onSubmit { onAdd() }
+                .onSubmit { onAdd(feedURLInput) }
 
             HStack(spacing: 12) {
-                Button(action: onAdd) {
+                Button(action: { onAdd(feedURLInput) }) {
                     HStack {
                         if isImporting {
                             ProgressView()
@@ -1437,6 +1550,34 @@ private struct AddFeedSheet: View {
                 }
             }
 
+            Divider()
+
+            VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
+                Text("SUGGESTED FEEDS")
+                    .font(PrecisTypography.caption)
+                    .foregroundStyle(PrecisDesignSystem.marginalia)
+
+                Picker("", selection: $selectedFeedURL) {
+                    Text("Browse by category...").tag("")
+                    ForEach(SuggestedFeedCatalog.categories) { category in
+                        Section(category.name) {
+                            ForEach(category.feeds) { feed in
+                                Text(feed.name).tag(feed.url)
+                            }
+                        }
+                    }
+                }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .onChange(of: selectedFeedURL) { _, url in
+                    guard !url.isEmpty else { return }
+                    feedURLInput = url
+                    importStatus = ""
+                    importStatusKind = .neutral
+                }
+            }
+
             if !importStatus.isEmpty {
                 Text(importStatus)
                     .font(PrecisTypography.metadata)
@@ -1445,7 +1586,7 @@ private struct AddFeedSheet: View {
             }
         }
         .padding(PrecisSpacing.lg)
-        .frame(width: 420)
+        .frame(width: 460)
         .onAppear {
             // Fresh sheet state on every presentation.
             importStatus = ""
@@ -1459,6 +1600,124 @@ private struct AddFeedSheet: View {
                 isURLEntryFocused = true
             }
         }
+    }
+}
+
+private struct SuggestedFeed: Identifiable {
+    let name: String
+    let url: String
+
+    var id: String { url }
+}
+
+private struct SuggestedFeedCategory: Identifiable {
+    let name: String
+    let feeds: [SuggestedFeed]
+
+    var id: String { name }
+}
+
+private enum SuggestedFeedCatalog {
+    static let categories = [
+        SuggestedFeedCategory(name: "News", feeds: [
+            SuggestedFeed(name: "BBC World News", url: "https://feeds.bbci.co.uk/news/world/rss.xml"),
+            SuggestedFeed(name: "The Guardian: World", url: "https://www.theguardian.com/world/rss"),
+            SuggestedFeed(name: "NPR News", url: "https://feeds.npr.org/1001/rss.xml"),
+            SuggestedFeed(name: "CNN: World", url: "http://rss.cnn.com/rss/edition_world.rss"),
+            SuggestedFeed(name: "The New York Times: Top Stories", url: "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml"),
+            SuggestedFeed(name: "Sky News: World", url: "https://feeds.skynews.com/feeds/rss/world.xml"),
+            SuggestedFeed(name: "Google News", url: "https://news.google.com/rss")
+        ]),
+        SuggestedFeedCategory(name: "Sports", feeds: [
+            SuggestedFeed(name: "BBC Sport", url: "https://feeds.bbci.co.uk/sport/rss.xml"),
+            SuggestedFeed(name: "ESPN Top Headlines", url: "https://www.espn.com/espn/rss/news"),
+            SuggestedFeed(name: "BBC Football", url: "https://feeds.bbci.co.uk/sport/football/rss.xml"),
+            SuggestedFeed(name: "Sky Sports: Football", url: "https://www.skysports.com/rss/12040"),
+            SuggestedFeed(name: "ESPN: Soccer", url: "https://www.espn.com/espn/rss/soccer/news"),
+            SuggestedFeed(name: "ESPN: NBA", url: "https://www.espn.com/espn/rss/nba/news"),
+            SuggestedFeed(name: "ESPN: NFL", url: "https://www.espn.com/espn/rss/nfl/news")
+        ]),
+        SuggestedFeedCategory(name: "Technology", feeds: [
+            SuggestedFeed(name: "Ars Technica", url: "https://feeds.arstechnica.com/arstechnica/index"),
+            SuggestedFeed(name: "The Verge", url: "https://www.theverge.com/rss/index.xml"),
+            SuggestedFeed(name: "Hacker News", url: "https://news.ycombinator.com/rss"),
+            SuggestedFeed(name: "TechCrunch", url: "https://techcrunch.com/feed/"),
+            SuggestedFeed(name: "WIRED", url: "https://www.wired.com/feed/rss"),
+            SuggestedFeed(name: "Engadget", url: "https://www.engadget.com/rss.xml"),
+            SuggestedFeed(name: "CNET News", url: "https://www.cnet.com/rss/news/")
+        ]),
+        SuggestedFeedCategory(name: "AI", feeds: [
+            SuggestedFeed(name: "The Decoder", url: "https://the-decoder.com/feed/"),
+            SuggestedFeed(name: "Hugging Face Blog", url: "https://huggingface.co/blog/feed.xml"),
+            SuggestedFeed(name: "MIT Technology Review: AI", url: "https://www.technologyreview.com/topic/artificial-intelligence/feed/"),
+            SuggestedFeed(name: "MarkTechPost", url: "https://www.marktechpost.com/feed/"),
+            SuggestedFeed(name: "Import AI", url: "https://importai.substack.com/feed"),
+            SuggestedFeed(name: "Latent Space", url: "https://www.latent.space/feed"),
+            SuggestedFeed(name: "Google Research Blog", url: "https://blog.research.google/feeds/posts/default?alt=rss")
+        ]),
+        SuggestedFeedCategory(name: "Business", feeds: [
+            SuggestedFeed(name: "Axios", url: "https://api.axios.com/feed/"),
+            SuggestedFeed(name: "Financial Times", url: "https://www.ft.com/?format=rss"),
+            SuggestedFeed(name: "Bloomberg Markets", url: "https://feeds.bloomberg.com/markets/news.rss"),
+            SuggestedFeed(name: "MarketWatch: Top Stories", url: "https://www.marketwatch.com/rss/topstories"),
+            SuggestedFeed(name: "Business Insider", url: "https://www.businessinsider.com/rss"),
+            SuggestedFeed(name: "The Economist: Business", url: "https://www.economist.com/business/rss.xml")
+        ]),
+        SuggestedFeedCategory(name: "Science", feeds: [
+            SuggestedFeed(name: "Nature", url: "https://www.nature.com/nature.rss"),
+            SuggestedFeed(name: "ScienceDaily", url: "https://www.sciencedaily.com/rss/all.xml"),
+            SuggestedFeed(name: "ScienceAlert", url: "https://www.sciencealert.com/feed"),
+            SuggestedFeed(name: "NASA Breaking News", url: "https://www.nasa.gov/rss/dyn/breaking_news.rss"),
+            SuggestedFeed(name: "Scientific American", url: "http://rss.sciam.com/ScientificAmerican-Global"),
+            SuggestedFeed(name: "Space.com", url: "https://www.space.com/feeds/all"),
+            SuggestedFeed(name: "New Scientist", url: "https://www.newscientist.com/feed/"),
+            SuggestedFeed(name: "Science News", url: "https://www.sciencenews.org/feed"),
+            SuggestedFeed(name: "Quanta Magazine", url: "https://www.quantamagazine.org/feed/"),
+            SuggestedFeed(name: "BBC Science & Environment", url: "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml")
+        ]),
+        SuggestedFeedCategory(name: "Movies", feeds: [
+            SuggestedFeed(name: "Variety: Film", url: "https://variety.com/feed/"),
+            SuggestedFeed(name: "Deadline", url: "https://deadline.com/feed/"),
+            SuggestedFeed(name: "IndieWire", url: "https://www.indiewire.com/feed/"),
+            SuggestedFeed(name: "Slashfilm", url: "https://www.slashfilm.com/feed/"),
+            SuggestedFeed(name: "ComingSoon", url: "https://www.comingsoon.net/feed")
+        ]),
+        SuggestedFeedCategory(name: "Music", feeds: [
+            SuggestedFeed(name: "Pitchfork: News", url: "https://pitchfork.com/feed/feed-news/rss"),
+            SuggestedFeed(name: "Consequence", url: "https://consequence.net/feed/"),
+            SuggestedFeed(name: "Stereogum", url: "https://stereogum.com/feed"),
+            SuggestedFeed(name: "NPR Music", url: "https://feeds.npr.org/1039/rss.xml"),
+            SuggestedFeed(name: "Music Business Worldwide", url: "https://www.musicbusinessworldwide.com/feed/"),
+            SuggestedFeed(name: "The Guardian: Music", url: "https://www.theguardian.com/music/rss")
+        ]),
+        SuggestedFeedCategory(name: "Photography", feeds: [
+            SuggestedFeed(name: "PetaPixel", url: "https://petapixel.com/feed/"),
+            SuggestedFeed(name: "Fstoppers", url: "https://fstoppers.com/feed"),
+            SuggestedFeed(name: "DIY Photography", url: "https://www.diyphotography.net/feed/"),
+            SuggestedFeed(name: "Digital Photography School", url: "https://digital-photography-school.com/feed/"),
+            SuggestedFeed(name: "Canon Rumors", url: "https://www.canonrumors.com/feed/"),
+            SuggestedFeed(name: "DPReview", url: "https://www.dpreview.com/feed/")
+        ]),
+        SuggestedFeedCategory(name: "Gaming", feeds: [
+            SuggestedFeed(name: "Polygon", url: "https://www.polygon.com/rss/index.xml"),
+            SuggestedFeed(name: "GameSpot", url: "https://www.gamespot.com/feeds/mashup/"),
+            SuggestedFeed(name: "PC Gamer", url: "https://www.pcgamer.com/rss/"),
+            SuggestedFeed(name: "Rock Paper Shotgun", url: "https://www.rockpapershotgun.com/feed"),
+            SuggestedFeed(name: "Eurogamer", url: "https://www.eurogamer.net/?format=rss"),
+            SuggestedFeed(name: "Steam News", url: "https://store.steampowered.com/feeds/news.xml")
+        ]),
+        SuggestedFeedCategory(name: "Apple", feeds: [
+            SuggestedFeed(name: "9to5Mac", url: "https://9to5mac.com/feed/"),
+            SuggestedFeed(name: "Apple Newsroom", url: "https://www.apple.com/newsroom/rss-feed.rss"),
+            SuggestedFeed(name: "AppleInsider", url: "https://appleinsider.com/rss/news/"),
+            SuggestedFeed(name: "MacRumors", url: "https://feeds.macrumors.com/MacRumors-All"),
+            SuggestedFeed(name: "MacStories", url: "https://www.macstories.net/feed/"),
+            SuggestedFeed(name: "Daring Fireball", url: "https://daringfireball.net/feeds/main")
+        ])
+    ]
+
+    static func category(named name: String) -> SuggestedFeedCategory? {
+        categories.first { $0.name == name }
     }
 }
 

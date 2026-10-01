@@ -26,6 +26,7 @@ public final class FolderRecord {
 public final class FeedRecord {
     @Attribute(.unique) public var id: UUID
     public var title: String
+    public var sidebarTitle: String?
     public var url: String
     public var folder: FolderRecord?
     // Optional to-one relationship so existing stores migrate in-place (nullable column)
@@ -37,6 +38,7 @@ public final class FeedRecord {
     public init(
         id: UUID = UUID(),
         title: String,
+        sidebarTitle: String? = nil,
         url: String,
         folder: FolderRecord? = nil,
         category: CategoryRecord? = nil,
@@ -45,6 +47,7 @@ public final class FeedRecord {
     ) {
         self.id = id
         self.title = title
+        self.sidebarTitle = sidebarTitle
         self.url = url
         self.folder = folder
         self.category = category

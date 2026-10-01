@@ -236,6 +236,14 @@ struct AddFeedIntent: AppIntent {
         let articleRepository = ArticleRepository()
 
         let discoveryResult = try await discoveryService.discover(from: feedURL.absoluteString)
+        if let existing = try feedRepository.existingFeed(
+            forURL: discoveryResult.normalizedURL.absoluteString,
+            context: context
+        ) {
+            let displayName = existing.sidebarTitle ?? existing.title
+            return .result(dialog: IntentDialog(stringLiteral: "Already subscribed to \(displayName)."))
+        }
+
         let feed = try feedRepository.create(
             title: discoveryResult.title,
             url: discoveryResult.normalizedURL.absoluteString,
