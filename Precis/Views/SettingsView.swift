@@ -8,6 +8,7 @@ struct SettingsView: View {
     @AppStorage("defaultSortOrder") private var defaultSortOrder: String = "newest"
     @AppStorage("showReadingTime") private var showReadingTime: Bool = true
     @AppStorage("showThumbnails") private var showThumbnails: Bool = true
+    @AppStorage("showArticleImages") private var showArticleImages: Bool = true
     @State private var opmlStatus = ""
     @State private var opmlStatusIsError = false
     @Environment(\.colorScheme) private var colorScheme
@@ -68,6 +69,10 @@ struct SettingsView: View {
                     settingsSection(title: "Article List") {
                         VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
                             Toggle("Show article thumbnails", isOn: $showThumbnails)
+                                .font(PrecisTypography.body)
+                                .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
+
+                            Toggle("Show article images", isOn: $showArticleImages)
                                 .font(PrecisTypography.body)
                                 .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
 

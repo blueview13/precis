@@ -26,6 +26,7 @@ struct ReadingPaneView: View {
     let canSelectNext: Bool
     @AppStorage("readingFontSize") private var readingFontSize: Double = 15
     @AppStorage("showReadingTime") private var showReadingTime: Bool = true
+    @AppStorage("showArticleImages") private var showArticleImages: Bool = true
     @Environment(\.colorScheme) private var colorScheme
     /// Content height reported by the article web view — it grows as the
     /// document (and its images) finish measuring inside this scroll view.
@@ -85,7 +86,7 @@ struct ReadingPaneView: View {
                 .replacingOccurrences(of: "&", with: "&amp;")
                 .replacingOccurrences(of: "<", with: "&lt;")
                 .replacingOccurrences(of: ">", with: "&gt;")
-            return Self.document(body: "<p>\(message)</p>", fontSize: readingFontSize, scheme: colorScheme)
+            return Self.document(body: "<p>\(message)</p>", fontSize: readingFontSize, scheme: colorScheme, showImages: showArticleImages)
         }
 
         let cacheKey = "\(item.id.uuidString)|\(item.rawArticleHTML.hashValue)"
@@ -118,7 +119,7 @@ struct ReadingPaneView: View {
             Self.bodyCacheLock.unlock()
         }
 
-        return Self.document(body: bodyHTML, fontSize: readingFontSize, scheme: colorScheme)
+        return Self.document(body: bodyHTML, fontSize: readingFontSize, scheme: colorScheme, showImages: showArticleImages)
     }
 
     private var summaryText: String {
@@ -296,8 +297,8 @@ if isGeneratingSummary {
         HStack(spacing: 0) {
             Button(action: { onPreviousArticle?() }) {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 13, weight: .semibold))
-                    .frame(width: 28, height: 22)
+                    .font(.system(size: 19.5, weight: .semibold))
+                    .frame(width: 42, height: 33)
             }
             .buttonStyle(.plain)
             .disabled(!canSelectPrevious)
@@ -306,12 +307,12 @@ if isGeneratingSummary {
 
             Rectangle()
                 .fill(Color(nsColor: .separatorColor))
-                .frame(width: 1, height: 14)
+                .frame(width: 1, height: 21)
 
             Button(action: { onNextArticle?() }) {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
-                    .frame(width: 28, height: 22)
+                    .font(.system(size: 19.5, weight: .semibold))
+                    .frame(width: 42, height: 33)
             }
             .buttonStyle(.plain)
             .disabled(!canSelectNext)
@@ -341,8 +342,10 @@ if isGeneratingSummary {
     // MARK: - Article document
 
     /// Wraps the article fragment in a full HTML document styled with the
-    /// design system's colors and the user's reading font size.
-    private static func document(body: String, fontSize: Double, scheme: ColorScheme) -> String {
+    /// design system's colors and the user's reading font size. When
+    /// `showImages` is false, embedded media is hidden so the pane shows
+    /// text only.
+    private static func document(body: String, fontSize: Double, scheme: ColorScheme, showImages: Bool = true) -> String {
         let foreground = css(PrecisDesignSystem.foreground(for: scheme))
         let background = css(PrecisDesignSystem.background(for: scheme))
         let muted = css(PrecisDesignSystem.foreground(for: scheme), opacity: 0.62)
@@ -372,8 +375,9 @@ if isGeneratingSummary {
         p { margin: 0 0 1.05em; }
         a { color: \(accent); text-decoration: none; }
         a:hover { text-decoration: underline; }
-        img, video { display: block; max-width: 100%; height: auto; margin: 1.2em auto; border-radius: 8px; }
-        figure { margin: 1.2em 0; }
+        img, video { \(showImages ? "display: block; max-width: 100%; height: auto; margin: 1.2em auto; border-radius: 8px;" : "display: none !important;") }
+        figure { \(showImages ? "margin: 1.2em 0;" : "display: none !important;") }
+        picture, iframe, embed, object { \(showImages ? "" : "display: none !important;") }
         figcaption { margin-top: .5em; font-size: .85em; color: \(muted); text-align: center; }
         h1, h2, h3, h4, h5 { font-weight: 600; line-height: 1.25; margin: 1.5em 0 .55em; color: \(foreground); }
         h1 { font-size: 1.55em; }
