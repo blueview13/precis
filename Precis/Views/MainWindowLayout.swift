@@ -54,6 +54,7 @@ struct MainWindowLayout: View {
     /// dead-center no matter how the window reaches its size.
     @State private var userAdjustedDivider = false
     @State private var sidebarWidth: CGFloat = 260
+    @State private var userAdjustedSidebarWidth = false
     @State private var isSidebarHidden = false
     @Environment(\.openWindow) private var openWindow
     private var selectedSummaryText: String? {
@@ -102,8 +103,9 @@ struct MainWindowLayout: View {
                 .gesture(
                     DragGesture(minimumDistance: 1)
                         .onChanged { value in
+                            userAdjustedSidebarWidth = true
                             let newWidth = sidebarWidth + value.translation.width
-                            sidebarWidth = max(180, min(newWidth, 400))
+                            sidebarWidth = max(180, min(newWidth, max(700, automaticSidebarWidth)))
                         }
                 )
                 .onHover { inside in
@@ -258,6 +260,7 @@ struct MainWindowLayout: View {
     private func refreshFeeds() {
         do {
             importedFeeds = try FeedRepository().fetchAll(context: modelContext)
+            updateAutomaticSidebarWidth()
             viewModel.loadFolders(context: modelContext)
             viewModel.loadArticles(for: viewModel.selectedFeedID, context: modelContext)
             // Regenerate feed-wide summary after refresh
@@ -266,6 +269,7 @@ struct MainWindowLayout: View {
             }
         } catch {
             importedFeeds = []
+            updateAutomaticSidebarWidth()
         }
     }
 
@@ -408,6 +412,7 @@ struct MainWindowLayout: View {
             category.name = name
             do {
                 try modelContext.save()
+                updateAutomaticSidebarWidth()
             } catch {
                 PrecisLogger.error("Failed to rename category: \(error.localizedDescription)")
             }
@@ -458,6 +463,19 @@ struct MainWindowLayout: View {
             return sidebarTitle
         }
         return FeedDiscoveryService.conciseTitle(feed.title)
+    }
+
+    private var automaticSidebarWidth: CGFloat {
+        let font = NSFont.systemFont(ofSize: 15, weight: .regular)
+        let widestFeedName = importedFeeds
+            .map { ceil((sidebarDisplayTitle(for: $0) as NSString).size(withAttributes: [.font: font]).width) }
+            .max() ?? 0
+        return max(260, widestFeedName + 180)
+    }
+
+    private func updateAutomaticSidebarWidth() {
+        guard !userAdjustedSidebarWidth else { return }
+        sidebarWidth = automaticSidebarWidth
     }
 
     private func deleteCategory(_ category: CategoryRecord) {
@@ -711,6 +729,7 @@ struct MainWindowLayout: View {
                             .frame(width: 16, height: 16)
                         Text(sidebarDisplayTitle(for: feed))
                             .font(PrecisTypography.body)
+                            .lineLimit(1)
                             .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.8))
                     }
                 }

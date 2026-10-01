@@ -45,8 +45,10 @@ struct ArticleListView: View {
                             .foregroundStyle(PrecisDesignSystem.marginalia)
                             .frame(width: 28, height: 28)
                             .contentShape(Rectangle())
+                            .help("Mark visible articles as read")
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Mark visible articles as read")
                     .help("Mark visible articles as read")
                 }
 
@@ -60,8 +62,10 @@ struct ArticleListView: View {
                             .foregroundStyle(PrecisDesignSystem.marginalia)
                             .frame(width: 28, height: 28)
                             .contentShape(Rectangle())
+                            .help("Mark visible articles as unread")
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Mark visible articles as unread")
                     .help("Mark visible articles as unread")
                 }
             }
