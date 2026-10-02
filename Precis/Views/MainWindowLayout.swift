@@ -374,17 +374,49 @@ struct MainWindowLayout: View {
             return
         }
 
-        let menuBarHeight = screen.frame.maxY - screen.visibleFrame.maxY
+        let overlayHeight = menuBarOverlayHeight(on: screen)
         let mouse = NSEvent.mouseLocation
-        let overMenuBar = menuBarHeight > 0
+        let overMenuBar = overlayHeight > 0
             && mouse.x >= screen.frame.minX && mouse.x <= screen.frame.maxX
-            && mouse.y >= screen.visibleFrame.maxY
+            && mouse.y >= screen.frame.maxY - overlayHeight
         // Keep the shift while the button is held so dragging a menu open
         // and down through the list doesn't yank the content mid-drag.
-        let draggingThroughMenu = menuBarShift > 0 && NSEvent.pressedMouseButtons != 0
-        let target: CGFloat = (overMenuBar || draggingThroughMenu) ? menuBarHeight : 0
+        let draggingThroughMenu = overlayHeight > 0 && menuBarShift > 0 && NSEvent.pressedMouseButtons != 0
+        let target: CGFloat = (overMenuBar || draggingThroughMenu)
+            ? overlayHeight + Self.menuBarClearance
+            : 0
         guard target != menuBarShift else { return }
         withAnimation(.easeOut(duration: 0.2)) { menuBarShift = target }
+    }
+
+    /// Extra drop below the menu bar's own height so nothing clips against
+    /// its hover backdrop (the full-screen reveal sits deeper than the strip
+    /// `visibleFrame` reserves).
+    private static let menuBarClearance: CGFloat = 12
+
+    /// Height the revealed menu bar actually occupies on this screen: the
+    /// revealed bar is a top-edge window of the active app, so measure it
+    /// when it's showing; otherwise fall back to the reserved strip.
+    private func menuBarOverlayHeight(on screen: NSScreen) -> CGFloat {
+        let top = screen.frame.maxY
+        let measured = NSApp.windows
+            .filter { candidate in
+                guard candidate.isVisible,
+                      candidate !== hostingWindow,
+                      // Plain top-edge chrome: excludes menus/popovers
+                      // (popup levels) and the main content windows.
+                      candidate.level.rawValue < 100,
+                      candidate.frame.height >= 20,
+                      candidate.frame.height <= 64,
+                      candidate.frame.maxY <= top + 2,
+                      candidate.frame.maxY >= top - 64
+                else { return false }
+                return true
+            }
+            .map(\.frame.height)
+            .max() ?? 0
+        let reserved = top - screen.visibleFrame.maxY
+        return max(measured, reserved)
     }
 
     private func startBackgroundRefresh() {
