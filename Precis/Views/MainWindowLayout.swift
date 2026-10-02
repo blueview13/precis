@@ -14,7 +14,6 @@ struct MainWindowLayout: View {
     @State private var feedURLInput = ""
     @State private var isImporting = false
     @State private var isRefreshing = false
-    @State private var isGeneratingSummary = false
     @State private var isRefreshingAll = false
     /// One or more feeds awaiting the delete confirmation — a single row's
     /// trash icon, a multi-selection, or every feed in a category.
@@ -60,6 +59,17 @@ struct MainWindowLayout: View {
     private var selectedSummaryText: String? {
         guard let selectedItem = viewModel.selectedItem else { return nil }
         return viewModel.summaryText(for: selectedItem, context: modelContext)
+    }
+
+    private var digestFeedIDs: Set<UUID>? {
+        switch viewModel.selectedSidebarFilter {
+        case .category(let categoryID):
+            return Set(viewModel.allFeeds.filter { $0.category?.id == categoryID }.map(\.id))
+        case .feed(let feedID):
+            return [feedID]
+        default:
+            return nil
+        }
     }
 
     /// True when the current sidebar filter has no rows to show.
@@ -146,14 +156,8 @@ struct MainWindowLayout: View {
                     emptyMessage: paneEmptyMessage,
                     summaryOverride: selectedSummaryText,
                     feedWideSummary: viewModel.feedWideSummaryText,
-                    isGeneratingSummary: isGeneratingSummary,
-                    onGenerateSummary: {
-                        Task {
-                            isGeneratingSummary = true
-                            await viewModel.generateFeedWideSummary(context: modelContext, feedID: viewModel.selectedFeedID)
-                            isGeneratingSummary = false
-                        }
-                    },
+                    isGeneratingSummary: viewModel.isGeneratingFeedWideSummary,
+                    summaryProgress: viewModel.feedWideSummaryProgress,
                     onOpenInBrowser: {
                         guard let link = viewModel.selectedItem?.link,
                               let url = URL(string: link) else { return }
@@ -202,9 +206,12 @@ struct MainWindowLayout: View {
         .onChange(of: viewModel.selectedFeedID) { _, _ in
             // Feed selection changed — regenerate digest for the new feed scope
             Task {
-                isGeneratingSummary = true
-                await viewModel.generateFeedWideSummary(context: modelContext, feedID: viewModel.selectedFeedID)
-                isGeneratingSummary = false
+                await viewModel.generateFeedWideSummary(context: modelContext, feedIDs: digestFeedIDs)
+            }
+        }
+        .onChange(of: viewModel.selectedSidebarFilter) { _, _ in
+            Task {
+                await viewModel.generateFeedWideSummary(context: modelContext, feedIDs: digestFeedIDs)
             }
         }
         .onAppear {
@@ -219,9 +226,7 @@ struct MainWindowLayout: View {
             startBackgroundRefresh()
             // Auto-generate feed-wide 12-hour summary on launch
             Task {
-                isGeneratingSummary = true
-                await viewModel.generateFeedWideSummary(context: modelContext, feedID: viewModel.selectedFeedID)
-                isGeneratingSummary = false
+                await viewModel.generateFeedWideSummary(context: modelContext, feedIDs: digestFeedIDs)
             }
         }
         .onDisappear {
@@ -265,7 +270,7 @@ struct MainWindowLayout: View {
             viewModel.loadArticles(for: viewModel.selectedFeedID, context: modelContext)
             // Regenerate feed-wide summary after refresh
             Task {
-                await viewModel.generateFeedWideSummary(context: modelContext, feedID: viewModel.selectedFeedID)
+                await viewModel.generateFeedWideSummary(context: modelContext, feedIDs: digestFeedIDs)
             }
         } catch {
             importedFeeds = []

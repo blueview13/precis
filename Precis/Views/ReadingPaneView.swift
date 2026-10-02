@@ -11,7 +11,7 @@ struct ReadingPaneView: View {
     let summaryOverride: String?
     let feedWideSummary: String?
     let isGeneratingSummary: Bool
-    let onGenerateSummary: (() -> Void)?
+    let summaryProgress: Double
     let onOpenInBrowser: (() -> Void)?
     /// True while the full article page is being downloaded for the current
     /// selection — shown above the body as "Loading full article…".
@@ -31,6 +31,7 @@ struct ReadingPaneView: View {
     /// Content height reported by the article web view — it grows as the
     /// document (and its images) finish measuring inside this scroll view.
     @State private var articleHeight: CGFloat = 320
+    @State private var isDigestExpanded = true
     /// Scroll anchor at the very top of the pane's content — a newly
     /// selected article scrolls back here.
     private static let topAnchorID = "readingPaneTop"
@@ -41,7 +42,7 @@ struct ReadingPaneView: View {
         summaryOverride: String? = nil,
         feedWideSummary: String? = nil,
         isGeneratingSummary: Bool = false,
-        onGenerateSummary: (() -> Void)? = nil,
+        summaryProgress: Double = 0,
         onOpenInBrowser: (() -> Void)? = nil,
         isFetchingContent: Bool = false,
         onPreviousArticle: (() -> Void)? = nil,
@@ -54,7 +55,7 @@ struct ReadingPaneView: View {
         self.summaryOverride = summaryOverride
         self.feedWideSummary = feedWideSummary
         self.isGeneratingSummary = isGeneratingSummary
-        self.onGenerateSummary = onGenerateSummary
+        self.summaryProgress = summaryProgress
         self.onOpenInBrowser = onOpenInBrowser
         self.isFetchingContent = isFetchingContent
         self.onPreviousArticle = onPreviousArticle
@@ -66,6 +67,11 @@ struct ReadingPaneView: View {
     private var articleText: String {
         guard let item else { return "Pick a story from the list to read it here." }
         return item.articleBody.isEmpty ? "No article content is available yet." : item.articleBody
+    }
+
+    private var precisIcon: NSImage? {
+        guard let url = Bundle.main.url(forResource: "gen_icon_transparent", withExtension: "png") else { return nil }
+        return NSImage(contentsOf: url)
     }
 
     /// The full HTML document handed to the reading-pane web view: the
@@ -138,34 +144,88 @@ struct ReadingPaneView: View {
                 // Scroll anchor — selecting another article returns the pane
                 // to the top instead of inheriting the previous offset.
                 Color.clear.frame(height: 0).id(Self.topAnchorID)
-                // Feed-wide 12-hour summary — always shown at top
-                if let feedWideSummary, !feedWideSummary.isEmpty {
-                    VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
-if isGeneratingSummary {
-                        ProgressView()
-                            .progressViewStyle(.linear)
-                            .tint(PrecisDesignSystem.marginalia)
-                            .padding(.bottom, PrecisSpacing.sm)
-                    }
 
+                if item != nil, onPreviousArticle != nil, onNextArticle != nil {
                     HStack {
-                        Image(systemName: "clock.badge.checkmark")
-                            .foregroundStyle(PrecisDesignSystem.marginalia)
-                        Text("Today's Digest")
-                            .font(PrecisTypography.headline)
-                            .foregroundStyle(PrecisDesignSystem.marginalia)
                         Spacer()
+                        articleNavigationControl
+                    }
+                    .padding(.bottom, PrecisSpacing.sm)
+                }
+
+                // Feed-wide digest — shown above the open article.
+                if isGeneratingSummary || !(feedWideSummary?.isEmpty ?? true) {
+                    VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                isDigestExpanded.toggle()
+                            }
+                        } label: {
+                            HStack {
+                                if let precisIcon {
+                                    Image(nsImage: precisIcon)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 42, height: 42)
+                                        .clipShape(RoundedRectangle(cornerRadius: 5))
+                                        .accessibilityHidden(true)
+                                } else {
+                                    Image(systemName: "dot.radiowaves.left.and.right")
+                                        .font(.system(size: 28))
+                                        .foregroundStyle(PrecisDesignSystem.marginalia)
+                                        .frame(width: 42, height: 42)
+                                        .accessibilityHidden(true)
+                                }
+                                Text("Today's Precis")
+                                    .font(PrecisTypography.headline)
+                                    .foregroundStyle(PrecisDesignSystem.marginalia)
+                                if isGeneratingSummary {
+                                    Text("Building Today's Precis…")
+                                        .font(PrecisTypography.metadata)
+                                        .foregroundStyle(PrecisDesignSystem.marginalia.opacity(0.8))
+                                }
+                                Spacer()
+                                HStack(spacing: PrecisSpacing.xs) {
+                                    Text(isDigestExpanded ? "Collapse" : "Expand")
+                                        .font(PrecisTypography.metadata)
+                                        .foregroundStyle(PrecisDesignSystem.marginalia.opacity(0.8))
+                                    Image(systemName: isDigestExpanded ? "chevron.down" : "chevron.right")
+                                        .font(.system(size: 16, weight: .bold))
+                                        .foregroundStyle(PrecisDesignSystem.marginalia)
+                                        .frame(width: 30, height: 30)
+                                        .background(PrecisDesignSystem.marginalia.opacity(0.18), in: Circle())
+                                }
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(isDigestExpanded ? "Collapse Today's Precis" : "Expand Today's Precis")
+
+                        if isGeneratingSummary {
+                            ProgressView(value: summaryProgress)
+                                .progressViewStyle(.linear)
+                                .tint(PrecisDesignSystem.marginalia)
+                                .accessibilityLabel("Today's Precis build progress")
+                                .frame(maxWidth: .infinity)
                         }
 
-                        Text(feedWideSummary)
-                            .font(.system(size: readingFontSize))
-                            .lineSpacing(5)
-                            .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.85))
+                        if isDigestExpanded, let feedWideSummary, !feedWideSummary.isEmpty {
+                            Text(feedWideSummary)
+                                .font(.system(size: readingFontSize))
+                                .lineSpacing(5)
+                                .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.85))
+                        }
                     }
                     .padding(PrecisSpacing.md)
                     .background(PrecisDesignSystem.marginalia.opacity(0.08))
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                     .padding(.bottom, PrecisSpacing.lg)
+                    .onChange(of: isGeneratingSummary) { wasGenerating, isGenerating in
+                        guard wasGenerating && !isGenerating else { return }
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isDigestExpanded = true
+                        }
+                    }
                 }
 
                 HStack(alignment: .top) {
@@ -190,19 +250,7 @@ if isGeneratingSummary {
                             }
                             .buttonStyle(.bordered)
 
-                            Button(action: { onGenerateSummary?() }) {
-                                HStack(spacing: 6) {
-                                    Text(isGeneratingSummary ? "Generating…" : "Generate summary")
-                                        .font(PrecisTypography.metadata)
-                                }
-                            }
-                            .buttonStyle(.bordered)
-                            .disabled(isGeneratingSummary)
                         }
-                    }
-
-                    if item != nil, onPreviousArticle != nil, onNextArticle != nil {
-                        articleNavigationControl
                     }
                 }
 

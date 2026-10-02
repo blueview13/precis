@@ -17,6 +17,8 @@ public final class ArticleListViewModel: ObservableObject {
         didSet { invalidateDerivedState() }
     }
     @Published public var feedWideSummaryText: String = ""
+    @Published public var feedWideSummaryProgress: Double = 0
+    @Published public var isGeneratingFeedWideSummary = true
     /// The article whose full web page is currently being downloaded and
     /// extracted — the reading pane shows a progress bar for it.
     @Published public var loadingFullContentID: UUID?
@@ -530,44 +532,83 @@ public final class ArticleListViewModel: ObservableObject {
     /// forcing full-window layout passes that stalled the first right-click.
     /// Callers now share a single run instead.
     private var feedWideSummaryTask: Task<Void, Never>?
+    private var feedWideSummaryTaskFeedIDs: Set<UUID>?
+    private var feedWideSummaryTaskGeneration: Int?
+    private var feedWideSummaryGeneration = 0
 
-    /// Generate a bullet-point summary of articles from the last 12 hours.
-    /// If feedID is provided, only summarizes articles from that feed.
-    public func generateFeedWideSummary(context: ModelContext, feedID: UUID? = nil) async {
+    /// Generate a digest of up to 25 articles from the last 24 hours.
+    /// If feedIDs is provided, only summarizes articles from those feeds.
+    public func generateFeedWideSummary(context: ModelContext, feedIDs: Set<UUID>? = nil) async {
+        if let running = feedWideSummaryTask {
+            if feedWideSummaryTaskFeedIDs == feedIDs,
+               feedWideSummaryTaskGeneration == feedWideSummaryGeneration {
+                await running.value
+                return
+            }
+        }
+
+        feedWideSummaryGeneration += 1
+        let generation = feedWideSummaryGeneration
+        feedWideSummaryText = ""
+        feedWideSummaryProgress = 0
+        isGeneratingFeedWideSummary = true
+
         if let running = feedWideSummaryTask {
             await running.value
-            return
+            guard generation == feedWideSummaryGeneration else { return }
         }
-        let task = Task { await self.performFeedWideSummary(context: context, feedID: feedID) }
+
+        feedWideSummaryTaskFeedIDs = feedIDs
+        let task = Task {
+            await self.performFeedWideSummary(context: context, feedIDs: feedIDs, generation: generation)
+            guard self.feedWideSummaryGeneration == generation else { return }
+            self.feedWideSummaryProgress = 1
+            self.isGeneratingFeedWideSummary = false
+            self.feedWideSummaryTask = nil
+            self.feedWideSummaryTaskFeedIDs = nil
+            self.feedWideSummaryTaskGeneration = nil
+        }
         feedWideSummaryTask = task
+        feedWideSummaryTaskGeneration = generation
         await task.value
-        feedWideSummaryTask = nil
     }
 
-    private func performFeedWideSummary(context: ModelContext, feedID: UUID?) async {
+    private func updateFeedWideSummaryProgress(_ progress: Double, generation: Int) {
+        guard generation == feedWideSummaryGeneration else { return }
+        feedWideSummaryProgress = progress
+    }
+
+    private func updateFeedWideSummaryText(_ text: String, generation: Int) {
+        guard generation == feedWideSummaryGeneration else { return }
+        feedWideSummaryText = text
+    }
+
+    private func performFeedWideSummary(context: ModelContext, feedIDs: Set<UUID>?, generation: Int) async {
         do {
+            updateFeedWideSummaryProgress(0.08, generation: generation)
             let allRecords = try articleRepository.fetchAll(context: context)
-            let twelveHoursAgo = Calendar.current.date(byAdding: .hour, value: -12, to: Date()) ?? Date()
+            let twentyFourHoursAgo = Calendar.current.date(byAdding: .hour, value: -24, to: Date()) ?? Date()
 
             let recentRecords = allRecords.filter { record in
                 guard let pubDate = record.publishedDate else { return false }
-                let withinTimeframe = pubDate >= twelveHoursAgo
-                if let feedID {
-                    return withinTimeframe && record.feed?.id == feedID
+                let withinTimeframe = pubDate >= twentyFourHoursAgo
+                if let feedIDs {
+                    return withinTimeframe && record.feed.map { feedIDs.contains($0.id) } == true
                 }
                 return withinTimeframe
             }
+            updateFeedWideSummaryProgress(0.18, generation: generation)
 
             guard !recentRecords.isEmpty else {
-                feedWideSummaryText = "No articles in the last 12 hours."
+                updateFeedWideSummaryText("No articles in the last 24 hours.", generation: generation)
                 return
             }
 
-            // Collect titles and first sentences from each article
+            let digestRecords = Array(recentRecords.prefix(25))
             var articleSummaries: [String] = []
             let provider = AppleIntelligenceSummarizationProvider()
 
-            for record in recentRecords.prefix(15) {
+            for (index, record) in digestRecords.enumerated() {
                 let articleValue = Article(record: record)
                 let text = articleValue.extractedContent ?? articleValue.rawContent ?? articleValue.title
                 let cleaned = text
@@ -578,41 +619,52 @@ public final class ArticleListViewModel: ObservableObject {
                 if !cleaned.isEmpty {
                     articleSummaries.append("• \(record.title): \(cleaned.prefix(200))")
                 }
+                updateFeedWideSummaryProgress(0.18 + 0.30 * Double(index + 1) / Double(digestRecords.count), generation: generation)
             }
 
             guard !articleSummaries.isEmpty else {
-                feedWideSummaryText = "No article content available to summarize."
+                updateFeedWideSummaryText("No article content available to summarize.", generation: generation)
                 return
             }
 
             // Use FoundationModels to create a digest from the collected articles
             let combinedText = articleSummaries.joined(separator: "\n\n")
-            let summary = try await provider.summarize(combinedText)
+            updateFeedWideSummaryProgress(0.52, generation: generation)
+            let summary = try await provider.summarizeDigest(combinedText) { progress in
+                self.updateFeedWideSummaryProgress(0.52 + progress * 0.46, generation: generation)
+            }
 
-            let header = "**\(recentRecords.count) articles from the last 12 hours:**\n\n"
-            feedWideSummaryText = header + summary.shortText
+            let header = "**\(articleSummaries.count) articles from the last 24 hours:**\n\n"
+            var summaryText = header + summary.shortText
 
             // Also add bullet points if available
             if !summary.bulletPoints.isEmpty {
-                feedWideSummaryText += "\n\n" + summary.bulletPoints.map { "• \($0)" }.joined(separator: "\n")
+                summaryText += "\n\n" + summary.bulletPoints.map { "• \($0)" }.joined(separator: "\n")
             }
+            updateFeedWideSummaryText(summaryText, generation: generation)
         } catch {
+            guard generation == feedWideSummaryGeneration else { return }
             // Fallback: just list the article titles
             do {
                 let allRecords = try articleRepository.fetchAll(context: context)
-                let twelveHoursAgo = Calendar.current.date(byAdding: .hour, value: -12, to: Date()) ?? Date()
+                let twentyFourHoursAgo = Calendar.current.date(byAdding: .hour, value: -24, to: Date()) ?? Date()
                 let recentRecords = allRecords.filter { record in
                     guard let pubDate = record.publishedDate else { return false }
-                    return pubDate >= twelveHoursAgo
+                    guard pubDate >= twentyFourHoursAgo else { return false }
+                    if let feedIDs {
+                        return record.feed.map { feedIDs.contains($0.id) } == true
+                    }
+                    return true
                 }
                 if recentRecords.isEmpty {
-                    feedWideSummaryText = "No articles in the last 12 hours."
+                    updateFeedWideSummaryText("No articles in the last 24 hours.", generation: generation)
                 } else {
-                    let titles = recentRecords.prefix(10).map { "• \($0.title)" }
-                    feedWideSummaryText = "**\(recentRecords.count) recent articles:**\n\n" + titles.joined(separator: "\n")
+                    let digestRecords = Array(recentRecords.prefix(25))
+                    let titles = digestRecords.map { "• \($0.title)" }
+                    updateFeedWideSummaryText("**\(digestRecords.count) articles from the last 24 hours:**\n\n" + titles.joined(separator: "\n"), generation: generation)
                 }
             } catch {
-                feedWideSummaryText = "Could not load articles."
+                updateFeedWideSummaryText("Could not load articles.", generation: generation)
             }
         }
     }

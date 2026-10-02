@@ -36,6 +36,28 @@ public final class AppleIntelligenceSummarizationProvider: SummarizationProvider
         }
     }
 
+    public func summarizeDigest(
+        _ text: String,
+        onProgress: (@MainActor @Sendable (Double) -> Void)? = nil
+    ) async throws -> Summary {
+        let cleaned = Self.clean(text)
+
+        guard !cleaned.isEmpty else {
+            return Summary(
+                articleID: UUID(),
+                shortText: "No article content available to summarize.",
+                bulletPoints: [],
+                generatedBy: providerName
+            )
+        }
+
+        do {
+            return try await summarizeDigestWithFoundationModels(cleaned, onProgress: onProgress)
+        } catch {
+            return summarizeDigestWithHeuristic(cleaned)
+        }
+    }
+
     public func summarize(article: Article) async throws -> Summary {
         let text = article.extractedContent ?? article.rawContent ?? article.title
         return try await summarize(text)
@@ -99,6 +121,49 @@ public final class AppleIntelligenceSummarizationProvider: SummarizationProvider
         )
     }
 
+    private func summarizeDigestWithFoundationModels(
+        _ text: String,
+        onProgress: (@MainActor @Sendable (Double) -> Void)?
+    ) async throws -> Summary {
+        let session = LanguageModelSession(model: SystemLanguageModel.default)
+
+        let prompt = """
+        Write one concise paragraph synthesizing the important themes and facts across all of these article summaries. Consider the entire list, not just its opening entries. Be neutral and factual.
+
+        Articles:
+        \(text)
+        """
+
+        await onProgress?(0.05)
+        let response = try await session.respond(to: prompt)
+        let shortText = response.content.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !shortText.isEmpty else {
+            throw SummarizationError.emptyResponse
+        }
+        await onProgress?(0.55)
+
+        let bulletPrompt = """
+        Extract up to 8 distinct key takeaways from across the entire list of article summaries below. Spread the takeaways across different articles where possible. Each should be one concise sentence. Return only one takeaway per line, without bullet characters.
+
+        Articles:
+        \(text)
+        """
+
+        let bulletResponse = try await session.respond(to: bulletPrompt)
+        await onProgress?(0.95)
+        let bulletPoints = bulletResponse.content
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "^[-•*]\\s*", with: "", options: .regularExpression) }
+            .filter { !$0.isEmpty }
+
+        return Summary(
+            articleID: UUID(),
+            shortText: shortText,
+            bulletPoints: Array(bulletPoints.prefix(8)),
+            generatedBy: "Apple Intelligence (on-device)"
+        )
+    }
+
     // MARK: - Heuristic Fallback (no AI model needed)
 
     private func summarizeWithHeuristic(_ text: String) -> Summary {
@@ -123,6 +188,35 @@ public final class AppleIntelligenceSummarizationProvider: SummarizationProvider
             bulletPoints: bulletPoints,
             generatedBy: "Precis (heuristic)"
         )
+    }
+
+    private func summarizeDigestWithHeuristic(_ text: String) -> Summary {
+        let articleLines = text
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        let articleSentences = articleLines.map { line in
+            Self.sentences(from: line).first ?? line
+        }
+        let bulletIndexes = Self.representativeIndexes(count: articleSentences.count, maximum: 8)
+        let bulletPoints = bulletIndexes.map { articleSentences[$0] }
+        let representativeIndexes = Self.representativeIndexes(count: articleSentences.count, maximum: 4)
+        let paragraphSentences = representativeIndexes.map { articleSentences[$0] }
+        let shortText = paragraphSentences.joined(separator: " ")
+
+        return Summary(
+            articleID: UUID(),
+            shortText: shortText.isEmpty ? String(text.prefix(200)) : shortText,
+            bulletPoints: bulletPoints,
+            generatedBy: "Precis (heuristic)"
+        )
+    }
+
+    private static func representativeIndexes(count: Int, maximum: Int) -> [Int] {
+        guard count > 0 else { return [] }
+        guard count > maximum else { return Array(0..<count) }
+        return (0..<maximum).map { $0 * (count - 1) / (maximum - 1) }
     }
 
     // MARK: - Utilities

@@ -65,6 +65,7 @@
 		F6F370BC5965758C032FB054 /* FeedDiscoveryResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA4E430DC7A18B1E777031C /* FeedDiscoveryResult.swift */; };
 		FE20E9AC570CC0D23D124E75 /* ArticleListItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65EBD2F94DBE553086266788 /* ArticleListItem.swift */; };
 		F00DCAFE0002000000000002 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F00DCAFE0001000000000001 /* Assets.xcassets */; };
+		C6138E1D52A5487E8DF70F32 /* gen_icon_transparent.png in Resources */ = {isa = PBXBuildFile; fileRef = D593D8B5F2E1468AA04E0907 /* gen_icon_transparent.png */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -129,6 +130,7 @@
 		F3627A15C4B94350D2597305 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		FB8F6E3D7FB84A08BB702EB1 /* Feed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Feed.swift; sourceTree = "<group>"; };
 		F00DCAFE0001000000000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		D593D8B5F2E1468AA04E0907 /* gen_icon_transparent.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = gen_icon_transparent.png; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -162,6 +164,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F00DCAFE0002000000000002 /* Assets.xcassets in Resources */,
+				C6138E1D52A5487E8DF70F32 /* gen_icon_transparent.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -208,6 +211,7 @@
 			isa = PBXGroup;
 			children = (
 				F00DCAFE0001000000000001 /* Assets.xcassets */,
+				D593D8B5F2E1468AA04E0907 /* gen_icon_transparent.png */,
 				F3627A15C4B94350D2597305 /* ContentView.swift */,
 				401D81C218045A16008FDE86 /* Info.plist */,
 				B19D281BA82A58F79EF93FA0 /* Precis.entitlements */,
