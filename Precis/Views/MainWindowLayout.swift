@@ -392,7 +392,7 @@ struct MainWindowLayout: View {
     /// Extra drop below the menu bar's own height so nothing clips against
     /// its hover backdrop (the full-screen reveal sits deeper than the strip
     /// `visibleFrame` reserves).
-    private static let menuBarClearance: CGFloat = 12
+    private static let menuBarClearance: CGFloat = 13
 
     /// Height the revealed menu bar actually occupies on this screen: the
     /// revealed bar is a top-edge window of the active app, so measure it
