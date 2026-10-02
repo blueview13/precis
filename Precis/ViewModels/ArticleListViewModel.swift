@@ -182,7 +182,7 @@ public final class ArticleListViewModel: ObservableObject {
         case category(UUID)
     }
 
-    @Published public var selectedSidebarFilter: SidebarFilter = .all {
+    @Published public var selectedSidebarFilter: SidebarFilter = .unread {
         didSet {
             invalidateDerivedState()
             // The sidebar's current-feed highlight follows this filter —
@@ -339,9 +339,12 @@ public final class ArticleListViewModel: ObservableObject {
             }
             rebuildItems(from: records, in: context)
             selectedFeedID = nil
-            selectedItemID = items.first?.id
+            // Select the TOP VISIBLE row, not just the top of the library —
+            // with the Unread filter active at launch (the default), the
+            // first unread article is what should open in the reading pane.
+            selectedItemID = (filteredItems.first ?? items.first)?.id
         } catch {
-            selectedItemID = items.first?.id
+            selectedItemID = (filteredItems.first ?? items.first)?.id
         }
     }
 
@@ -780,6 +783,12 @@ public final class ArticleListViewModel: ObservableObject {
         return index + 1 < filteredItems.count
     }
 
+    /// Bumped by `selectNext`/`selectPrevious` (the pane's ‹ › buttons and
+    /// the arrow keys) so the article list knows to animate-scroll to the
+    /// newly selected row. Plain row clicks don't bump it — the list stays
+    /// put when you click something already on screen.
+    @Published public var listScrollRevealToken: Int = 0
+
     public func selectNext() {
         guard !filteredItems.isEmpty else { return }
         if let currentID = selectedItemID,
@@ -791,6 +800,7 @@ public final class ArticleListViewModel: ObservableObject {
             // Unread filter is active) — resume from the top row, don't stall.
             selectedItemID = filteredItems[0].id
         }
+        listScrollRevealToken += 1
     }
 
     public func selectPrevious() {
@@ -802,6 +812,7 @@ public final class ArticleListViewModel: ObservableObject {
         } else {
             selectedItemID = filteredItems[filteredItems.count - 1].id
         }
+        listScrollRevealToken += 1
     }
 
     public func toggleRead(_ item: ArticleListItem, context: ModelContext? = nil) {

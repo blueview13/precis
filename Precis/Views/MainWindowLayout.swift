@@ -10,7 +10,7 @@ struct MainWindowLayout: View {
     @AppStorage("refreshIntervalMinutes") private var refreshIntervalMinutes: Int = 15
     @State private var backgroundRefresh = BackgroundRefreshService()
     @AppStorage("notifyOnNewArticles") private var notifyOnNewArticles = false
-    @State private var selectedSidebarItem = "All Items"
+    @State private var selectedSidebarItem = "Unread"
     @State private var feedURLInput = ""
     @State private var isImporting = false
     @State private var isRefreshing = false
@@ -55,6 +55,11 @@ struct MainWindowLayout: View {
     @State private var sidebarWidth: CGFloat = 260
     @State private var userAdjustedSidebarWidth = false
     @State private var isSidebarHidden = false
+    /// Local keyDown monitor that maps the spacebar to "next article".
+    /// Kept outside the view tree because `onKeyPress` on the focusable
+    /// list never fires once focus lands on a child control (buttons,
+    /// rows), which is why space appeared dead.
+    @State private var spaceKeyMonitor: Any?
     @Environment(\.openWindow) private var openWindow
     private var selectedSummaryText: String? {
         guard let selectedItem = viewModel.selectedItem else { return nil }
@@ -224,6 +229,7 @@ struct MainWindowLayout: View {
             Task { await repairURLTitledFeeds() }
             viewModel.loadFolders(context: modelContext)
             startBackgroundRefresh()
+            startSpacebarMonitor()
             // Auto-generate feed-wide 12-hour summary on launch
             Task {
                 await viewModel.generateFeedWideSummary(context: modelContext, feedIDs: digestFeedIDs)
@@ -231,6 +237,7 @@ struct MainWindowLayout: View {
         }
         .onDisappear {
             backgroundRefresh.stopRefreshLoop()
+            stopSpacebarMonitor()
         }
         .onChange(of: refreshIntervalMinutes) { _, _ in
             // Restart the loop with the interval picked in Settings
@@ -250,6 +257,40 @@ struct MainWindowLayout: View {
 
     private var refreshInterval: RefreshInterval {
         RefreshInterval(rawValue: refreshIntervalMinutes) ?? .fifteenMinutes
+    }
+
+    // MARK: - Spacebar "next article"
+
+    /// Listens for space globally and steps the selection down, so the
+    /// shortcut works no matter what has keyboard focus. Three guards keep
+    /// it out of the way: Command/Option combos (shortcuts), text editing
+    /// (search field, inline rename fields → field editor is an NSText),
+    /// and the article web view (WK* first responder keeps space as its
+    /// native page-scroll). The press is swallowed so the list doesn't
+    /// scroll as well.
+    private func startSpacebarMonitor() {
+        guard spaceKeyMonitor == nil else { return }
+        let viewModel = self.viewModel
+        spaceKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            guard event.keyCode == 49, // spacebar
+                  !event.modifierFlags.contains(.command),
+                  !event.modifierFlags.contains(.option) else { return event }
+            let responder = NSApp.keyWindow?.firstResponder
+            if responder is NSText { return event }
+            let className = responder.map { String(describing: Swift.type(of: $0)) } ?? ""
+            if className.hasPrefix("WK") { return event }
+            MainActor.assumeIsolated {
+                viewModel.selectNext()
+            }
+            return nil
+        }
+    }
+
+    private func stopSpacebarMonitor() {
+        if let spaceKeyMonitor {
+            NSEvent.removeMonitor(spaceKeyMonitor)
+            self.spaceKeyMonitor = nil
+        }
     }
 
     private func startBackgroundRefresh() {
@@ -475,7 +516,10 @@ struct MainWindowLayout: View {
         let widestFeedName = importedFeeds
             .map { ceil((sidebarDisplayTitle(for: $0) as NSString).size(withAttributes: [.font: font]).width) }
             .max() ?? 0
-        return max(260, widestFeedName + 180)
+        // Slack covers checkbox + favicon + title→badge spacing + unread
+        // capsule + row insets. The last-fetched time is gone, so this
+        // dropped from 180 — names and badges still fit on one line.
+        return max(260, widestFeedName + 130)
     }
 
     private func updateAutomaticSidebarWidth() {
@@ -535,6 +579,9 @@ struct MainWindowLayout: View {
         } catch {
             PrecisLogger.error("Failed to move feed to category: \(error.localizedDescription)")
         }
+        // Match the drag/bulk paths — reload + regenerate the digest so the
+        // moved feed's scope shows a fresh Precis instead of a stale one.
+        refreshFeeds()
     }
 
     /// Moves every checked feed in one save, then clears the selection so
@@ -754,11 +801,8 @@ struct MainWindowLayout: View {
 
             Spacer()
 
-            if !compact, let lastFetched = feed.lastFetched {
-                Text(relativeTimeString(from: lastFetched))
-                    .font(PrecisTypography.caption)
-                    .foregroundStyle(PrecisDesignSystem.marginalia.opacity(0.7))
-            }
+            // Per-row last-fetched time ("1h ago") removed — the trailing
+            // slack in `automaticSidebarWidth` shrank to match.
             // Refresh and delete no longer have per-row icons — refresh lives
             // in the context menu; delete is the checkbox action bar (and
             // also in the context menu).
@@ -951,14 +995,6 @@ struct MainWindowLayout: View {
         }
         importStatus = "All feeds refreshed"
         importStatusKind = .success
-    }
-
-    private func relativeTimeString(from date: Date) -> String {
-        let delta = Int(Date().timeIntervalSince(date))
-        if delta < 60 { return "now" }
-        if delta < 3600 { return "\(delta / 60)m ago" }
-        if delta < 86400 { return "\(delta / 3600)h ago" }
-        return "\(delta / 86400)d ago"
     }
 
     // MARK: - OPML Import / Export
@@ -1452,6 +1488,7 @@ struct MainWindowLayout: View {
                             try await viewModel.importFeed(from: feedURL, in: modelContext)
                             refreshFeeds()
                             viewModel.selectedSidebarFilter = .all
+                            selectedSidebarItem = "All Items"
                             viewModel.loadArticles(for: nil, context: modelContext)
                             let after = (try? ArticleRepository().fetchAll(context: modelContext).count) ?? 0
                             let added = max(0, after - before)

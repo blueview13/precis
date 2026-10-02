@@ -32,6 +32,9 @@ struct ReadingPaneView: View {
     /// document (and its images) finish measuring inside this scroll view.
     @State private var articleHeight: CGFloat = 320
     @State private var isDigestExpanded = true
+    /// Cycling dot count (1-4) appended to "Building Today's Precis" while
+    /// the digest generates — reset and driven by the pane's `.task` below.
+    @State private var digestDotCount = 1
     /// Scroll anchor at the very top of the pane's content — a newly
     /// selected article scrolls back here.
     private static let topAnchorID = "readingPaneTop"
@@ -129,9 +132,30 @@ struct ReadingPaneView: View {
     }
 
     var body: some View {
-        ScrollViewReader { proxy in
-            pane(proxy)
+        VStack(spacing: 0) {
+            // Fixed header — the ‹ › control lives OUTSIDE the scroll view so
+            // it stays at the exact same height no matter which article is
+            // loaded (inside the pane it drifted up whenever a new article
+            // re-laid the content and reset the scroll offset).
+            if showsStepControls {
+                HStack {
+                    Spacer()
+                    articleNavigationControl
+                }
+                .padding(.horizontal, PrecisSpacing.xl)
+                .padding(.top, PrecisSpacing.xl)
+                .padding(.bottom, PrecisSpacing.sm)
+            }
+
+            ScrollViewReader { proxy in
+                pane(proxy)
+            }
         }
+    }
+
+    /// Whether the current selection can step ‹ › — drives the fixed header.
+    private var showsStepControls: Bool {
+        item != nil && onPreviousArticle != nil && onNextArticle != nil
     }
 
     /// The scrollable pane content. Split out so the wrapper above can own
@@ -145,14 +169,6 @@ struct ReadingPaneView: View {
                 // to the top instead of inheriting the previous offset.
                 Color.clear.frame(height: 0).id(Self.topAnchorID)
 
-                if item != nil, onPreviousArticle != nil, onNextArticle != nil {
-                    HStack {
-                        Spacer()
-                        articleNavigationControl
-                    }
-                    .padding(.bottom, PrecisSpacing.sm)
-                }
-
                 // Feed-wide digest — shown above the open article.
                 if isGeneratingSummary || !(feedWideSummary?.isEmpty ?? true) {
                     VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
@@ -163,12 +179,28 @@ struct ReadingPaneView: View {
                         } label: {
                             HStack {
                                 if let precisIcon {
-                                    Image(nsImage: precisIcon)
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 42, height: 42)
-                                        .clipShape(RoundedRectangle(cornerRadius: 5))
-                                        .accessibilityHidden(true)
+                                    // Printing-press effect: while the digest
+                                    // builds, the icon sits "unprinted"
+                                    // (grayed) and the color rolls on
+                                    // left-to-right in step with the real
+                                    // summaryProgress — full color at rest.
+                                    ZStack {
+                                        Image(nsImage: precisIcon)
+                                            .resizable()
+                                            .scaledToFit()
+                                            .grayscale(isGeneratingSummary ? 1 : 0)
+                                            .opacity(isGeneratingSummary ? 0.35 : 1)
+                                        if isGeneratingSummary {
+                                            Image(nsImage: precisIcon)
+                                                .resizable()
+                                                .scaledToFit()
+                                                .mask(alignment: .leading) { progressMask }
+                                        }
+                                    }
+                                    .frame(width: 42, height: 42)
+                                    .clipShape(RoundedRectangle(cornerRadius: 5))
+                                    .animation(.easeInOut(duration: 0.3), value: isGeneratingSummary)
+                                    .accessibilityHidden(true)
                                 } else {
                                     Image(systemName: "dot.radiowaves.left.and.right")
                                         .font(.system(size: 28))
@@ -180,7 +212,7 @@ struct ReadingPaneView: View {
                                     .font(PrecisTypography.headline)
                                     .foregroundStyle(PrecisDesignSystem.marginalia)
                                 if isGeneratingSummary {
-                                    Text("Building Today's Precis…")
+                                    Text("Building Today's Precis" + String(repeating: ".", count: digestDotCount))
                                         .font(PrecisTypography.metadata)
                                         .foregroundStyle(PrecisDesignSystem.marginalia.opacity(0.8))
                                 }
@@ -202,11 +234,7 @@ struct ReadingPaneView: View {
                         .accessibilityLabel(isDigestExpanded ? "Collapse Today's Precis" : "Expand Today's Precis")
 
                         if isGeneratingSummary {
-                            ProgressView(value: summaryProgress)
-                                .progressViewStyle(.linear)
-                                .tint(PrecisDesignSystem.marginalia)
-                                .accessibilityLabel("Today's Precis build progress")
-                                .frame(maxWidth: .infinity)
+                            precisProgressBar
                         }
 
                         if isDigestExpanded, let feedWideSummary, !feedWideSummary.isEmpty {
@@ -220,6 +248,19 @@ struct ReadingPaneView: View {
                     .background(PrecisDesignSystem.marginalia.opacity(0.08))
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                     .padding(.bottom, PrecisSpacing.lg)
+                    // Drives the animated ellipsis: ticks 1→4 dots every 0.4s
+                    // while the digest builds, stops the moment it finishes.
+                    .task(id: isGeneratingSummary) {
+                        guard isGeneratingSummary else {
+                            digestDotCount = 1
+                            return
+                        }
+                        while !Task.isCancelled {
+                            try? await Task.sleep(for: .seconds(0.4))
+                            if Task.isCancelled { return }
+                            digestDotCount = digestDotCount % 4 + 1
+                        }
+                    }
                     .onChange(of: isGeneratingSummary) { wasGenerating, isGenerating in
                         guard wasGenerating && !isGenerating else { return }
                         withAnimation(.easeInOut(duration: 0.2)) {
@@ -360,7 +401,7 @@ struct ReadingPaneView: View {
             .buttonStyle(.plain)
             .disabled(!canSelectNext)
             .opacity(canSelectNext ? 1 : 0.35)
-            .help("Next article")
+            .help("Next article (or press Space)")
         }
         .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.75))
         .padding(.horizontal, 4)
@@ -380,6 +421,112 @@ struct ReadingPaneView: View {
         if delta < 3600 { return "\(delta / 60) minutes ago" }
         if delta < 86400 { return "\(delta / 3600) hours ago" }
         return "\(delta / 86400) days ago"
+    }
+
+    /// Leading-edge reveal for the icon's "printing" animation — a rectangle
+    /// that grows with `summaryProgress`, used as the color layer's mask.
+    private var progressMask: some View {
+        GeometryReader { geo in
+            Rectangle()
+                .frame(width: max(0, geo.size.width * summaryProgress))
+        }
+        .animation(.easeInOut(duration: 0.3), value: summaryProgress)
+    }
+
+    /// The digest's progress bar — a "wet ink" fill instead of the stock
+    /// `ProgressView`: the fill's surface ripples while a soft sheen sweeps
+    /// across it, like fresh print rolling off the press. Pure SwiftUI (no
+    /// Lottie dependency) and redrawn only while `isGeneratingSummary`, so
+    /// it costs nothing at rest.
+    private var precisProgressBar: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: !isGeneratingSummary)) { context in
+            GeometryReader { geo in
+                let t = context.date.timeIntervalSinceReferenceDate
+                let progress = CGFloat(min(max(summaryProgress, 0), 1))
+                let filled = geo.size.width * progress
+
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(PrecisDesignSystem.marginalia.opacity(0.15))
+
+                    // Wet-ink slab whose surface ripples as it grows.
+                    if filled > 1 {
+                        RippledInkFill(width: filled, phase: CGFloat(t) * 3)
+                            .fill(PrecisDesignSystem.marginalia)
+
+                        // Press sheen — a soft light band travelling across
+                        // the ink on a 1.6s loop, masked to the fill so the
+                        // track stays matte.
+                        RippledInkFill(width: filled, phase: CGFloat(t) * 3)
+                            .fill(sheenGradient(t: t, width: filled))
+                            .allowsHitTesting(false)
+                    }
+                }
+                .clipShape(Capsule())
+            }
+            .frame(height: 8)
+        }
+        .accessibilityLabel("Today's Precis build progress")
+        .accessibilityValue("\(Int(min(max(summaryProgress, 0), 1) * 100)) percent")
+        .frame(maxWidth: .infinity)
+    }
+
+    /// A clear → soft-white → clear gradient whose centre travels left to
+    /// right on a loop, giving the ink a moving highlight.
+    private func sheenGradient(t: TimeInterval, width: CGFloat) -> LinearGradient {
+        let cycle = (t.truncatingRemainder(dividingBy: 1.6)) / 1.6 // 0…1
+        // Travel a little past both edges so the band fully enters/leaves;
+        // expressed in unit space (0…1) plus overhang, per UnitPoint axes.
+        let centre = CGFloat(cycle) * (1 + 80 / max(width, 1)) - 40 / max(width, 1)
+        let halfBand = 40 / max(width, 1)
+        return LinearGradient(
+            gradient: Gradient(colors: [
+                .clear,
+                Color.white.opacity(0.32),
+                .clear
+            ]),
+            startPoint: UnitPoint(x: Double(centre - halfBand), y: 0),
+            endPoint: UnitPoint(x: Double(centre + halfBand), y: 0)
+        )
+    }
+
+    /// Horizontal ink slab whose top and bottom edges ripple while the
+    /// digest builds. Redrawn per frame from the `TimelineView` (not
+    /// keyframe-animated), so it always tracks the real `summaryProgress`.
+    private struct RippledInkFill: Shape {
+        var width: CGFloat
+        var phase: CGFloat
+        var amplitude: CGFloat = 1.5
+        var wavelength: CGFloat = 16
+
+        func path(in rect: CGRect) -> Path {
+            var path = Path()
+            let w = min(width, rect.maxX)
+            guard w > 1 else { return path }
+
+            func topY(_ x: CGFloat) -> CGFloat {
+                let ripple = sin(Double(x / wavelength) * 2 * .pi + Double(phase))
+                return rect.minY + amplitude + CGFloat(ripple) * amplitude
+            }
+            func botY(_ x: CGFloat) -> CGFloat {
+                let ripple = sin(Double(x / wavelength) * 2 * .pi + Double(phase) + 1.3)
+                return rect.maxY - amplitude + CGFloat(ripple) * amplitude
+            }
+
+            path.move(to: CGPoint(x: 0, y: topY(0)))
+            var x: CGFloat = 0
+            while x < w {
+                x = min(x + 2, w)
+                path.addLine(to: CGPoint(x: x, y: topY(x)))
+            }
+            path.addLine(to: CGPoint(x: w, y: botY(w)))
+            while x > 0 {
+                x = max(x - 2, 0)
+                path.addLine(to: CGPoint(x: x, y: botY(x)))
+            }
+            path.closeSubpath()
+            return path
+        }
     }
 
     // MARK: - Article document

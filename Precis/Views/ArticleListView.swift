@@ -93,44 +93,55 @@ struct ArticleListView: View {
             .padding(.horizontal, PrecisSpacing.md)
             .padding(.bottom, PrecisSpacing.sm)
 
-            ScrollView {
-                if viewModel.filteredItems.isEmpty {
-                    // No more blank pane — explain why the list is empty
-                    // (e.g. Unread filter right after "Mark All Read").
-                    VStack(spacing: PrecisSpacing.xs) {
-                        Image(systemName: "checkmark.circle")
-                            .font(.title2)
-                            .foregroundStyle(PrecisDesignSystem.marginalia.opacity(0.6))
+            ScrollViewReader { proxy in
+                ScrollView {
+                    if viewModel.filteredItems.isEmpty {
+                        // No more blank pane — explain why the list is empty
+                        // (e.g. Unread filter right after "Mark All Read").
+                        VStack(spacing: PrecisSpacing.xs) {
+                            Image(systemName: "checkmark.circle")
+                                .font(.title2)
+                                .foregroundStyle(PrecisDesignSystem.marginalia.opacity(0.6))
 
-                        Text(viewModel.emptyStateTitle)
-                            .font(PrecisTypography.body)
-                            .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.6))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 64)
-                    .padding(.horizontal, PrecisSpacing.md)
-                } else {
-                    // Lazy: a full-window layout pass (first context-menu open
-                    // triggers one) must only measure visible rows — the eager
-                    // VStack measured every article and stalled the main thread.
-                    LazyVStack(alignment: .leading, spacing: 0) {
-                        ForEach(viewModel.filteredItems) { item in
-                            ArticleListRow(
-                                item: item,
-                                isSelected: viewModel.selectedItemID == item.id,
-                                showThumbnails: showThumbnails,
-                                onSelect: { viewModel.select(item, context: modelContext) },
-                                onToggleStar: { viewModel.toggleStarred(item, context: modelContext) }
-                            )
-                            .contentShape(Rectangle())
+                            Text(viewModel.emptyStateTitle)
+                                .font(PrecisTypography.body)
+                                .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.6))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 64)
+                        .padding(.horizontal, PrecisSpacing.md)
+                    } else {
+                        // Lazy: a full-window layout pass (first context-menu open
+                        // triggers one) must only measure visible rows — the eager
+                        // VStack measured every article and stalled the main thread.
+                        LazyVStack(alignment: .leading, spacing: 0) {
+                            ForEach(viewModel.filteredItems) { item in
+                                ArticleListRow(
+                                    item: item,
+                                    isSelected: viewModel.selectedItemID == item.id,
+                                    showThumbnails: showThumbnails,
+                                    onSelect: { viewModel.select(item, context: modelContext) },
+                                    onToggleStar: { viewModel.toggleStarred(item, context: modelContext) }
+                                )
+                                .contentShape(Rectangle())
+                                .id(item.id)
+                            }
                         }
                     }
                 }
+                // Rebuild the scroll view when the sidebar filter changes so the
+                // new list opens at its top — a preserved offset landed on an
+                // arbitrary mid-list article instead.
+                .id(viewModel.selectedSidebarFilter)
+                // ‹ › (and the arrow keys) stepped the selection — glide the
+                // list so the selected row stays in view, one step at a time.
+                .onChange(of: viewModel.listScrollRevealToken) { _, _ in
+                    guard let selectedID = viewModel.selectedItemID else { return }
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        proxy.scrollTo(selectedID, anchor: .center)
+                    }
+                }
             }
-            // Rebuild the scroll view when the sidebar filter changes so the
-            // new list opens at its top — a preserved offset landed on an
-            // arbitrary mid-list article instead.
-            .id(viewModel.selectedSidebarFilter)
         }
         .background(PrecisDesignSystem.background(for: colorScheme))
         .focusable()
@@ -144,6 +155,15 @@ struct ArticleListView: View {
             return .handled
         }
         .onKeyPress(.downArrow) {
+            guard !isSearchFieldFocused else { return .ignored }
+            viewModel.selectNext()
+            return .handled
+        }
+        // Spacebar steps down the list (any feed/category scope) — an
+        // easy target alongside the arrow keys. Ignored while typing in
+        // search. (`<`/`>` were tried first but the shifted key codes
+        // never matched on macOS, so they're gone.)
+        .onKeyPress(.space) {
             guard !isSearchFieldFocused else { return .ignored }
             viewModel.selectNext()
             return .handled
