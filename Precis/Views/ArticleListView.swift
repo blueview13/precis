@@ -8,6 +8,9 @@ struct ArticleListView: View {
     /// header while the sidebar itself is hidden.
     var isSidebarHidden: Bool = false
     var onRevealSidebar: (() -> Void)? = nil
+    /// Header title — mirrors the sidebar's current selection (a feed or
+    /// category name, or All Items / Unread / Starred).
+    var headerTitle: String = "Unread"
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage("showThumbnails") private var showThumbnails: Bool = true
@@ -30,11 +33,70 @@ struct ArticleListView: View {
                     .help("Show sidebar")
                 }
 
-                Text("Inbox")
+                Text(headerTitle)
                     .font(PrecisTypography.headline)
                     .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
+                    .lineLimit(1)
 
                 Spacer()
+
+                // Shares the article open in the reading pane via the
+                // system share menu (Mail, Messages, Copy Link, …).
+                if let item = viewModel.selectedItem,
+                   let link = item.link,
+                   let url = URL(string: link) {
+                    ShareLink(
+                        item: url,
+                        subject: Text(item.title),
+                        message: Text(item.title)
+                    ) {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(PrecisDesignSystem.marginalia)
+                            .frame(width: 28, height: 28)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Share article")
+                    .help("Share article")
+                }
+
+                // Compact search — sits in the header bar rather than as a
+                // full-width row of its own above the list.
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(PrecisDesignSystem.marginalia)
+                        .font(.caption)
+
+                    TextField("Search articles...", text: $viewModel.searchText)
+                        .textFieldStyle(.plain)
+                        .font(PrecisTypography.body)
+                        .focused($isSearchFieldFocused)
+
+                    // One-click clear — otherwise the query has to be deleted
+                    // by hand. Hidden while the field is empty.
+                    if !viewModel.searchText.isEmpty {
+                        Button {
+                            viewModel.searchText = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 13))
+                                .foregroundStyle(PrecisDesignSystem.marginalia.opacity(0.7))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Clear search")
+                        .help("Clear search")
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color(nsColor: .textBackgroundColor))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(PrecisDesignSystem.rule(for: colorScheme), lineWidth: 1)
+                )
+                .frame(width: 228)
 
                 if viewModel.filteredItems.contains(where: { !$0.isRead }) {
                     Button(action: {
@@ -71,27 +133,6 @@ struct ArticleListView: View {
                 }
             }
             .padding(PrecisSpacing.md)
-
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(PrecisDesignSystem.marginalia)
-                    .font(.caption)
-
-                TextField("Search articles...", text: $viewModel.searchText)
-                    .textFieldStyle(.plain)
-                    .font(PrecisTypography.body)
-                    .focused($isSearchFieldFocused)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Color(nsColor: .textBackgroundColor))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(PrecisDesignSystem.rule(for: colorScheme), lineWidth: 1)
-            )
-            .padding(.horizontal, PrecisSpacing.md)
-            .padding(.bottom, PrecisSpacing.sm)
 
             ScrollViewReader { proxy in
                 ScrollView {
@@ -151,12 +192,12 @@ struct ArticleListView: View {
         .focusEffectDisabled(true)
         .onKeyPress(.upArrow) {
             guard !isSearchFieldFocused else { return .ignored }
-            viewModel.selectPrevious()
+            viewModel.selectPrevious(context: modelContext)
             return .handled
         }
         .onKeyPress(.downArrow) {
             guard !isSearchFieldFocused else { return .ignored }
-            viewModel.selectNext()
+            viewModel.selectNext(context: modelContext)
             return .handled
         }
         // Spacebar steps down the list (any feed/category scope) — an
@@ -165,7 +206,7 @@ struct ArticleListView: View {
         // never matched on macOS, so they're gone.)
         .onKeyPress(.space) {
             guard !isSearchFieldFocused else { return .ignored }
-            viewModel.selectNext()
+            viewModel.selectNext(context: modelContext)
             return .handled
         }
         .onKeyPress("d") {

@@ -197,15 +197,15 @@ struct ReadingPaneView: View {
                                                 .mask(alignment: .leading) { progressMask }
                                         }
                                     }
-                                    .frame(width: 42, height: 42)
+                                    .frame(width: isDigestExpanded ? 42 : 28, height: isDigestExpanded ? 42 : 28)
                                     .clipShape(RoundedRectangle(cornerRadius: 5))
                                     .animation(.easeInOut(duration: 0.3), value: isGeneratingSummary)
                                     .accessibilityHidden(true)
                                 } else {
                                     Image(systemName: "dot.radiowaves.left.and.right")
-                                        .font(.system(size: 28))
+                                        .font(.system(size: isDigestExpanded ? 28 : 18))
                                         .foregroundStyle(PrecisDesignSystem.marginalia)
-                                        .frame(width: 42, height: 42)
+                                        .frame(width: isDigestExpanded ? 42 : 28, height: isDigestExpanded ? 42 : 28)
                                         .accessibilityHidden(true)
                                 }
                                 Text("Today's Precis")
@@ -244,7 +244,10 @@ struct ReadingPaneView: View {
                                 .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.85))
                         }
                     }
-                    .padding(PrecisSpacing.md)
+                    // Collapsed, the block is just its header row — keep the
+                    // padding slim so it reads as a thin bar, not a card.
+                    .padding(.horizontal, PrecisSpacing.md)
+                    .padding(.vertical, isDigestExpanded ? PrecisSpacing.md : PrecisSpacing.xs)
                     .background(PrecisDesignSystem.marginalia.opacity(0.08))
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                     .padding(.bottom, PrecisSpacing.lg)
@@ -282,14 +285,11 @@ struct ReadingPaneView: View {
                     if item != nil, let onOpenInBrowser {
                         HStack(spacing: 8) {
                             Button(action: { onOpenInBrowser() }) {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "safari")
-                                        .font(.caption)
-                                    Text("Open in Browser")
-                                        .font(PrecisTypography.metadata)
-                                }
+                                Image(systemName: "arrow.up.forward.app")
+                                    .font(.title3)
                             }
                             .buttonStyle(.bordered)
+                            .help("Open in Browser")
 
                         }
                     }

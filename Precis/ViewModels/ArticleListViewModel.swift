@@ -789,8 +789,9 @@ public final class ArticleListViewModel: ObservableObject {
     /// put when you click something already on screen.
     @Published public var listScrollRevealToken: Int = 0
 
-    public func selectNext() {
+    public func selectNext(context: ModelContext? = nil) {
         guard !filteredItems.isEmpty else { return }
+        let outgoing = selectedItem
         if let currentID = selectedItemID,
            let index = filteredItems.firstIndex(where: { $0.id == currentID }) {
             guard index + 1 < filteredItems.count else { return }
@@ -800,11 +801,13 @@ public final class ArticleListViewModel: ObservableObject {
             // Unread filter is active) — resume from the top row, don't stall.
             selectedItemID = filteredItems[0].id
         }
+        markReadOnLeave(outgoing, context: context)
         listScrollRevealToken += 1
     }
 
-    public func selectPrevious() {
+    public func selectPrevious(context: ModelContext? = nil) {
         guard !filteredItems.isEmpty else { return }
+        let outgoing = selectedItem
         if let currentID = selectedItemID,
            let index = filteredItems.firstIndex(where: { $0.id == currentID }) {
             guard index - 1 >= 0 else { return }
@@ -812,7 +815,17 @@ public final class ArticleListViewModel: ObservableObject {
         } else {
             selectedItemID = filteredItems[filteredItems.count - 1].id
         }
+        markReadOnLeave(outgoing, context: context)
         listScrollRevealToken += 1
+    }
+
+    /// Navigating away means the open article has been read, so mark it —
+    /// the article now showing keeps its unread dot until the reader moves
+    /// off it (or presses `d`). No-op when there's nothing to move from or
+    /// it's already read.
+    private func markReadOnLeave(_ item: ArticleListItem?, context: ModelContext?) {
+        guard let item, !item.isRead else { return }
+        toggleRead(item, context: context)
     }
 
     public func toggleRead(_ item: ArticleListItem, context: ModelContext? = nil) {

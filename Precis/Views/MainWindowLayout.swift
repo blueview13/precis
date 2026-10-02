@@ -135,7 +135,8 @@ struct MainWindowLayout: View {
                 ArticleListView(
                     viewModel: viewModel,
                     isSidebarHidden: isSidebarHidden,
-                    onRevealSidebar: { isSidebarHidden = false }
+                    onRevealSidebar: { isSidebarHidden = false },
+                    headerTitle: selectedSidebarItem
                 )
                 .frame(height: articleListHeight)
 
@@ -169,8 +170,8 @@ struct MainWindowLayout: View {
                         NSWorkspace.shared.open(url)
                     },
                     isFetchingContent: !listIsEmpty && viewModel.loadingFullContentID == viewModel.selectedItem?.id,
-                    onPreviousArticle: { viewModel.selectPrevious() },
-                    onNextArticle: { viewModel.selectNext() },
+                    onPreviousArticle: { viewModel.selectPrevious(context: modelContext) },
+                    onNextArticle: { viewModel.selectNext(context: modelContext) },
                     canSelectPrevious: viewModel.canSelectPrevious,
                     canSelectNext: viewModel.canSelectNext
                 )
@@ -271,6 +272,7 @@ struct MainWindowLayout: View {
     private func startSpacebarMonitor() {
         guard spaceKeyMonitor == nil else { return }
         let viewModel = self.viewModel
+        let modelContext = self.modelContext
         spaceKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             guard event.keyCode == 49, // spacebar
                   !event.modifierFlags.contains(.command),
@@ -280,7 +282,7 @@ struct MainWindowLayout: View {
             let className = responder.map { String(describing: Swift.type(of: $0)) } ?? ""
             if className.hasPrefix("WK") { return event }
             MainActor.assumeIsolated {
-                viewModel.selectNext()
+                viewModel.selectNext(context: modelContext)
             }
             return nil
         }
@@ -674,7 +676,7 @@ struct MainWindowLayout: View {
         selectionAnchorID = feed.id
         viewModel.loadArticles(for: feed.id, context: modelContext)
         viewModel.selectedSidebarFilter = .feed(feed.id)
-        selectedSidebarItem = feed.title
+        selectedSidebarItem = sidebarDisplayTitle(for: feed)
     }
 
     /// Checks/unchecks a feed's row checkbox. Checking arms the Delete-key
@@ -1792,22 +1794,35 @@ private struct FeedFaviconView: View {
     /// `NSImage` is also held here — the old code re-ran `NSImage(data:)`
     /// for every row on every sidebar render.
     @State private var nsImage: NSImage?
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        Group {
+        ZStack {
+            // Soft tile: favicons are often white-on-transparent (built for
+            // dark toolbars) and would vanish against a light sidebar
+            // without something behind them.
+            RoundedRectangle(cornerRadius: 4)
+                .fill(PrecisDesignSystem.marginalia.opacity(0.12))
+
             if let nsImage {
                 Image(nsImage: nsImage)
                     .resizable()
-                    .aspectRatio(contentMode: .fit)
+                    .aspectRatio(contentMode: .fill)
             } else {
-                Image(systemName: "rss")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .foregroundStyle(PrecisDesignSystem.flag)
+                // Shown while fetching, and kept as the permanent fallback
+                // when a host serves nothing usable. The old "rss" symbol
+                // doesn't exist on macOS and rendered an empty box.
+                Image(systemName: "dot.radiowaves.left.and.right")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(PrecisDesignSystem.marginalia)
             }
         }
         .frame(width: 16, height: 16)
-        .clipShape(RoundedRectangle(cornerRadius: 3))
+        .clipShape(RoundedRectangle(cornerRadius: 4))
+        .overlay(
+            RoundedRectangle(cornerRadius: 4)
+                .strokeBorder(PrecisDesignSystem.rule(for: colorScheme), lineWidth: 0.5)
+        )
         .task(id: url) {
             guard nsImage == nil else { return }
             guard let data = await FaviconService.favicon(for: url),
