@@ -1,5 +1,6 @@
 import SwiftUI
 import ImageIO
+import SwiftData
 
 struct ArticleListView: View {
     @ObservedObject var viewModel: ArticleListViewModel

@@ -15,8 +15,8 @@ private enum IntentModelContainer {
 
 @available(macOS 26.0, *)
 struct ArticleEntity: AppEntity, Sendable {
-    nonisolated(unsafe) static let typeDisplayRepresentation = TypeDisplayRepresentation(name: LocalizedStringResource("Article"))
-    nonisolated(unsafe) static let defaultQuery = ArticleEntityQuery()
+    static let typeDisplayRepresentation = TypeDisplayRepresentation(name: LocalizedStringResource("Article"))
+    static let defaultQuery = ArticleEntityQuery()
 
     @Property(title: "Title")
     var title: String
@@ -77,8 +77,8 @@ struct ArticleEntityQuery: EntityQuery {
 
 @available(macOS 26.0, *)
 struct FeedEntity: AppEntity, Sendable {
-    nonisolated(unsafe) static let typeDisplayRepresentation = TypeDisplayRepresentation(name: LocalizedStringResource("Feed"))
-    nonisolated(unsafe) static let defaultQuery = FeedEntityQuery()
+    static let typeDisplayRepresentation = TypeDisplayRepresentation(name: LocalizedStringResource("Feed"))
+    static let defaultQuery = FeedEntityQuery()
 
     @Property(title: "Name")
     var name: String

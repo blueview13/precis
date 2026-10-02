@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import SwiftData
 
 struct SettingsView: View {
     @AppStorage(PrecisTheme.storageKey) private var selectedThemeRawValue = PrecisTheme.standard.rawValue

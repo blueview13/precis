@@ -178,7 +178,7 @@ if isGeneratingSummary {
 
                     Spacer()
 
-                    if let item, let onOpenInBrowser {
+                    if item != nil, let onOpenInBrowser {
                         HStack(spacing: 8) {
                             Button(action: { onOpenInBrowser() }) {
                                 HStack(spacing: 6) {
@@ -621,23 +621,26 @@ struct ArticleHTMLView: NSViewRepresentable {
             currentNavigation = webView.loadHTMLString(document, baseURL: lastBaseURL)
         }
 
-        func webView(
-            _ webView: WKWebView,
-            decidePolicyFor navigationAction: WKNavigationAction,
-            decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
-        ) {
-            // In-article links leave the app for the default browser; the
-            // web view itself only ever renders the article document.
-            if navigationAction.targetFrame?.isMainFrame == true,
-               let url = navigationAction.request.url,
-               let scheme = url.scheme?.lowercased(),
-               scheme == "http" || scheme == "https" {
-                NSWorkspace.shared.open(url)
-                decisionHandler(.cancel)
-                return
-            }
-            decisionHandler(.allow)
+    }
+}
+
+private extension ArticleHTMLView.Coordinator {
+    func webView(
+        _ webView: WKWebView,
+        decidePolicyFor navigationAction: WKNavigationAction,
+        decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+    ) {
+        // In-article links leave the app for the default browser; the
+        // web view itself only ever renders the article document.
+        if navigationAction.targetFrame?.isMainFrame == true,
+           let url = navigationAction.request.url,
+           let scheme = url.scheme?.lowercased(),
+           scheme == "http" || scheme == "https" {
+            NSWorkspace.shared.open(url)
+            decisionHandler(.cancel)
+            return
         }
+        decisionHandler(.allow)
     }
 }
 
