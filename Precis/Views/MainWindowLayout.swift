@@ -60,6 +60,13 @@ struct MainWindowLayout: View {
     /// list never fires once focus lands on a child control (buttons,
     /// rows), which is why space appeared dead.
     @State private var spaceKeyMonitor: Any?
+    /// Auto-hidden menu bar handling: when the menu bar reveals over a
+    /// maximised/full-screen window it covers the top bar, so the content
+    /// slides down by the menu bar height while it's showing.
+    @State private var hostingWindow: NSWindow?
+    @State private var mouseMonitor: Any?
+    @State private var globalMouseMonitor: Any?
+    @State private var menuBarShift: CGFloat = 0
     @Environment(\.openWindow) private var openWindow
     private var selectedSummaryText: String? {
         guard let selectedItem = viewModel.selectedItem else { return nil }
@@ -231,6 +238,7 @@ struct MainWindowLayout: View {
             viewModel.loadFolders(context: modelContext)
             startBackgroundRefresh()
             startSpacebarMonitor()
+            startMenuBarMonitor()
             // Auto-generate feed-wide 12-hour summary on launch
             Task {
                 await viewModel.generateFeedWideSummary(context: modelContext, feedIDs: digestFeedIDs)
@@ -239,6 +247,7 @@ struct MainWindowLayout: View {
         .onDisappear {
             backgroundRefresh.stopRefreshLoop()
             stopSpacebarMonitor()
+            stopMenuBarMonitor()
         }
         .onChange(of: refreshIntervalMinutes) { _, _ in
             // Restart the loop with the interval picked in Settings
@@ -252,6 +261,26 @@ struct MainWindowLayout: View {
             // list so the sidebar shows the new feeds immediately.
             refreshFeeds()
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)) { _ in
+            updateMenuBarShift()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didEnterFullScreenNotification)) { _ in
+            updateMenuBarShift()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didExitFullScreenNotification)) { _ in
+            updateMenuBarShift()
+        }
+        .background(
+            WindowCaptureView { window in
+                hostingWindow = window
+                window?.acceptsMouseMovedEvents = true
+                DispatchQueue.main.async { updateMenuBarShift() }
+            }
+        )
+        // When the auto-hidden menu bar reveals over this window, drop the
+        // content so the top bar sits below it instead of underneath it.
+        .padding(.top, menuBarShift)
+        .background(PrecisDesignSystem.background(for: colorScheme))
     }
 
     // MARK: - Background refresh
@@ -293,6 +322,69 @@ struct MainWindowLayout: View {
             NSEvent.removeMonitor(spaceKeyMonitor)
             self.spaceKeyMonitor = nil
         }
+    }
+
+    // MARK: - Auto-hidden menu bar reveal
+
+    /// Watches the mouse so `updateMenuBarShift()` can react whenever the
+    /// pointer enters or leaves the menu bar strip. Both monitors are
+    /// needed: while the menu bar overlays the window, its events can land
+    /// on our app or elsewhere depending on focus.
+    private func startMenuBarMonitor() {
+        guard mouseMonitor == nil else { return }
+        mouseMonitor = NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved, .leftMouseDown, .leftMouseUp]) { event in
+            MainActor.assumeIsolated {
+                updateMenuBarShift()
+            }
+            return event
+        }
+        globalMouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved, .leftMouseDown, .leftMouseUp]) { _ in
+            DispatchQueue.main.async {
+                self.updateMenuBarShift()
+            }
+        }
+    }
+
+    private func stopMenuBarMonitor() {
+        if let mouseMonitor {
+            NSEvent.removeMonitor(mouseMonitor)
+            self.mouseMonitor = nil
+        }
+        if let globalMouseMonitor {
+            NSEvent.removeMonitor(globalMouseMonitor)
+            self.globalMouseMonitor = nil
+        }
+    }
+
+    /// Slides the window content down while the auto-hidden menu bar is
+    /// showing over a window that reaches the top of the screen (full
+    /// screen, or maximised with the menu bar set to hide), and back up
+    /// when the menu bar goes away.
+    private func updateMenuBarShift() {
+        guard let window = hostingWindow,
+              let screen = window.screen ?? NSScreen.main else { return }
+
+        // Only windows that reach into the menu bar strip can be covered by
+        // it — in windowed mode the menu bar never overlaps us, so shifting
+        // would just add dead space.
+        guard window.frame.maxY >= screen.frame.maxY - 1 else {
+            if menuBarShift != 0 {
+                withAnimation(.easeOut(duration: 0.15)) { menuBarShift = 0 }
+            }
+            return
+        }
+
+        let menuBarHeight = screen.frame.maxY - screen.visibleFrame.maxY
+        let mouse = NSEvent.mouseLocation
+        let overMenuBar = menuBarHeight > 0
+            && mouse.x >= screen.frame.minX && mouse.x <= screen.frame.maxX
+            && mouse.y >= screen.visibleFrame.maxY
+        // Keep the shift while the button is held so dragging a menu open
+        // and down through the list doesn't yank the content mid-drag.
+        let draggingThroughMenu = menuBarShift > 0 && NSEvent.pressedMouseButtons != 0
+        let target: CGFloat = (overMenuBar || draggingThroughMenu) ? menuBarHeight : 0
+        guard target != menuBarShift else { return }
+        withAnimation(.easeOut(duration: 0.2)) { menuBarShift = target }
     }
 
     private func startBackgroundRefresh() {
@@ -2001,5 +2093,35 @@ private struct ResizableDivider: View {
                     NSCursor.pop()
                 }
             }
+    }
+}
+
+// MARK: - Window Capture
+
+/// Zero-size view that reports the hosting window so the layout can compare
+/// its frame against the screen (menu bar reveal detection).
+private struct WindowCaptureView: NSViewRepresentable {
+    var onWindow: (NSWindow?) -> Void
+
+    final class Coordinator {
+        var window: NSWindow?
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async { report(view.window, context: context) }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async { report(nsView.window, context: context) }
+    }
+
+    private func report(_ window: NSWindow?, context: Context) {
+        guard context.coordinator.window !== window else { return }
+        context.coordinator.window = window
+        onWindow(window)
     }
 }
