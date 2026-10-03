@@ -227,29 +227,9 @@ struct MainWindowLayout: View {
             }
         }
         .onAppear {
-            DesktopFeedPanelController.shared.onOpenArticle = { articleID in
-                if let readerWindow = NSApp.windows.first(where: {
-                    $0.identifier?.rawValue == "PrecisMainWindow"
-                }) {
-                    NotificationCenter.default.post(name: .precisOpenArticle, object: articleID)
-                    NSApp.activate(ignoringOtherApps: true)
-                    if readerWindow.isMiniaturized {
-                        readerWindow.deminiaturize(nil)
-                    }
-                    readerWindow.makeKeyAndOrderFront(nil)
-                } else {
-                    UserDefaults.standard.set(articleID.uuidString, forKey: "desktopPanelPendingArticleID")
-                    openWindow(id: "main")
-                }
-            }
             refreshFeeds()
             refreshCategories()
             viewModel.loadFromContext(modelContext)
-            if let pendingID = UserDefaults.standard.string(forKey: "desktopPanelPendingArticleID")
-                .flatMap(UUID.init(uuidString:)) {
-                UserDefaults.standard.removeObject(forKey: "desktopPanelPendingArticleID")
-                openDesktopPanelArticle(pendingID)
-            }
             // The launch selection needs its full content too — the
             // selection-change observer only fires for later clicks.
             viewModel.loadFullContent(context: modelContext)
@@ -269,9 +249,11 @@ struct MainWindowLayout: View {
         .onReceive(NotificationCenter.default.publisher(for: .precisOpenSettings)) { _ in
             openWindow(id: "settings")
         }
-        .onReceive(NotificationCenter.default.publisher(for: .precisOpenArticle)) { notification in
+        .onReceive(NotificationCenter.default.publisher(for: .precisArticleRead)) { notification in
             guard let articleID = notification.object as? UUID else { return }
-            openDesktopPanelArticle(articleID)
+            // Opened from the headlines panel — mirror the read state so the
+            // row greys out here (and the unread pills drop) right away.
+            viewModel.markRead(articleID, context: modelContext)
         }
         .onReceive(NotificationCenter.default.publisher(for: .precisFeedsRefreshed)) { _ in
             refreshFeeds()
@@ -450,17 +432,7 @@ struct MainWindowLayout: View {
         }
     }
 
-    private func openDesktopPanelArticle(_ articleID: UUID) {
-        if !viewModel.items.contains(where: { $0.id == articleID }) {
-            viewModel.loadArticles(for: nil, context: modelContext)
-        }
-        guard let item = viewModel.items.first(where: { $0.id == articleID }) else { return }
-        viewModel.select(item, context: modelContext)
-        viewModel.loadFullContent(context: modelContext)
-    }
-
     // MARK: - Categories
-
     private func refreshCategories() {
         do {
             let fetched = try modelContext.fetch(FetchDescriptor<CategoryRecord>())

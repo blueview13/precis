@@ -42,6 +42,52 @@ private final class DesktopPanelColorPanelController: NSObject {
     }
 }
 
+/// Fires `onWindowWillClose` when the window this view sits in is about to
+/// close — used to dismiss the shared colour picker along with its owner.
+private struct WindowWillCloseObserver: NSViewRepresentable {
+    let onWindowWillClose: () -> Void
+
+    func makeNSView(context: Context) -> WindowWillCloseView {
+        WindowWillCloseView(onWindowWillClose: onWindowWillClose)
+    }
+
+    func updateNSView(_ nsView: WindowWillCloseView, context: Context) {}
+
+    final class WindowWillCloseView: NSView {
+        let onWindowWillClose: () -> Void
+        // Written on the main thread only (view attachment) and torn down in
+        // deinit; the token itself is just an observer handle.
+        nonisolated(unsafe) private var observer: NSObjectProtocol?
+
+        init(onWindowWillClose: @escaping () -> Void) {
+            self.onWindowWillClose = onWindowWillClose
+            super.init(frame: .zero)
+        }
+
+        required init?(coder: NSCoder) {
+            fatalError("init(coder:) has not been implemented")
+        }
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            guard observer == nil, let window else { return }
+            observer = NotificationCenter.default.addObserver(
+                forName: NSWindow.willCloseNotification,
+                object: window,
+                queue: .main
+            ) { [weak self] _ in
+                self?.onWindowWillClose()
+            }
+        }
+
+        deinit {
+            if let observer {
+                NotificationCenter.default.removeObserver(observer)
+            }
+        }
+    }
+}
+
 struct SettingsView: View {
     @AppStorage(PrecisTheme.storageKey) private var selectedThemeRawValue = PrecisTheme.standard.rawValue
     @AppStorage("readingFontSize") private var readingFontSize: Double = 15
@@ -55,6 +101,7 @@ struct SettingsView: View {
     @AppStorage("desktopPanelEnabled") private var desktopPanelEnabled = false
     @AppStorage("desktopPanelEdge") private var desktopPanelEdge = "right"
     @AppStorage("desktopPanelBackground") private var desktopPanelBackground = "#FFBE24"
+    @AppStorage("desktopPanelTextColor") private var desktopPanelTextColor = ""
     @AppStorage("desktopPanelOpacity") private var desktopPanelOpacity = 0.35
     @AppStorage("desktopPanelSources") private var desktopPanelSources = "*"
     @State private var opmlStatus = ""
@@ -149,83 +196,6 @@ struct SettingsView: View {
                                 .buttonStyle(.plain)
                             }
                         }
-                    }
-
-                    settingsSection(title: "Desktop Panel") {
-                        VStack(alignment: .leading, spacing: PrecisSpacing.md) {
-                            Toggle("Show menu bar headlines", isOn: $desktopPanelEnabled)
-                                .font(PrecisTypography.body)
-
-                            Picker("Screen edge", selection: $desktopPanelEdge) {
-                                Text("Left").tag("left")
-                                Text("Right").tag("right")
-                            }
-                            .pickerStyle(.segmented)
-
-                            HStack {
-                                Text("Background")
-                                Spacer()
-                                Button {
-                                    desktopPanelColorPanel.present(
-                                        initialColor: NSColor(desktopPanelColor.wrappedValue),
-                                        relativeTo: NSApp.keyWindow
-                                    ) { color in
-                                        desktopPanelBackground = PrecisDesignSystem.hexString(from: Color(nsColor: color))
-                                    }
-                                } label: {
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .fill(desktopPanelColor.wrappedValue)
-                                        .frame(width: 40, height: 22)
-                                        .overlay {
-                                            RoundedRectangle(cornerRadius: 4)
-                                                .stroke(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.2), lineWidth: 1)
-                                        }
-                                }
-                                .buttonStyle(.plain)
-                                .accessibilityLabel("Choose panel background color")
-                                .help("Choose panel background color")
-                            }
-
-                            VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
-                                HStack {
-                                    Text("Background opacity")
-                                    Spacer()
-                                    Text("\(Int(desktopPanelOpacity * 100))%")
-                                        .foregroundStyle(PrecisDesignSystem.marginalia)
-                                }
-                                Slider(value: $desktopPanelOpacity, in: 0.35...1, step: 0.05)
-                            }
-
-                            if !desktopPanelCategories.isEmpty {
-                                DisclosureGroup("Categories") {
-                                    VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
-                                        ForEach(desktopPanelCategories) { category in
-                                            sourceToggle(category.name, feedIDs: category.feeds.map(\.id))
-                                        }
-                                    }
-                                }
-                            }
-
-                            if !desktopPanelFolders.isEmpty {
-                                DisclosureGroup("Folders") {
-                                    VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
-                                        ForEach(desktopPanelFolders) { folder in
-                                            sourceToggle(folder.name, feedIDs: folder.feeds.map(\.id))
-                                        }
-                                    }
-                                }
-                            }
-
-                            DisclosureGroup("Feeds") {
-                                VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
-                                    ForEach(desktopPanelFeeds) { feed in
-                                        sourceToggle(feed.title, feedIDs: [feed.id])
-                                    }
-                                }
-                            }
-                        }
-                        .font(PrecisTypography.body)
-                        .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
                     }
 
                     settingsSection(title: "Reading") {
@@ -331,6 +301,107 @@ struct SettingsView: View {
                         }
                     }
 
+                    settingsSection(title: "Right Hand Desktop Panel") {
+                        VStack(alignment: .leading, spacing: PrecisSpacing.md) {
+                            Toggle("Show menu bar headlines", isOn: $desktopPanelEnabled)
+                                .font(PrecisTypography.body)
+
+                            Picker("Screen edge", selection: $desktopPanelEdge) {
+                                Text("Left").tag("left")
+                                Text("Right").tag("right")
+                            }
+                            .pickerStyle(.segmented)
+
+                            HStack {
+                                Text("Background")
+                                Spacer()
+                                Button {
+                                    desktopPanelColorPanel.present(
+                                        initialColor: NSColor(desktopPanelColor.wrappedValue),
+                                        relativeTo: NSApp.keyWindow
+                                    ) { color in
+                                        desktopPanelBackground = PrecisDesignSystem.hexString(from: Color(nsColor: color))
+                                    }
+                                } label: {
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(desktopPanelColor.wrappedValue)
+                                        .frame(width: 40, height: 22)
+                                        .overlay {
+                                            RoundedRectangle(cornerRadius: 4)
+                                                .stroke(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.2), lineWidth: 1)
+                                        }
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("Choose panel background color")
+                                .help("Choose panel background color")
+                            }
+
+                            VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
+                                HStack {
+                                    Text("Background opacity")
+                                    Spacer()
+                                    Text("\(Int(desktopPanelOpacity * 100))%")
+                                        .foregroundStyle(PrecisDesignSystem.marginalia)
+                                }
+                                Slider(value: $desktopPanelOpacity, in: 0...1, step: 0.05)
+                            }
+
+                            HStack {
+                                Text("Article text color")
+                                Spacer()
+                                Button {
+                                    desktopPanelColorPanel.present(
+                                        initialColor: NSColor(desktopPanelText.wrappedValue),
+                                        relativeTo: NSApp.keyWindow
+                                    ) { color in
+                                        desktopPanelTextColor = PrecisDesignSystem.hexString(from: Color(nsColor: color))
+                                    }
+                                } label: {
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(desktopPanelText.wrappedValue)
+                                        .frame(width: 40, height: 22)
+                                        .overlay {
+                                            RoundedRectangle(cornerRadius: 4)
+                                                .stroke(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.2), lineWidth: 1)
+                                        }
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("Choose article text color")
+                                .help("Choose article text color")
+                            }
+
+                            if !desktopPanelCategories.isEmpty {
+                                DisclosureGroup("Categories") {
+                                    VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
+                                        ForEach(desktopPanelCategories) { category in
+                                            sourceToggle(category.name, feedIDs: category.feeds.map(\.id))
+                                        }
+                                    }
+                                }
+                            }
+
+                            if !desktopPanelFolders.isEmpty {
+                                DisclosureGroup("Folders") {
+                                    VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
+                                        ForEach(desktopPanelFolders) { folder in
+                                            sourceToggle(folder.name, feedIDs: folder.feeds.map(\.id))
+                                        }
+                                    }
+                                }
+                            }
+
+                            DisclosureGroup("Feeds") {
+                                VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
+                                    ForEach(desktopPanelFeeds) { feed in
+                                        sourceToggle(feed.title, feedIDs: [feed.id])
+                                    }
+                                }
+                            }
+                        }
+                        .font(PrecisTypography.body)
+                        .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
+                    }
+
                     settingsSection(title: "OPML") {
                         VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
                             // Compact paired buttons — same `.bordered` style as
@@ -403,12 +474,24 @@ struct SettingsView: View {
         .preferredColorScheme(selectedTheme.colorScheme)
         .tint(selectedTheme.accent)
         .task { loadDesktopPanelSources() }
+        .background(WindowWillCloseObserver {
+            // The picker is app-shared and would otherwise float on over the
+            // desktop after its owner window is gone.
+            NSColorPanel.shared.close()
+        })
     }
 
     private var desktopPanelColor: Binding<Color> {
         Binding(
             get: { PrecisDesignSystem.color(hex: desktopPanelBackground) ?? selectedTheme.background },
             set: { desktopPanelBackground = PrecisDesignSystem.hexString(from: $0) }
+        )
+    }
+
+    private var desktopPanelText: Binding<Color> {
+        Binding(
+            get: { PrecisDesignSystem.color(hex: desktopPanelTextColor) ?? PrecisDesignSystem.foreground(for: colorScheme) },
+            set: { desktopPanelTextColor = PrecisDesignSystem.hexString(from: $0) }
         )
     }
 

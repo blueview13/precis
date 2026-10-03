@@ -60,7 +60,9 @@ extension Notification.Name {
     /// Posted after an OPML import completes in the Settings window so the
     /// main window reloads its sidebar feed list.
     static let precisFeedsImported = Notification.Name("PrecisFeedsImported")
-    static let precisOpenArticle = Notification.Name("PrecisOpenArticle")
+    /// Posted by the headlines panel when an article is opened, so the main
+    /// window's list can mirror the read state without re-fetching everything.
+    static let precisArticleRead = Notification.Name("PrecisArticleRead")
     static let precisFeedsRefreshed = Notification.Name("PrecisFeedsRefreshed")
 }
 
@@ -68,11 +70,13 @@ extension Notification.Name {
 final class DesktopFeedPanelController: NSObject {
     static let shared = DesktopFeedPanelController()
 
-    var onOpenArticle: ((UUID) -> Void)?
-
     private var modelContainer: ModelContainer?
     private var statusItem: NSStatusItem?
     private var panel: NSPanel?
+    /// Last `desktopPanelEnabled` value seen by `preferencesChanged`, so an
+    /// off→on change (the user ticking the box) can open the panel while the
+    /// initial call from `install` leaves it closed behind its menu bar icon.
+    private var wasEnabled: Bool?
 
     func install(modelContainer: ModelContainer) {
         guard self.modelContainer == nil else { return }
@@ -95,7 +99,10 @@ final class DesktopFeedPanelController: NSObject {
     }
 
     @objc private func preferencesChanged() {
-        if UserDefaults.standard.bool(forKey: "desktopPanelEnabled") {
+        let enabled = UserDefaults.standard.bool(forKey: "desktopPanelEnabled")
+        let previouslyEnabled = wasEnabled
+        wasEnabled = enabled
+        if enabled {
             if statusItem == nil {
                 let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
                 let icon = NSImage(named: NSImage.Name("DesktopPanelIcon"))
@@ -108,7 +115,11 @@ final class DesktopFeedPanelController: NSObject {
                 statusItem.button?.action = #selector(togglePanel)
                 self.statusItem = statusItem
             }
-            if panel?.isVisible == true {
+            if previouslyEnabled == false {
+                // Just ticked in Settings — open the panel straight away
+                // instead of leaving it to a menu bar click.
+                showPanel()
+            } else if panel?.isVisible == true {
                 positionPanel()
             }
         } else {
@@ -148,9 +159,12 @@ final class DesktopFeedPanelController: NSObject {
             panel.hidesOnDeactivate = false
             panel.level = .floating
             panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
+            // Hover tracking drives the ←→ cursor on the resize strip, and
+            // borderless panels don't take mouse-moved events by default —
+            // without this the strip's onHover never fires.
+            panel.acceptsMouseMovedEvents = true
             panel.contentView = PanelHostingView(
                 rootView: DesktopFeedPanelView(
-                    onOpenArticle: { [weak self] articleID in self?.onOpenArticle?(articleID) },
                     onClose: { [weak self] in self?.hidePanel() },
                     onResize: { [weak self] width in self?.resizePanel(to: width) }
                 )
@@ -369,15 +383,19 @@ private struct DesktopFeedPanelView: View {
     @AppStorage("desktopPanelWidth") private var panelWidth = Double(DesktopPanelPlacement.defaultWidth)
     @AppStorage("desktopPanelEdge") private var panelEdge = "right"
     @AppStorage("desktopPanelBackground") private var backgroundHex = "#FFBE24"
+    @AppStorage("desktopPanelTextColor") private var textHex = ""
     @AppStorage("desktopPanelOpacity") private var backgroundOpacity = 0.35
+    @Environment(\.modelContext) private var modelContext
 
-    let onOpenArticle: (UUID) -> Void
     let onClose: () -> Void
     let onResize: (CGFloat) -> Void
 
     /// Width the drag started at, so each change is measured from the original
     /// size instead of compounding against the width it just wrote.
     @State private var resizeBaseWidth: CGFloat?
+    /// Live hover state of the resize strip — tells a drag's end whether the
+    /// pointer is still on the strip, where the resize cursor belongs anyway.
+    @State private var handleHovering = false
 
     private var visibleArticles: [ArticleRecord] {
         let availableFeedIDs = Set(articles.compactMap { $0.feed?.id })
@@ -394,6 +412,12 @@ private struct DesktopFeedPanelView: View {
 
     private var panelBackground: Color {
         PrecisDesignSystem.color(hex: backgroundHex) ?? PrecisTheme.current.background
+    }
+
+    /// Article title/summary ink — the Settings "Text color" swatch, falling
+    /// back to the theme foreground until the user picks one.
+    private var panelText: Color {
+        PrecisDesignSystem.color(hex: textHex) ?? PrecisDesignSystem.foreground(for: .light)
     }
 
     var body: some View {
@@ -446,12 +470,12 @@ private struct DesktopFeedPanelView: View {
                     } else {
                         ForEach(visibleArticles) { article in
                             Button {
-                                onOpenArticle(article.id)
+                                openArticle(article)
                             } label: {
                                 articleRow(article)
                             }
                             .buttonStyle(.plain)
-                            .accessibilityLabel("Open \(article.title) from \(article.feed?.title ?? "feed")")
+                            .accessibilityLabel("Open \(article.title) from \(article.feed?.title ?? "feed") in browser")
 
                             Divider()
                                 .overlay(PrecisDesignSystem.rule(for: .light))
@@ -484,6 +508,10 @@ private struct DesktopFeedPanelView: View {
                         if resizeBaseWidth == nil {
                             resizeBaseWidth = base
                         }
+                        // Every step re-frames the panel, and AppKit re-runs
+                        // its cursor pass on frame changes, which can drop the
+                        // hover cursor mid-drag — pin it again each step.
+                        NSCursor.resizeLeftRight.set()
                         onResize(
                             DesktopPanelPlacement.width(
                                 fromStoredWidth: base,
@@ -492,9 +520,18 @@ private struct DesktopFeedPanelView: View {
                             )
                         )
                     }
-                    .onEnded { _ in resizeBaseWidth = nil }
+                    .onEnded { _ in
+                        resizeBaseWidth = nil
+                        // The last step pinned the resize cursor unconditionally —
+                        // put the default back when the pointer is no longer on
+                        // the strip (a hover exit can fire mid-drag).
+                        if !handleHovering {
+                            NSCursor.arrow.set()
+                        }
+                    }
             )
             .onHover { inside in
+                handleHovering = inside
                 if inside {
                     NSCursor.resizeLeftRight.push()
                 } else {
@@ -502,6 +539,23 @@ private struct DesktopFeedPanelView: View {
                 }
             }
             .help("Drag to resize")
+    }
+
+    private func openArticle(_ article: ArticleRecord) {
+        // Reading happens in the browser, not in Precis — mark the row read
+        // first so it greys out here and in the main window, then hand the
+        // link to the system default browser.
+        if !article.isRead {
+            article.isRead = true
+            do {
+                try modelContext.save()
+            } catch {
+                PrecisLogger.error("Failed to mark panel article read: \(error.localizedDescription)")
+            }
+        }
+        NotificationCenter.default.post(name: .precisArticleRead, object: article.id)
+        guard let link = article.link, let url = URL(string: link) else { return }
+        NSWorkspace.shared.open(url)
     }
 
     private func articleRow(_ article: ArticleRecord) -> some View {
@@ -522,14 +576,18 @@ private struct DesktopFeedPanelView: View {
 
             Text(article.title)
                 .font(PrecisTypography.body.weight(article.isRead ? .regular : .semibold))
-                .foregroundStyle(PrecisDesignSystem.foreground(for: .light))
+                .foregroundStyle(article.isRead ? Color.gray : panelText)
                 .multilineTextAlignment(.leading)
                 .lineLimit(3)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             Text(article.summary?.shortText ?? excerpt(for: article))
                 .font(PrecisTypography.caption)
-                .foregroundStyle(PrecisDesignSystem.foreground(for: .light).opacity(0.72))
+                .foregroundStyle(
+                    article.isRead
+                        ? Color.gray.opacity(0.75)
+                        : panelText.opacity(0.72)
+                )
                 .multilineTextAlignment(.leading)
                 .lineLimit(4)
                 .frame(maxWidth: .infinity, alignment: .leading)

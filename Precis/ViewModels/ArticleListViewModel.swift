@@ -869,6 +869,20 @@ public final class ArticleListViewModel: ObservableObject {
         } catch {}
     }
 
+    /// Single-article variant of `markAllAsRead` — fetches just that record
+    /// (like the other per-click paths) so a headlines-panel click doesn't
+    /// materialize the whole library.
+    public func markRead(_ articleID: UUID, context: ModelContext) {
+        do {
+            if let record = try articleRepository.fetch(id: articleID, context: context), !record.isRead {
+                try articleRepository.markRead(record, read: true, context: context)
+            }
+            if let index = items.firstIndex(where: { $0.id == articleID }) {
+                items[index].isRead = true
+            }
+        } catch {}
+    }
+
     public func markAllAsUnread(context: ModelContext, articleIDs: Set<UUID>? = nil) {
         do {
             let records = try articleRepository.fetchAll(context: context)
