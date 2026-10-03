@@ -7,8 +7,6 @@ struct MainWindowLayout: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     @StateObject private var viewModel: ArticleListViewModel
-    @AppStorage("refreshIntervalMinutes") private var refreshIntervalMinutes: Int = 15
-    @State private var backgroundRefresh = BackgroundRefreshService()
     @AppStorage("notifyOnNewArticles") private var notifyOnNewArticles = false
     @State private var selectedSidebarItem = "Unread"
     @State private var feedURLInput = ""
@@ -228,15 +226,34 @@ struct MainWindowLayout: View {
             }
         }
         .onAppear {
+            DesktopFeedPanelController.shared.onOpenArticle = { articleID in
+                if let readerWindow = NSApp.windows.first(where: {
+                    $0.identifier?.rawValue == "PrecisMainWindow"
+                }) {
+                    NotificationCenter.default.post(name: .precisOpenArticle, object: articleID)
+                    NSApp.activate(ignoringOtherApps: true)
+                    if readerWindow.isMiniaturized {
+                        readerWindow.deminiaturize(nil)
+                    }
+                    readerWindow.makeKeyAndOrderFront(nil)
+                } else {
+                    UserDefaults.standard.set(articleID.uuidString, forKey: "desktopPanelPendingArticleID")
+                    openWindow(id: "main")
+                }
+            }
             refreshFeeds()
             refreshCategories()
             viewModel.loadFromContext(modelContext)
+            if let pendingID = UserDefaults.standard.string(forKey: "desktopPanelPendingArticleID")
+                .flatMap(UUID.init(uuidString:)) {
+                UserDefaults.standard.removeObject(forKey: "desktopPanelPendingArticleID")
+                openDesktopPanelArticle(pendingID)
+            }
             // The launch selection needs its full content too — the
             // selection-change observer only fires for later clicks.
             viewModel.loadFullContent(context: modelContext)
             Task { await repairURLTitledFeeds() }
             viewModel.loadFolders(context: modelContext)
-            startBackgroundRefresh()
             startSpacebarMonitor()
             startMenuBarMonitor()
             // Auto-generate feed-wide 12-hour summary on launch
@@ -245,16 +262,18 @@ struct MainWindowLayout: View {
             }
         }
         .onDisappear {
-            backgroundRefresh.stopRefreshLoop()
             stopSpacebarMonitor()
             stopMenuBarMonitor()
         }
-        .onChange(of: refreshIntervalMinutes) { _, _ in
-            // Restart the loop with the interval picked in Settings
-            startBackgroundRefresh()
-        }
         .onReceive(NotificationCenter.default.publisher(for: .precisOpenSettings)) { _ in
             openWindow(id: "settings")
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .precisOpenArticle)) { notification in
+            guard let articleID = notification.object as? UUID else { return }
+            openDesktopPanelArticle(articleID)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .precisFeedsRefreshed)) { _ in
+            refreshFeeds()
         }
         .onReceive(NotificationCenter.default.publisher(for: .precisFeedsImported)) { _ in
             // OPML import finished in the Settings window — reload the feed
@@ -273,6 +292,7 @@ struct MainWindowLayout: View {
         .background(
             WindowCaptureView { window in
                 hostingWindow = window
+                window?.identifier = NSUserInterfaceItemIdentifier("PrecisMainWindow")
                 window?.acceptsMouseMovedEvents = true
                 DispatchQueue.main.async { updateMenuBarShift() }
             }
@@ -281,12 +301,6 @@ struct MainWindowLayout: View {
         // content so the top bar sits below it instead of underneath it.
         .padding(.top, menuBarShift)
         .background(PrecisDesignSystem.background(for: colorScheme))
-    }
-
-    // MARK: - Background refresh
-
-    private var refreshInterval: RefreshInterval {
-        RefreshInterval(rawValue: refreshIntervalMinutes) ?? .fifteenMinutes
     }
 
     // MARK: - Spacebar "next article"
@@ -419,16 +433,6 @@ struct MainWindowLayout: View {
         return max(measured, reserved)
     }
 
-    private func startBackgroundRefresh() {
-        backgroundRefresh.stopRefreshLoop()
-        backgroundRefresh.beginRefreshLoop(interval: refreshInterval) {
-            // Skip a tick that would collide with a manual "refresh all" pass.
-            guard !isRefreshingAll else { return }
-            PrecisLogger.info("Background refresh tick — refreshing all feeds")
-            await refreshAllFeeds()
-        }
-    }
-
     private func refreshFeeds() {
         do {
             importedFeeds = try FeedRepository().fetchAll(context: modelContext)
@@ -443,6 +447,15 @@ struct MainWindowLayout: View {
             importedFeeds = []
             updateAutomaticSidebarWidth()
         }
+    }
+
+    private func openDesktopPanelArticle(_ articleID: UUID) {
+        if !viewModel.items.contains(where: { $0.id == articleID }) {
+            viewModel.loadArticles(for: nil, context: modelContext)
+        }
+        guard let item = viewModel.items.first(where: { $0.id == articleID }) else { return }
+        viewModel.select(item, context: modelContext)
+        viewModel.loadFullContent(context: modelContext)
     }
 
     // MARK: - Categories
@@ -1100,7 +1113,12 @@ struct MainWindowLayout: View {
     }
 
     private func refreshAllFeeds() async {
+        guard AppScopedFeedRefreshCoordinator.shared.beginManualRefresh() else { return }
         isRefreshingAll = true
+        defer {
+            isRefreshingAll = false
+            AppScopedFeedRefreshCoordinator.shared.endManualRefresh()
+        }
         var totalNewArticles = 0
         var refreshedFeedNames: [String] = []
         for feed in importedFeeds {
@@ -1112,7 +1130,6 @@ struct MainWindowLayout: View {
             }
         }
         refreshFeeds()
-        isRefreshingAll = false
         if notifyOnNewArticles, totalNewArticles > 0 {
             try? await NewArticleNotificationService.sendNewArticlesNotification(
                 count: totalNewArticles,

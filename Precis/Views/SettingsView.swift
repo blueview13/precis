@@ -2,6 +2,46 @@ import SwiftUI
 import AppKit
 import SwiftData
 
+@MainActor
+private final class DesktopPanelColorPanelController: NSObject {
+    private var onColorChange: ((NSColor) -> Void)?
+
+    func present(
+        initialColor: NSColor,
+        relativeTo settingsWindow: NSWindow?,
+        onColorChange: @escaping (NSColor) -> Void
+    ) {
+        self.onColorChange = onColorChange
+        let panel = NSColorPanel.shared
+        panel.color = initialColor
+        panel.setTarget(self)
+        panel.setAction(#selector(colorDidChange(_:)))
+
+        if let settingsWindow,
+           let screen = settingsWindow.screen ?? NSScreen.main {
+            let visible = screen.visibleFrame
+            let size = panel.frame.size
+            let leftX = settingsWindow.frame.minX - size.width - 12
+            let rightX = settingsWindow.frame.maxX + 12
+            let x: CGFloat
+            if leftX >= visible.minX {
+                x = leftX
+            } else if rightX + size.width <= visible.maxX {
+                x = rightX
+            } else {
+                x = visible.minX + (visible.width - size.width) / 2
+            }
+            let y = min(max(settingsWindow.frame.midY - size.height / 2, visible.minY), visible.maxY - size.height)
+            panel.setFrameOrigin(NSPoint(x: x, y: y))
+        }
+        panel.orderFront(nil)
+    }
+
+    @objc private func colorDidChange(_ sender: NSColorPanel) {
+        onColorChange?(sender.color)
+    }
+}
+
 struct SettingsView: View {
     @AppStorage(PrecisTheme.storageKey) private var selectedThemeRawValue = PrecisTheme.standard.rawValue
     @AppStorage("readingFontSize") private var readingFontSize: Double = 15
@@ -12,6 +52,12 @@ struct SettingsView: View {
     @AppStorage("showThumbnails") private var showThumbnails: Bool = true
     @AppStorage("showArticleImages") private var showArticleImages: Bool = true
     @AppStorage("notifyOnNewArticles") private var notifyOnNewArticles = false
+    @AppStorage("desktopPanelEnabled") private var desktopPanelEnabled = false
+    @AppStorage("desktopPanelEdge") private var desktopPanelEdge = "right"
+    @AppStorage("desktopPanelWidth") private var desktopPanelWidth = 320.0
+    @AppStorage("desktopPanelBackground") private var desktopPanelBackground = "#FFBE24"
+    @AppStorage("desktopPanelOpacity") private var desktopPanelOpacity = 0.35
+    @AppStorage("desktopPanelSources") private var desktopPanelSources = "*"
     @State private var opmlStatus = ""
     @State private var opmlStatusIsError = false
     @State private var notificationPermissionMessage = ""
@@ -20,6 +66,10 @@ struct SettingsView: View {
     @State private var opmlProgress: Double? = nil
     /// Locks both OPML buttons while an import/export is in flight.
     @State private var isOPMLBusy = false
+    @State private var desktopPanelFeeds: [FeedRecord] = []
+    @State private var desktopPanelCategories: [CategoryRecord] = []
+    @State private var desktopPanelFolders: [FolderRecord] = []
+    @State private var desktopPanelColorPanel = DesktopPanelColorPanelController()
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
 
@@ -100,6 +150,93 @@ struct SettingsView: View {
                                 .buttonStyle(.plain)
                             }
                         }
+                    }
+
+                    settingsSection(title: "Desktop Panel") {
+                        VStack(alignment: .leading, spacing: PrecisSpacing.md) {
+                            Toggle("Show menu bar headlines", isOn: $desktopPanelEnabled)
+                                .font(PrecisTypography.body)
+
+                            Picker("Screen edge", selection: $desktopPanelEdge) {
+                                Text("Left").tag("left")
+                                Text("Right").tag("right")
+                            }
+                            .pickerStyle(.segmented)
+
+                            VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
+                                HStack {
+                                    Text("Panel width")
+                                    Spacer()
+                                    Text("\(Int(desktopPanelWidth)) pt")
+                                        .foregroundStyle(PrecisDesignSystem.marginalia)
+                                }
+                                Slider(value: $desktopPanelWidth, in: 240...480, step: 20)
+                            }
+
+                            HStack {
+                                Text("Background")
+                                Spacer()
+                                Button {
+                                    desktopPanelColorPanel.present(
+                                        initialColor: NSColor(desktopPanelColor.wrappedValue),
+                                        relativeTo: NSApp.keyWindow
+                                    ) { color in
+                                        desktopPanelBackground = PrecisDesignSystem.hexString(from: Color(nsColor: color))
+                                    }
+                                } label: {
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(desktopPanelColor.wrappedValue)
+                                        .frame(width: 40, height: 22)
+                                        .overlay {
+                                            RoundedRectangle(cornerRadius: 4)
+                                                .stroke(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.2), lineWidth: 1)
+                                        }
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("Choose panel background color")
+                                .help("Choose panel background color")
+                            }
+
+                            VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
+                                HStack {
+                                    Text("Background opacity")
+                                    Spacer()
+                                    Text("\(Int(desktopPanelOpacity * 100))%")
+                                        .foregroundStyle(PrecisDesignSystem.marginalia)
+                                }
+                                Slider(value: $desktopPanelOpacity, in: 0.35...1, step: 0.05)
+                            }
+
+                            if !desktopPanelCategories.isEmpty {
+                                DisclosureGroup("Categories") {
+                                    VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
+                                        ForEach(desktopPanelCategories) { category in
+                                            sourceToggle(category.name, feedIDs: category.feeds.map(\.id))
+                                        }
+                                    }
+                                }
+                            }
+
+                            if !desktopPanelFolders.isEmpty {
+                                DisclosureGroup("Folders") {
+                                    VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
+                                        ForEach(desktopPanelFolders) { folder in
+                                            sourceToggle(folder.name, feedIDs: folder.feeds.map(\.id))
+                                        }
+                                    }
+                                }
+                            }
+
+                            DisclosureGroup("Feeds") {
+                                VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
+                                    ForEach(desktopPanelFeeds) { feed in
+                                        sourceToggle(feed.title, feedIDs: [feed.id])
+                                    }
+                                }
+                            }
+                        }
+                        .font(PrecisTypography.body)
+                        .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
                     }
 
                     settingsSection(title: "Reading") {
@@ -276,6 +413,68 @@ struct SettingsView: View {
         .background(PrecisDesignSystem.background(for: colorScheme))
         .preferredColorScheme(selectedTheme.colorScheme)
         .tint(selectedTheme.accent)
+        .task { loadDesktopPanelSources() }
+    }
+
+    private var desktopPanelColor: Binding<Color> {
+        Binding(
+            get: { PrecisDesignSystem.color(hex: desktopPanelBackground) ?? selectedTheme.background },
+            set: { desktopPanelBackground = PrecisDesignSystem.hexString(from: $0) }
+        )
+    }
+
+    private var selectedDesktopFeedIDs: Set<UUID>? {
+        guard desktopPanelSources != "*" else { return nil }
+        return DesktopPanelFeedSelection.selectedFeedIDs(
+            from: desktopPanelSources,
+            availableFeedIDs: Set(desktopPanelFeeds.map(\.id))
+        )
+    }
+
+    private func sourceToggle(_ title: String, feedIDs: [UUID]) -> some View {
+        let targetIDs = Set(feedIDs)
+        let allFeedIDs = Set(desktopPanelFeeds.map(\.id))
+        return HStack(spacing: PrecisSpacing.xs) {
+            Toggle("", isOn: Binding(
+                get: {
+                    guard !targetIDs.isEmpty else { return false }
+                    let selected = selectedDesktopFeedIDs ?? allFeedIDs
+                    return targetIDs.isSubset(of: selected)
+                },
+                set: { isSelected in
+                    var selected = selectedDesktopFeedIDs ?? allFeedIDs
+                    if isSelected {
+                        selected.formUnion(targetIDs)
+                    } else {
+                        selected.subtract(targetIDs)
+                    }
+                    desktopPanelSources = DesktopPanelFeedSelection.storedValue(
+                        for: selected,
+                        availableFeedIDs: allFeedIDs
+                    )
+                }
+            ))
+            .labelsHidden()
+            .toggleStyle(.checkbox)
+            .accessibilityLabel(title)
+            .disabled(targetIDs.isEmpty)
+
+            Text(title)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func loadDesktopPanelSources() {
+        do {
+            desktopPanelFeeds = try FeedRepository().fetchAll(context: modelContext).sorted { $0.title < $1.title }
+            desktopPanelCategories = try modelContext.fetch(FetchDescriptor<CategoryRecord>()).sorted { $0.name < $1.name }
+            desktopPanelFolders = try modelContext.fetch(FetchDescriptor<FolderRecord>()).sorted { $0.name < $1.name }
+        } catch {
+            desktopPanelFeeds = []
+            desktopPanelCategories = []
+            desktopPanelFolders = []
+        }
     }
 
     private func themePreview(_ theme: PrecisTheme) -> some View {
