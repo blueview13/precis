@@ -54,7 +54,6 @@ struct SettingsView: View {
     @AppStorage("notifyOnNewArticles") private var notifyOnNewArticles = false
     @AppStorage("desktopPanelEnabled") private var desktopPanelEnabled = false
     @AppStorage("desktopPanelEdge") private var desktopPanelEdge = "right"
-    @AppStorage("desktopPanelWidth") private var desktopPanelWidth = 320.0
     @AppStorage("desktopPanelBackground") private var desktopPanelBackground = "#FFBE24"
     @AppStorage("desktopPanelOpacity") private var desktopPanelOpacity = 0.35
     @AppStorage("desktopPanelSources") private var desktopPanelSources = "*"
@@ -162,16 +161,6 @@ struct SettingsView: View {
                                 Text("Right").tag("right")
                             }
                             .pickerStyle(.segmented)
-
-                            VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
-                                HStack {
-                                    Text("Panel width")
-                                    Spacer()
-                                    Text("\(Int(desktopPanelWidth)) pt")
-                                        .foregroundStyle(PrecisDesignSystem.marginalia)
-                                }
-                                Slider(value: $desktopPanelWidth, in: 240...480, step: 20)
-                            }
 
                             HStack {
                                 Text("Background")

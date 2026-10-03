@@ -58,9 +58,10 @@ struct MainWindowLayout: View {
     /// list never fires once focus lands on a child control (buttons,
     /// rows), which is why space appeared dead.
     @State private var spaceKeyMonitor: Any?
-    /// Auto-hidden menu bar handling: when the menu bar reveals over a
-    /// maximised/full-screen window it covers the top bar, so the content
-    /// slides down by the menu bar height while it's showing.
+    /// Auto-hidden top chrome handling: when the menu bar reveals over a
+    /// maximised/full-screen window it covers the top bar — and in full
+    /// screen the titlebar comes down with it — so the content slides down by
+    /// the revealed height while it's showing.
     @State private var hostingWindow: NSWindow?
     @State private var mouseMonitor: Any?
     @State private var globalMouseMonitor: Any?
@@ -298,7 +299,8 @@ struct MainWindowLayout: View {
             }
         )
         // When the auto-hidden menu bar reveals over this window, drop the
-        // content so the top bar sits below it instead of underneath it.
+        // content so the top bar sits below it (and below the full-screen
+        // titlebar it brings with it) instead of underneath it.
         .padding(.top, menuBarShift)
         .background(PrecisDesignSystem.background(for: colorScheme))
     }
@@ -370,10 +372,12 @@ struct MainWindowLayout: View {
         }
     }
 
-    /// Slides the window content down while the auto-hidden menu bar is
-    /// showing over a window that reaches the top of the screen (full
-    /// screen, or maximised with the menu bar set to hide), and back up
-    /// when the menu bar goes away.
+    /// Slides the window content down while the auto-hidden chrome is showing
+    /// over a window that reaches the top of the screen (full screen, or
+    /// maximised with the menu bar set to hide), and back up when it goes
+    /// away. Clearing the menu bar alone is not enough in full screen: the
+    /// window's titlebar — and the traffic-light buttons in it — comes down
+    /// with the bar, right on top of the top row of the sidebar and list.
     private func updateMenuBarShift() {
         guard let window = hostingWindow,
               let screen = window.screen ?? NSScreen.main else { return }
@@ -396,17 +400,14 @@ struct MainWindowLayout: View {
         // Keep the shift while the button is held so dragging a menu open
         // and down through the list doesn't yank the content mid-drag.
         let draggingThroughMenu = overlayHeight > 0 && menuBarShift > 0 && NSEvent.pressedMouseButtons != 0
-        let target: CGFloat = (overMenuBar || draggingThroughMenu)
-            ? overlayHeight + Self.menuBarClearance
-            : 0
+        let target = TopChromeReveal.contentShift(
+            isChromeRevealed: overMenuBar || draggingThroughMenu,
+            menuBarHeight: overlayHeight,
+            titlebarHeight: TopChromeReveal.revealedTitlebarHeight(for: window.styleMask)
+        )
         guard target != menuBarShift else { return }
         withAnimation(.easeOut(duration: 0.2)) { menuBarShift = target }
     }
-
-    /// Extra drop below the menu bar's own height so nothing clips against
-    /// its hover backdrop (the full-screen reveal sits deeper than the strip
-    /// `visibleFrame` reserves).
-    private static let menuBarClearance: CGFloat = 13
 
     /// Height the revealed menu bar actually occupies on this screen: the
     /// revealed bar is a top-edge window of the active app, so measure it

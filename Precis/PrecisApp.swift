@@ -148,10 +148,11 @@ final class DesktopFeedPanelController: NSObject {
             panel.hidesOnDeactivate = false
             panel.level = .floating
             panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
-            panel.contentView = NSHostingView(
+            panel.contentView = PanelHostingView(
                 rootView: DesktopFeedPanelView(
                     onOpenArticle: { [weak self] articleID in self?.onOpenArticle?(articleID) },
-                    onClose: { [weak self] in self?.hidePanel() }
+                    onClose: { [weak self] in self?.hidePanel() },
+                    onResize: { [weak self] width in self?.resizePanel(to: width) }
                 )
                 .modelContainer(modelContainer)
             )
@@ -163,15 +164,26 @@ final class DesktopFeedPanelController: NSObject {
     }
 
     private func positionPanel() {
-        guard let screen = NSScreen.main ?? NSScreen.screens.first else { return }
+        // Stay on the screen the panel is already on: the drag handle resizes
+        // it in place, and NSScreen.main follows the key window, which is the
+        // main reader — not this panel, which can never become key.
+        guard let screen = panel?.screen ?? NSScreen.main ?? NSScreen.screens.first else { return }
         panel?.setFrame(panelFrame(on: screen), display: true)
     }
 
+    /// Applies a width from the panel's drag handle. Stored so it survives
+    /// relaunch — the Settings slider that used to own this is gone — and
+    /// applied immediately so the window tracks the drag.
+    private func resizePanel(to width: CGFloat) {
+        let clampedWidth = DesktopPanelPlacement.width(fromStoredWidth: width)
+        UserDefaults.standard.set(Double(clampedWidth), forKey: "desktopPanelWidth")
+        positionPanel()
+    }
+
     private func panelFrame(on screen: NSScreen) -> NSRect {
-        let width = CGFloat(UserDefaults.standard.double(forKey: "desktopPanelWidth"))
-            .clamped(to: 240...480, defaultValue: 320)
+        let width = UserDefaults.standard.double(forKey: "desktopPanelWidth")
         let edge = UserDefaults.standard.string(forKey: "desktopPanelEdge") ?? "right"
-        return DesktopPanelPlacement.frame(in: screen.visibleFrame, edge: edge, width: width)
+        return DesktopPanelPlacement.frame(in: screen.visibleFrame, edge: edge, width: CGFloat(width))
     }
 
     private func hidePanel() {
@@ -199,11 +211,38 @@ enum DesktopPanelFeedSelection {
 }
 
 enum DesktopPanelPlacement {
+    /// Widths the panel can take — the drag handle and the stored value both
+    /// clamp here.
+    static let widthRange: ClosedRange<CGFloat> = 240...480
+    /// Width a fresh install opens at, and the fallback whenever the stored
+    /// value is missing (or zero, which is what a missing value reads as).
+    static let defaultWidth: CGFloat = 300
+
+    /// The stored width, clamped into range; zero means "never set".
+    static func width(fromStoredWidth storedWidth: CGFloat) -> CGFloat {
+        storedWidth.clamped(to: widthRange, defaultValue: defaultWidth)
+    }
+
+    /// Width while the inner edge is dragged. The edge facing the screen
+    /// interior grows the panel as it is pulled away from the docked edge.
+    static func width(fromStoredWidth storedWidth: CGFloat, draggingBy translation: CGFloat, edge: String) -> CGFloat {
+        let delta = edge == "left" ? translation : -translation
+        return width(fromStoredWidth: storedWidth + delta)
+    }
+
     static func frame(in visibleFrame: CGRect, edge: String, width: CGFloat) -> CGRect {
-        let panelWidth = width.clamped(to: 240...480, defaultValue: 320)
+        let panelWidth = Self.width(fromStoredWidth: width)
         let x = edge == "left" ? visibleFrame.minX : visibleFrame.maxX - panelWidth
         return CGRect(x: x, y: visibleFrame.minY, width: panelWidth, height: visibleFrame.height)
     }
+}
+
+/// The panel is borderless, so it can never become the key window. Without
+/// accepting the first mouse, a click that arrives while it is not frontmost
+/// is swallowed by the activation attempt — which is why the close button only
+/// sometimes fired on the first press.
+private final class PanelHostingView<Content: View>: NSHostingView<Content> {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 }
 
 @MainActor
@@ -327,12 +366,18 @@ private struct DesktopFeedPanelView: View {
     @Query(sort: \ArticleRecord.publishedDate, order: .reverse)
     private var articles: [ArticleRecord]
     @AppStorage("desktopPanelSources") private var selectedFeedIDs = "*"
-    @AppStorage("desktopPanelWidth") private var panelWidth = 320.0
+    @AppStorage("desktopPanelWidth") private var panelWidth = Double(DesktopPanelPlacement.defaultWidth)
+    @AppStorage("desktopPanelEdge") private var panelEdge = "right"
     @AppStorage("desktopPanelBackground") private var backgroundHex = "#FFBE24"
     @AppStorage("desktopPanelOpacity") private var backgroundOpacity = 0.35
 
     let onOpenArticle: (UUID) -> Void
     let onClose: () -> Void
+    let onResize: (CGFloat) -> Void
+
+    /// Width the drag started at, so each change is measured from the original
+    /// size instead of compounding against the width it just wrote.
+    @State private var resizeBaseWidth: CGFloat?
 
     private var visibleArticles: [ArticleRecord] {
         let availableFeedIDs = Set(articles.compactMap { $0.feed?.id })
@@ -366,10 +411,23 @@ private struct DesktopFeedPanelView: View {
                 Spacer(minLength: 0)
                 Button(action: onClose) {
                     Image(systemName: "xmark")
-                        .font(.system(size: 11, weight: .semibold))
-                        .frame(width: 24, height: 24)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(PrecisDesignSystem.background(for: .light))
+                        .frame(width: 26, height: 26)
+                        // Solid chip drawn at full opacity: the header sits on
+                        // `panelBackground.opacity(backgroundOpacity)`, so at low
+                        // opacity the desktop shows through and a bare glyph
+                        // loses its contrast. Ink-on-background is a fixed
+                        // high-contrast pair in every theme and ignores both the
+                        // panel colour and the transparency setting.
+                        .background {
+                            Circle()
+                                .fill(PrecisDesignSystem.foreground(for: .light))
+                        }
+                        .contentShape(Circle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Hide headlines")
                 .help("Hide headlines")
             }
             .padding(.horizontal, PrecisSpacing.md)
@@ -403,9 +461,47 @@ private struct DesktopFeedPanelView: View {
                 .padding(.horizontal, PrecisSpacing.md)
             }
         }
-        .frame(width: CGFloat(panelWidth).clamped(to: 240...480, defaultValue: 320))
+        .frame(width: DesktopPanelPlacement.width(fromStoredWidth: CGFloat(panelWidth)))
         .background(panelBackground.opacity(backgroundOpacity))
+        // The inner edge (the vertical side facing the screen) resizes the
+        // panel by drag; the docked edge stays put.
+        .overlay(alignment: panelEdge == "left" ? .trailing : .leading) {
+            resizeHandle
+        }
         .environment(\.colorScheme, PrecisTheme.current.colorScheme)
+    }
+
+    private var resizeHandle: some View {
+        Rectangle()
+            .fill(Color.clear)
+            .frame(width: 10)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 1)
+                    .onChanged { value in
+                        let base = resizeBaseWidth
+                            ?? DesktopPanelPlacement.width(fromStoredWidth: CGFloat(panelWidth))
+                        if resizeBaseWidth == nil {
+                            resizeBaseWidth = base
+                        }
+                        onResize(
+                            DesktopPanelPlacement.width(
+                                fromStoredWidth: base,
+                                draggingBy: value.translation.width,
+                                edge: panelEdge
+                            )
+                        )
+                    }
+                    .onEnded { _ in resizeBaseWidth = nil }
+            )
+            .onHover { inside in
+                if inside {
+                    NSCursor.resizeLeftRight.push()
+                } else {
+                    NSCursor.pop()
+                }
+            }
+            .help("Drag to resize")
     }
 
     private func articleRow(_ article: ArticleRecord) -> some View {
