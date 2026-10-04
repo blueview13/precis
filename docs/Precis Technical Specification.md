@@ -21,7 +21,7 @@ Since CMRSS is a Mac **+ iOS/iPadOS** app with iCloud sync across all three, and
 ## 2. Functional Requirements
 
 ### 2.1 Feed Management
-- Add feeds by URL, or by pasting a website URL (auto-discover `<link rel="alternate">` feed).
+- Add feeds by URL, or by pasting a website URL (auto-discover `<link rel="alternate">` feed). The Add Feed sheet opens pre-filled when the clipboard holds a URL — read through the pasteboard detection API, so macOS raises no paste prompt and a URL typed by hand is never overwritten.
 - **Non-RSS source auto-discovery (matches CMRSS):** paste a YouTube channel URL or a subreddit URL and have the app resolve it to the underlying feed automatically (YouTube channels and most subreddits expose native RSS/Atom endpoints; detect and convert on paste rather than requiring the user to know the feed URL format).
 - **Optional RSS.app integration:** for sites/social pages with no native feed, offer an opt-in integration with the RSS.app API (or an equivalent feed-generation service) to synthesize a feed from an arbitrary URL. Keep this behind a toggle since it's a paid third-party dependency, not a core requirement.
 - OPML import and export.
@@ -160,7 +160,7 @@ Before implementation, produce a short design plan (palette, type, layout, and t
 - `Story` (v2, clustering): id, memberArticleIds[], synthesizedSummary, topic
 
 ### 5.3 Key Flows
-1. **Add feed:** URL entered → discover/validate → parse initial articles → insert `Feed` + `Article` rows → background summarization queue picks up new articles.
+1. **Add feed:** URL entered (offered from the clipboard when one holds a URL) → discover/validate → parse initial articles → insert `Feed` + `Article` rows → background summarization queue picks up new articles.
 2. **Open article:** load `extractedContent` → if no `Summary` exists, trigger on-device summarization → render reading pane with the marginalia annotation appearing beside the full text (section 4.1).
 3. **Background refresh:** on interval or system wake → fetch all active feeds → diff new articles → queue summarization for new items only (avoid re-summarizing).
 4. **Cloud fallback:** if `FoundationModels` reports the model unavailable, `SummarizationProvider` routes to the configured cloud provider (only if the user has opted in and supplied an API key).

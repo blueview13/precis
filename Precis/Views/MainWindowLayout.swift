@@ -17,6 +17,9 @@ struct MainWindowLayout: View {
     @AppStorage("threeColumnReadingLayout") private var isColumnLayout = false
     @State private var selectedSidebarItem = "Unread"
     @State private var feedURLInput = ""
+    /// Last URL the Add Feed sheet took off the pasteboard, so a fresher copy
+    /// can replace it without ever overwriting a URL the person typed.
+    @State private var pasteboardFilledFeedURL: String?
     @State private var isImporting = false
     @State private var isRefreshing = false
     @State private var isRefreshingAll = false
@@ -1632,6 +1635,7 @@ struct MainWindowLayout: View {
         .sheet(isPresented: $showAddFeedSheet) {
             AddFeedSheet(
                 feedURLInput: $feedURLInput,
+                pasteboardFilledFeedURL: $pasteboardFilledFeedURL,
                 isImporting: $isImporting,
                 importStatus: $importStatus,
                 importStatusKind: $importStatusKind,
@@ -1702,6 +1706,9 @@ struct MainWindowLayout: View {
 
 private struct AddFeedSheet: View {
     @Binding var feedURLInput: String
+    /// Tracks the URL this sheet took off the pasteboard, so a newer copy may
+    /// replace it while a typed URL is left alone.
+    @Binding var pasteboardFilledFeedURL: String?
     @Binding var isImporting: Bool
     @Binding var importStatus: String
     @Binding var importStatusKind: ImportStatusKind
@@ -1810,6 +1817,7 @@ private struct AddFeedSheet: View {
             importStatus = ""
             importStatusKind = .neutral
             didImport = false
+            prefillFromPasteboard()
         }
         .onChange(of: importStatusKind) { _, kind in
             if kind == .success {
@@ -1817,6 +1825,25 @@ private struct AddFeedSheet: View {
                 // Ready the field for the next feed URL.
                 isURLEntryFocused = true
             }
+        }
+    }
+
+    /// Opens with whatever URL was just copied — the usual way in is copying a
+    /// feed link in a browser and asking Precis to add it.
+    private func prefillFromPasteboard() {
+        Task {
+            guard let copiedURL = await PasteboardFeedSuggestion.copiedURL() else { return }
+            // Don't re-offer the URL already sitting in the field, and never
+            // replace something that was typed rather than pre-filled.
+            let isFieldEmpty = feedURLInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            guard copiedURL != pasteboardFilledFeedURL,
+                  isFieldEmpty || feedURLInput == pasteboardFilledFeedURL
+            else { return }
+
+            feedURLInput = copiedURL
+            pasteboardFilledFeedURL = copiedURL
+            // Return adds the feed straight away.
+            isURLEntryFocused = true
         }
     }
 }
