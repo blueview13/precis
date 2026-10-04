@@ -8,6 +8,9 @@ struct MainWindowLayout: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject private var viewModel: ArticleListViewModel
     @AppStorage("notifyOnNewArticles") private var notifyOnNewArticles = false
+    /// Hides the unread-count pills in the sidebar (feeds and Library items)
+    /// when off.
+    @AppStorage("showSidebarUnreadPills") private var showSidebarUnreadPills: Bool = true
     @State private var selectedSidebarItem = "Unread"
     @State private var feedURLInput = ""
     @State private var isImporting = false
@@ -66,7 +69,18 @@ struct MainWindowLayout: View {
     @State private var mouseMonitor: Any?
     @State private var globalMouseMonitor: Any?
     @State private var menuBarShift: CGFloat = 0
+    /// True between `presentSettings` un-minimizing the reader and that
+    /// window reporting the restore finished.
+    @State private var wasRestoringReader = false
     @Environment(\.openWindow) private var openWindow
+
+    /// A sidebar count pill's value — zero when the reader has switched
+    /// sidebar counts off, which is how the pills hide. Covers both the feed
+    /// rows and the All Items / Unread / Starred rows.
+    private func sidebarCount(_ count: Int) -> Int {
+        showSidebarUnreadPills ? count : 0
+    }
+
     private var selectedSummaryText: String? {
         guard let selectedItem = viewModel.selectedItem else { return nil }
         return viewModel.summaryText(for: selectedItem, context: modelContext)
@@ -247,7 +261,7 @@ struct MainWindowLayout: View {
             stopMenuBarMonitor()
         }
         .onReceive(NotificationCenter.default.publisher(for: .precisOpenSettings)) { _ in
-            openWindow(id: "settings")
+            presentSettings()
         }
         .onReceive(NotificationCenter.default.publisher(for: .precisArticleRead)) { notification in
             guard let articleID = notification.object as? UUID else { return }
@@ -265,6 +279,16 @@ struct MainWindowLayout: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)) { _ in
             updateMenuBarShift()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didDeminiaturizeNotification)) { notification in
+            // Only for the reader we restored on Settings' behalf. A reader
+            // un-minimized by hand is what the reader asked for, so Settings
+            // is left where it is.
+            guard wasRestoringReader,
+                  let window = notification.object as? NSWindow,
+                  window === readerWindow else { return }
+            wasRestoringReader = false
+            raiseSettingsWindow()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didEnterFullScreenNotification)) { _ in
             updateMenuBarShift()
@@ -285,6 +309,48 @@ struct MainWindowLayout: View {
         // titlebar it brings with it) instead of underneath it.
         .padding(.top, menuBarShift)
         .background(PrecisDesignSystem.background(for: colorScheme))
+    }
+
+    // MARK: - Settings window
+
+    /// The reader window, even before `WindowCaptureView` has reported it.
+    private var readerWindow: NSWindow? {
+        hostingWindow ?? NSApp.windows.first { $0.identifier?.rawValue == "PrecisMainWindow" }
+    }
+
+    /// The Settings scene's window — SwiftUI names it after the scene id.
+    private var settingsWindow: NSWindow? {
+        NSApp.windows.first { $0.identifier?.rawValue == "settings" }
+    }
+
+    /// Opens Settings with the reader restored behind it.
+    ///
+    /// Opening Settings from a minimized reader used to leave the settings
+    /// pane floating on its own over the desktop — the main window stayed in
+    /// the Dock — so the reader is brought back first. Un-minimizing hands the
+    /// front back to the reader once its animation finishes, so the
+    /// `didDeminiaturize` handler raises Settings again at that point.
+    private func presentSettings() {
+        if NSApp.isHidden {
+            NSApp.unhide(nil)
+        }
+        NSApp.activate()
+
+        if let window = readerWindow, window.isMiniaturized {
+            wasRestoringReader = true
+            window.deminiaturize(nil)
+        }
+
+        openWindow(id: "settings")
+        raiseSettingsWindow()
+        // The first `openWindow` creates the window a beat later — retry once
+        // there is something to raise.
+        DispatchQueue.main.async { raiseSettingsWindow() }
+    }
+
+    /// Orders the settings window above the (just restored) reader.
+    private func raiseSettingsWindow() {
+        settingsWindow?.makeKeyAndOrderFront(nil)
     }
 
     // MARK: - Spacebar "next article"
@@ -900,7 +966,7 @@ struct MainWindowLayout: View {
                 .buttonStyle(.plain)
             }
 
-            let feedUnread = viewModel.unreadCount(forFeed: feed.id)
+            let feedUnread = sidebarCount(viewModel.unreadCount(forFeed: feed.id))
             if feedUnread > 0 {
                 Text("\(feedUnread)")
                     .font(PrecisTypography.caption)
@@ -1255,7 +1321,7 @@ struct MainWindowLayout: View {
     private var sidebarView: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Button(action: { openWindow(id: "settings") }) {
+                Button(action: { presentSettings() }) {
                     Image(systemName: "gearshape.fill")
                         .font(.title3)
                         .foregroundStyle(PrecisDesignSystem.marginalia)
@@ -1320,15 +1386,15 @@ struct MainWindowLayout: View {
             VStack(alignment: .leading, spacing: 9) {
                 // Library section
                 SidebarSection(title: "Library")
-                SidebarItem(title: "All Items", icon: "tray.full", badge: viewModel.totalUnreadCount, active: selectedSidebarItem == "All Items") {
+                SidebarItem(title: "All Items", icon: "tray.full", badge: sidebarCount(viewModel.totalUnreadCount), active: selectedSidebarItem == "All Items") {
                     selectedSidebarItem = "All Items"
                     viewModel.selectedSidebarFilter = .all
                 }
-                SidebarItem(title: "Unread", icon: "envelope.badge", badge: viewModel.totalUnreadCount, active: selectedSidebarItem == "Unread") {
+                SidebarItem(title: "Unread", icon: "envelope.badge", badge: sidebarCount(viewModel.totalUnreadCount), active: selectedSidebarItem == "Unread") {
                     selectedSidebarItem = "Unread"
                     viewModel.selectedSidebarFilter = .unread
                 }
-                SidebarItem(title: "Starred", icon: "star", badge: viewModel.totalStarredCount, active: selectedSidebarItem == "Starred") {
+                SidebarItem(title: "Starred", icon: "star", badge: sidebarCount(viewModel.totalStarredCount), active: selectedSidebarItem == "Starred") {
                     selectedSidebarItem = "Starred"
                     viewModel.selectedSidebarFilter = .starred
                 }

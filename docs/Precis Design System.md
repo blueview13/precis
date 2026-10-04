@@ -27,7 +27,7 @@ Dark mode uses a deliberate counterpart palette instead of a naive inversion, wi
 
 ## Layout rules
 
-- Keep the reading pane centered and narrow enough for comfortable article flow.
+- Keep the reading pane centered and narrow enough for comfortable article flow. Content sits in one fixed-width column (reader-adjustable, 500–1200px) that images share with the text.
 - Reserve a side column for marginalia summaries so the content remains the primary reading focus.
 - Use understated surfaces and clear spacing to keep the interface calm and typography-led.
 - Treat summary annotation as the visual accent, not the app chrome.

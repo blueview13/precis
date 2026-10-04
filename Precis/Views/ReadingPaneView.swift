@@ -25,6 +25,8 @@ struct ReadingPaneView: View {
     let canSelectPrevious: Bool
     let canSelectNext: Bool
     @AppStorage("readingFontSize") private var readingFontSize: Double = 15
+    /// Width of the centred article column, in points — set from Settings.
+    @AppStorage("readingContentWidth") private var readingContentWidth: Double = 750
     @AppStorage("showReadingTime") private var showReadingTime: Bool = true
     @AppStorage("showArticleImages") private var showArticleImages: Bool = true
     @Environment(\.colorScheme) private var colorScheme
@@ -95,7 +97,13 @@ struct ReadingPaneView: View {
                 .replacingOccurrences(of: "&", with: "&amp;")
                 .replacingOccurrences(of: "<", with: "&lt;")
                 .replacingOccurrences(of: ">", with: "&gt;")
-            return Self.document(body: "<p>\(message)</p>", fontSize: readingFontSize, scheme: colorScheme, showImages: showArticleImages)
+            return Self.document(
+                body: "<p>\(message)</p>",
+                fontSize: readingFontSize,
+                scheme: colorScheme,
+                showImages: showArticleImages,
+                contentWidth: readingContentWidth
+            )
         }
 
         let cacheKey = "\(item.id.uuidString)|\(item.rawArticleHTML.hashValue)"
@@ -136,7 +144,13 @@ struct ReadingPaneView: View {
             Self.bodyCacheLock.unlock()
         }
 
-        return Self.document(body: bodyHTML, fontSize: readingFontSize, scheme: colorScheme, showImages: showArticleImages)
+        return Self.document(
+            body: bodyHTML,
+            fontSize: readingFontSize,
+            scheme: colorScheme,
+            showImages: showArticleImages,
+            contentWidth: readingContentWidth
+        )
     }
 
     var body: some View {
@@ -370,6 +384,11 @@ struct ReadingPaneView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
+            // Centred reading measure: the header, article and its images all
+            // share one fixed-width column (set in Settings) instead of
+            // stretching across the whole pane.
+            .frame(maxWidth: readingContentWidth, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .center)
             .padding(PrecisSpacing.xl)
         }
         .onChange(of: item?.id) { _, _ in
@@ -544,11 +563,18 @@ struct ReadingPaneView: View {
     /// `showImages` is false, embedded media is hidden so the pane shows
     /// text only.
     ///
-    /// The body fills the reading pane's width so the pane header (title,
-    /// metadata — laid out in SwiftUI at the pane's leading edge) lines up
-    /// with the article text below it. Images render full-column with text
-    /// flowing between them — no float layout.
-    static func document(body: String, fontSize: Double, scheme: ColorScheme, showImages: Bool = true) -> String {
+    /// The article sits in a centred column `contentWidth` points wide — the
+    /// same width as the SwiftUI header above it — so the pane reads as one
+    /// centralised block rather than edge-to-edge text. Images are block-level
+    /// and capped at the column width, so a wide picture is exactly as wide as
+    /// the text around it. Text flows between images — no float layout.
+    static func document(
+        body: String,
+        fontSize: Double,
+        scheme: ColorScheme,
+        showImages: Bool = true,
+        contentWidth: Double = 750
+    ) -> String {
         let foreground = css(PrecisDesignSystem.foreground(for: scheme))
         let background = css(PrecisDesignSystem.background(for: scheme))
         let muted = css(PrecisDesignSystem.foreground(for: scheme), opacity: 0.62)
@@ -566,7 +592,6 @@ struct ReadingPaneView: View {
         <style>
         html, body { margin: 0; padding: 0; background: \(background); }
         body {
-            padding: 0 2px 8px;
             color: \(foreground);
             background: \(background);
             font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
@@ -574,6 +599,13 @@ struct ReadingPaneView: View {
             line-height: 1.65;
             word-wrap: break-word;
             overflow-wrap: break-word;
+        }
+        /* Centred reading measure — images and text share this width. */
+        .precis-column {
+            max-width: \(Int(contentWidth))px;
+            margin: 0 auto;
+            padding: 0 2px 8px;
+            box-sizing: border-box;
         }
         p { margin: 0 0 1.05em; }
         a { color: \(accent); text-decoration: none; }
@@ -609,7 +641,7 @@ struct ReadingPaneView: View {
         del { color: \(muted); }
         </style>
         </head>
-        <body>\(body)</body>
+        <body><div class="precis-column">\(body)</div></body>
         </html>
         """
     }

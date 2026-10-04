@@ -91,6 +91,8 @@ private struct WindowWillCloseObserver: NSViewRepresentable {
 struct SettingsView: View {
     @AppStorage(PrecisTheme.storageKey) private var selectedThemeRawValue = PrecisTheme.standard.rawValue
     @AppStorage("readingFontSize") private var readingFontSize: Double = 15
+    @AppStorage("readingContentWidth") private var readingContentWidth: Double = 750
+    @AppStorage("showSidebarUnreadPills") private var showSidebarUnreadPills: Bool = true
     @AppStorage("summaryAutoGenerate") private var summaryAutoGenerate: Bool = false
     @AppStorage("refreshIntervalMinutes") private var refreshIntervalMinutes: Int = 15
     @AppStorage("defaultSortOrder") private var defaultSortOrder: String = "newest"
@@ -211,6 +213,17 @@ struct SettingsView: View {
                             }
                             Slider(value: $readingFontSize, in: 12...24, step: 1)
 
+                            HStack {
+                                Text("Reading pane content width")
+                                    .font(PrecisTypography.body)
+                                    .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
+                                Spacer()
+                                Text("\(Int(readingContentWidth))px")
+                                    .font(PrecisTypography.metadata)
+                                    .foregroundStyle(PrecisDesignSystem.marginalia)
+                            }
+                            Slider(value: $readingContentWidth, in: 500...1200, step: 50)
+
                             Toggle("Show reading time estimates", isOn: $showReadingTime)
                                 .font(PrecisTypography.body)
                                 .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
@@ -238,6 +251,12 @@ struct SettingsView: View {
                             }
                             .pickerStyle(.segmented)
                         }
+                    }
+
+                    settingsSection(title: "Sidebar") {
+                        Toggle("Show unread count on feeds", isOn: $showSidebarUnreadPills)
+                            .font(PrecisTypography.body)
+                            .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
                     }
 
                     settingsSection(title: "AI Summaries") {
