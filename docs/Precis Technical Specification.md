@@ -33,6 +33,8 @@ Since CMRSS is a Mac **+ iOS/iPadOS** app with iCloud sync across all three, and
 
 ### 2.2 Article List & Reading
 - Three-pane layout: sidebar (feeds/folders) → article list → reading pane, with a compact two-pane mode. (See section 4 for the distinctive treatment of this layout — it should not read as a default Mail.app clone.)
+- The reading pane renders a sanitized, chrome-free view of feed content: source-site metadata (category labels, timestamps, bylines, read-time estimates, hashtags, locations, share links) and headlines repeating the pane's own title are stripped before rendering, leaving headline, date, and body only. Nodes containing article media (`img`, `figure`, `video`, …) are never classified as chrome, so a lead image whose caption reads like metadata survives the strip. Sanitization runs at render time with a retention guard — stored feed HTML is never rewritten.
+- When "show article images" is enabled, the pane renders images full-column with the text flowing between them: images are block-level at the text column's width (never floated or auto-centered), the body fills the reading pane's width so the SwiftUI header above stays aligned with the article text, and figures keep their captions (below a 520px pane width behaviour is unchanged — images already stack full-column).
 - List view density options (compact / cards with image preview).
 - Mark read/unread, star/favorite, read-later queue.
 - Full-text extraction (Readability-style) for feeds that publish only excerpts.

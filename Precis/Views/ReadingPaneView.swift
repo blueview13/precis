@@ -109,14 +109,22 @@ struct ReadingPaneView: View {
         } else {
             if item.contentHTML.isEmpty {
                 // Only plain text is known (fetch failed / no link yet) —
-                // render it as paragraphs instead of dumping raw text.
-                bodyHTML = Self.plainTextParagraphs(from: item.rawArticleHTML)
-            } else if let base = item.link.flatMap(URL.init(string:)) {
-                // Feed HTML can carry relative image paths — resolve them so
-                // pictures render inside the app.
-                bodyHTML = ArticleContentLoader.resolveURLs(in: item.rawArticleHTML, base: base)
+                // render it as paragraphs instead of dumping raw text, and
+                // drop leading metadata lines the same way the HTML path does.
+                bodyHTML = Self.plainTextParagraphs(
+                    from: ArticleHTMLSanitizer.sanitizePlainText(item.rawArticleHTML, title: item.title)
+                )
             } else {
-                bodyHTML = item.rawArticleHTML
+                // Feed HTML can carry relative image paths — resolve them so
+                // pictures render inside the app — and source-site chrome
+                // (category/date/byline/share rows, duplicated headline) so
+                // the pane shows headline + body only.
+                let sanitized = ArticleHTMLSanitizer.sanitize(item.rawArticleHTML, title: item.title)
+                if let base = item.link.flatMap(URL.init(string:)) {
+                    bodyHTML = ArticleContentLoader.resolveURLs(in: sanitized, base: base)
+                } else {
+                    bodyHTML = sanitized
+                }
             }
 
             Self.bodyCacheLock.lock()
@@ -535,7 +543,12 @@ struct ReadingPaneView: View {
     /// design system's colors and the user's reading font size. When
     /// `showImages` is false, embedded media is hidden so the pane shows
     /// text only.
-    private static func document(body: String, fontSize: Double, scheme: ColorScheme, showImages: Bool = true) -> String {
+    ///
+    /// The body fills the reading pane's width so the pane header (title,
+    /// metadata — laid out in SwiftUI at the pane's leading edge) lines up
+    /// with the article text below it. Images render full-column with text
+    /// flowing between them — no float layout.
+    static func document(body: String, fontSize: Double, scheme: ColorScheme, showImages: Bool = true) -> String {
         let foreground = css(PrecisDesignSystem.foreground(for: scheme))
         let background = css(PrecisDesignSystem.background(for: scheme))
         let muted = css(PrecisDesignSystem.foreground(for: scheme), opacity: 0.62)
@@ -573,7 +586,8 @@ struct ReadingPaneView: View {
         .sharing-buttons, .sharedaddy, .sd-sharing, .addtoany_share_save_container,
         .heateor_sss_sharing_container, .wp-block-social-links, .related-posts,
         .related-articles, .newsletter, .newsletter-signup { display: none !important; }
-        img, video { \(showImages ? "display: block; max-width: 100%; height: auto; margin: 1.2em auto; border-radius: 8px;" : "display: none !important;") }
+        img, video { \(showImages ? "display: block; max-width: 100%; height: auto; margin: 1.2em 0; border-radius: 8px;" : "display: none !important;") }
+        figure img, figure video { margin: 0; }
         figure { \(showImages ? "margin: 1.2em 0;" : "display: none !important;") }
         picture, iframe, embed, object { \(showImages ? "" : "display: none !important;") }
         figcaption { margin-top: .5em; font-size: .85em; color: \(muted); text-align: center; }
