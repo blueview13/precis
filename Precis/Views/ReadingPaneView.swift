@@ -24,6 +24,11 @@ struct ReadingPaneView: View {
     /// matching chevron greys out when it doesn't.
     let canSelectPrevious: Bool
     let canSelectNext: Bool
+    /// True while a divider drag is resizing the window. Comes from the
+    /// environment (set by the split layout) rather than a parameter, so a drag
+    /// doesn't have to re-render `MainWindowLayout` to tell the pane about it.
+    /// The article's height updates are held back while it is set.
+    @Environment(\.layoutIsResizing) private var isResizing
     @AppStorage("readingFontSize") private var readingFontSize: Double = 15
     /// Width of the centred article column, in points — set from Settings.
     @AppStorage("readingContentWidth") private var readingContentWidth: Double = 750
@@ -33,6 +38,14 @@ struct ReadingPaneView: View {
     /// Content height reported by the article web view — it grows as the
     /// document (and its images) finish measuring inside this scroll view.
     @State private var articleHeight: CGFloat = 320
+    /// The reading column's width at rest, refreshed whenever the pane is not
+    /// being dragged. Used to pin the column while a divider drag is in flight.
+    @State private var restingColumnWidth: CGFloat = 0
+    /// Non-nil while a divider drag is in flight: the column is pinned to this
+    /// width (min == max) so the article's `WKWebView` doesn't reflow on every
+    /// frame of the resize — that async reflow is what made the text lag and
+    /// judder. Cleared on release, which lets the column flex and wrap again.
+    @State private var frozenColumnWidth: CGFloat?
     @State private var isDigestExpanded = true
     /// Cycling dot count (1-4) appended to "Building Today's Precis" while
     /// the digest generates — reset and driven by the pane's `.task` below.
@@ -74,10 +87,14 @@ struct ReadingPaneView: View {
         return item.articleBody.isEmpty ? "No article content is available yet." : item.articleBody
     }
 
-    private var precisIcon: NSImage? {
+    /// Loaded once from the bundle. As a computed property this decoded the
+    /// PNG from disk on every pane render — it showed up in a resize profile.
+    private static let cachedPrecisIcon: NSImage? = {
         guard let url = Bundle.main.url(forResource: "gen_icon_transparent", withExtension: "png") else { return nil }
         return NSImage(contentsOf: url)
-    }
+    }()
+
+    private var precisIcon: NSImage? { Self.cachedPrecisIcon }
 
     /// The full HTML document handed to the reading-pane web view: the
     /// article fragment (feed HTML or the page fetched from the link) with
@@ -88,6 +105,11 @@ struct ReadingPaneView: View {
     /// pane re-renders only pay for the (cheap) template rebuild.
     private static var bodyCache: [String: String] = [:]
     private static var bodyCacheOrder: [String] = []
+    /// Fully built documents (template + body) so a re-render that doesn't
+    /// change the article or its typography is a dictionary lookup instead of
+    /// re-interpolating the whole HTML template.
+    private static var documentCache: [String: String] = [:]
+    private static var documentCacheOrder: [String] = []
     private static let bodyCacheLock = NSLock()
     private static let bodyCacheLimit = 8
 
@@ -144,13 +166,30 @@ struct ReadingPaneView: View {
             Self.bodyCacheLock.unlock()
         }
 
-        return Self.document(
+        let documentKey = "\(cacheKey)|\(readingFontSize)|\(colorScheme == .dark)|\(showArticleImages)|\(readingContentWidth)"
+        Self.bodyCacheLock.lock()
+        if let cachedDocument = Self.documentCache[documentKey] {
+            Self.bodyCacheLock.unlock()
+            return cachedDocument
+        }
+        Self.bodyCacheLock.unlock()
+
+        let document = Self.document(
             body: bodyHTML,
             fontSize: readingFontSize,
             scheme: colorScheme,
             showImages: showArticleImages,
             contentWidth: readingContentWidth
         )
+
+        Self.bodyCacheLock.lock()
+        Self.documentCache[documentKey] = document
+        Self.documentCacheOrder.append(documentKey)
+        if Self.documentCacheOrder.count > Self.bodyCacheLimit {
+            Self.documentCache[Self.documentCacheOrder.removeFirst()] = nil
+        }
+        Self.bodyCacheLock.unlock()
+        return document
     }
 
     var body: some View {
@@ -296,9 +335,9 @@ struct ReadingPaneView: View {
 
                 HStack(alignment: .top) {
                     Text(item?.title ?? emptyMessage ?? "Select an article")
-                        // Same typeface as the article-list titles in the
-                        // window's top section.
-                        .font(PrecisTypography.headline)
+                        // A touch larger than the article-list headlines so the
+                        // open article reads as the focus of the pane.
+                        .font(.system(size: 22, weight: .semibold))
                         .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
                         .padding(.bottom, PrecisSpacing.sm)
 
@@ -378,6 +417,7 @@ struct ReadingPaneView: View {
                     ArticleHTMLView(
                         document: articleDocument,
                         baseURL: item?.link.flatMap(URL.init(string:)),
+                        isResizing: isResizing,
                         onHeightChange: { articleHeight = $0 }
                     )
                     .frame(height: max(articleHeight, 1))
@@ -385,11 +425,35 @@ struct ReadingPaneView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             // Centred reading measure: the header, article and its images all
-            // share one fixed-width column (set in Settings) instead of
-            // stretching across the whole pane.
-            .frame(maxWidth: readingContentWidth, alignment: .leading)
+            // share one column capped at the reading width (set in Settings).
+            // While a divider drag is in flight the cap drops to the width the
+            // column already had, so its web view doesn't reflow mid-drag; the
+            // cap can never exceed the pane, so text wraps rather than being
+            // cut off. At rest this is the plain reading-width cap.
+            .frame(
+                maxWidth: frozenColumnWidth ?? CGFloat(readingContentWidth),
+                alignment: .leading
+            )
+            .onGeometryChange(for: CGFloat.self) { proxy in
+                proxy.size.width
+            } action: { width in
+                if frozenColumnWidth == nil, width > 1 {
+                    restingColumnWidth = width
+                }
+            }
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(PrecisSpacing.xl)
+        }
+        .onChange(of: isResizing) { _, resizing in
+            if resizing {
+                // Hold the width the column actually has right now (capped at
+                // the reading measure) so nothing reflows mid-drag.
+                frozenColumnWidth = restingColumnWidth > 1
+                    ? min(restingColumnWidth, CGFloat(readingContentWidth))
+                    : nil
+            } else {
+                frozenColumnWidth = nil
+            }
         }
         .onChange(of: item?.id) { _, _ in
             // A new article starts at the top with a fresh height — the old
@@ -727,11 +791,21 @@ private final class ArticlePaneWebView: WKWebView {
 struct ArticleHTMLView: NSViewRepresentable {
     let document: String
     let baseURL: URL?
+    /// True while a divider drag is resizing the pane. Height reports are held
+    /// back for the duration so the resize isn't fought by a relayout of the
+    /// whole reading pane on every frame.
+    var isResizing: Bool = false
     let onHeightChange: (CGFloat) -> Void
 
-    init(document: String, baseURL: URL? = nil, onHeightChange: @escaping (CGFloat) -> Void) {
+    init(
+        document: String,
+        baseURL: URL? = nil,
+        isResizing: Bool = false,
+        onHeightChange: @escaping (CGFloat) -> Void
+    ) {
         self.document = document
         self.baseURL = baseURL
+        self.isResizing = isResizing
         self.onHeightChange = onHeightChange
     }
 
@@ -754,15 +828,19 @@ struct ArticleHTMLView: NSViewRepresentable {
         webView.navigationDelegate = context.coordinator
         context.coordinator.lastDocument = document
         context.coordinator.lastBaseURL = baseURL
+        context.coordinator.lastReportedHeight = 0
+        context.coordinator.isResizing = isResizing
         context.coordinator.currentNavigation = webView.loadHTMLString(document, baseURL: baseURL)
         return webView
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
         context.coordinator.onHeightChange = onHeightChange
+        context.coordinator.setResizing(isResizing, in: webView)
         guard context.coordinator.lastDocument != document else { return }
         context.coordinator.lastDocument = document
         context.coordinator.lastBaseURL = baseURL
+        context.coordinator.lastReportedHeight = 0
         context.coordinator.currentNavigation = webView.loadHTMLString(document, baseURL: baseURL)
     }
 
@@ -802,6 +880,13 @@ struct ArticleHTMLView: NSViewRepresentable {
         /// every successful load.
         var loadAttempts = 0
         var onHeightChange: (CGFloat) -> Void
+        /// Last height already pushed into the SwiftUI frame — see
+        /// `reportHeight(_:)` for why fractional re-reports are dropped.
+        var lastReportedHeight: CGFloat = 0
+        /// True while a divider drag is in flight — see `reportHeight(_:)`.
+        var isResizing = false
+        /// Height reported during a resize, applied once the drag ends.
+        var pendingHeight: CGFloat?
 
         init(onHeightChange: @escaping (CGFloat) -> Void) {
             self.onHeightChange = onHeightChange
@@ -809,7 +894,44 @@ struct ArticleHTMLView: NSViewRepresentable {
 
         func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
             guard message.name == "precisArticleHeight", let height = message.body as? Double else { return }
-            onHeightChange(CGFloat(height))
+            reportHeight(CGFloat(height))
+        }
+
+        /// Forwards the article height, ignoring sub-pixel churn. A WebKit
+        /// reflow reports heights that differ by a fraction, and feeding each
+        /// one straight back into the SwiftUI frame made the pane resize
+        /// itself in a loop. While a divider drag is in flight the reports are
+        /// held back entirely — applying them re-laid out the whole reading
+        /// pane every frame and fought the resize.
+        private func reportHeight(_ height: CGFloat) {
+            let rounded = max(1, height.rounded(.up))
+            if isResizing {
+                pendingHeight = rounded
+                return
+            }
+            guard abs(rounded - lastReportedHeight) >= 1 else { return }
+            lastReportedHeight = rounded
+            onHeightChange(rounded)
+        }
+
+        /// Applies the height held back during a resize, then re-measures so
+        /// the pane settles on the article's true content height.
+        func setResizing(_ resizing: Bool, in webView: WKWebView) {
+            guard isResizing != resizing else { return }
+            isResizing = resizing
+            guard !resizing else { return }
+            if let pending = pendingHeight {
+                pendingHeight = nil
+                if abs(pending - lastReportedHeight) >= 1 {
+                    lastReportedHeight = pending
+                    onHeightChange(pending)
+                }
+            }
+            webView.evaluateJavaScript("Math.ceil(document.body.scrollHeight)") { [weak self] result, _ in
+                if let height = result as? Double {
+                    self?.reportHeight(CGFloat(height))
+                }
+            }
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
@@ -819,7 +941,7 @@ struct ArticleHTMLView: NSViewRepresentable {
             // after the document settles.
             webView.evaluateJavaScript("Math.ceil(document.body.scrollHeight)") { [weak self] result, _ in
                 if let height = result as? Double {
-                    self?.onHeightChange(CGFloat(height))
+                    self?.reportHeight(CGFloat(height))
                 }
             }
         }

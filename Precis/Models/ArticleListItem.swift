@@ -83,7 +83,85 @@ public struct ArticleListItem: Identifiable, Hashable {
         self.contentHTML = record.contentHTMLText ?? ""
         // Reuse the persisted plain-text render when available — recomputing
         // it for every article on every load pegged the main thread at scale.
-        self.normalizedBody = record.normalizedText ?? Self.normalizeArticleText(rawSnippet)
+        // Whatever the source, the result is entity-decoded and has any
+        // leading source-site chrome (category tags, duplicated headline,
+        // byline | date, "N Comments", read time) cut off, so the list's
+        // lead-in starts at the article text itself.
+        let html = record.contentHTMLText ?? record.extractedContentText ?? record.rawContentText ?? ""
+        if let stored = record.normalizedText, !stored.isEmpty {
+            self.normalizedBody = Self.strippingLeadingMetadataBlob(
+                ArticleHTMLSanitizer.decodingHTMLEntities(stored),
+                title: record.title
+            )
+        } else if !html.isEmpty {
+            self.normalizedBody = Self.strippingLeadingMetadataBlob(
+                ArticleHTMLSanitizer.articlePlainText(from: html, title: record.title),
+                title: record.title
+            )
+        } else {
+            self.normalizedBody = Self.strippingLeadingMetadataBlob(
+                Self.normalizeArticleText(rawSnippet),
+                title: record.title
+            )
+        }
+    }
+
+    /// Marks the end of the source-site chrome that a flattened article
+    /// render carries at its head. The cut runs to the LAST marker found in
+    /// the opening stretch, dropping category tags, a duplicated headline, a
+    /// byline | date, comment count and read time in one go.
+    private static let metadataCutPatterns: [String] = [
+        #"\b\d+\s+Comments?\b\s*"#,
+        #"(?i)\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4}\s*[-–—]?\s*\d{1,2}:\d{2}\s*(?:am|pm)?\s*[A-Z]{2,4}\b\s*"#,
+        #"(?i)\b\d{1,2}:\d{2}\s*(?:am|pm)\s*(?:PT|ET|GMT|UTC|BST)\b\s*"#,
+        #"(?i)\b\d+\s*min(?:ute)?s?\s+read\b\s*[•·]?\s*"#
+    ]
+
+    /// True when a persisted plain-text render still leads with source-site
+    /// chrome, i.e. it was written before the lead was cleaned. The patterns
+    /// mirror `metadataCutPatterns` so a flagged render is always fixable.
+    static func looksLikeMetadataLead(_ text: String) -> Bool {
+        let head = String(text.prefix(220))
+        guard !head.isEmpty else { return false }
+        if head.contains("&#") { return true }
+        let patterns = [
+            #"\b\d+\s+Comments?\b"#,
+            #"(?i)\b\d+\s*min(?:ute)?s?\s+read\b"#,
+            #"(?i)\b\d{1,2}:\d{2}\s*(?:am|pm)\s*(?:PT|ET|GMT|UTC|BST)\b"#,
+            #"(?i)\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4}\b"#
+        ]
+        for pattern in patterns where head.range(of: pattern, options: .regularExpression) != nil {
+            return true
+        }
+        return false
+    }
+
+    /// Cuts source-site chrome off the head of a flattened article render so
+    /// the row's lead-in shows the article text, not its metadata.
+    private static func strippingLeadingMetadataBlob(_ text: String, title: String?) -> String {
+        var working = text
+
+        // A duplicated headline sitting at the very start.
+        if let title, title.count > 12, working.count > title.count + 4,
+           working.lowercased().hasPrefix(title.lowercased()) {
+            working = String(working.dropFirst(title.count))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        let ns = working as NSString
+        let limit = min(ns.length, 400)
+        var cut: Int?
+        for pattern in metadataCutPatterns {
+            guard let regex = try? NSRegularExpression(pattern: pattern) else { continue }
+            guard let match = regex.firstMatch(
+                in: working,
+                range: NSRange(location: 0, length: limit)
+            ) else { continue }
+            let end = match.range.location + match.range.length
+            if cut == nil || end > cut! { cut = end }
+        }
+        guard let cut, cut > 0, cut < ns.length else { return working }
+        return ns.substring(from: cut).trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private static func normalizeArticleText(_ rawText: String) -> String {

@@ -222,17 +222,10 @@ public final class AppleIntelligenceSummarizationProvider: SummarizationProvider
     // MARK: - Utilities
 
     private static func clean(_ text: String) -> String {
-        let normalized = text
-            .replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression)
-            .replacingOccurrences(of: "&nbsp;", with: " ")
-            .replacingOccurrences(of: "&amp;", with: "&")
-            .replacingOccurrences(of: "&lt;", with: "<")
-            .replacingOccurrences(of: "&gt;", with: ">")
-            .replacingOccurrences(of: "&quot;", with: "\"")
-            .replacingOccurrences(of: "&#39;", with: "'")
-            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return normalized
+        // Full entity decoding (named AND numeric) via the shared helper. The
+        // hand-rolled list here previously missed `&#8216;`-style codes, which
+        // the model then echoed back verbatim into the generated summaries.
+        ArticleHTMLSanitizer.plainText(fromHTML: text)
     }
 
     private static func sentences(from text: String) -> [String] {

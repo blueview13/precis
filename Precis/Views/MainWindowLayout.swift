@@ -11,6 +11,10 @@ struct MainWindowLayout: View {
     /// Hides the unread-count pills in the sidebar (feeds and Library items)
     /// when off.
     @AppStorage("showSidebarUnreadPills") private var showSidebarUnreadPills: Bool = true
+    /// Three-column reading layout — headlines in their own column beside
+    /// the reading pane — vs the default stacked layout (headlines above
+    /// the pane). Toggled from the list header icon; persisted.
+    @AppStorage("threeColumnReadingLayout") private var isColumnLayout = false
     @State private var selectedSidebarItem = "Unread"
     @State private var feedURLInput = ""
     @State private var isImporting = false
@@ -47,14 +51,11 @@ struct MainWindowLayout: View {
     @FocusState private var isFeedEditFocused: Bool
     @State private var categoryDropTargetID: UUID?
     @State private var categoryRowHeights: [UUID: CGFloat] = [:]
-    @State private var articleListHeight: CGFloat = 350
-    @State private var windowHeight: CGFloat = 900
-    /// False at launch: the divider is parked halfway down the window on
-    /// every layout pass until the user drags it themselves, so it opens
-    /// dead-center no matter how the window reaches its size.
-    @State private var userAdjustedDivider = false
-    @State private var sidebarWidth: CGFloat = 260
-    @State private var userAdjustedSidebarWidth = false
+    /// All resizable-width state lives here and is observed only by
+    /// `ReaderSplitLayout`. Keeping it out of this view is what stops a divider
+    /// drag from re-evaluating the whole window (sidebar, headline list,
+    /// reader) on every frame — that was the resize judder.
+    @StateObject private var split = ReaderSplitState()
     @State private var isSidebarHidden = false
     /// Local keyDown monitor that maps the spacebar to "next article".
     /// Kept outside the view tree because `onKeyPress` on the focusable
@@ -81,9 +82,19 @@ struct MainWindowLayout: View {
         showSidebarUnreadPills ? count : 0
     }
 
-    private var selectedSummaryText: String? {
-        guard let selectedItem = viewModel.selectedItem else { return nil }
-        return viewModel.summaryText(for: selectedItem, context: modelContext)
+    /// The saved summary for the selected article. Held in `@State` and
+    /// refreshed only when the selection changes: reading it straight from
+    /// SwiftData inside `body` ran a fetch on every re-render — which meant a
+    /// database round-trip on every frame of a window/divider resize, and was
+    /// the main cause of the resize judder.
+    @State private var selectedSummaryText: String?
+
+    private func refreshSelectedSummaryText() {
+        guard let item = viewModel.selectedItem else {
+            selectedSummaryText = nil
+            return
+        }
+        selectedSummaryText = viewModel.summaryText(for: item, context: modelContext)
     }
 
     private var digestFeedIDs: Set<UUID>? {
@@ -108,126 +119,79 @@ struct MainWindowLayout: View {
         listIsEmpty ? viewModel.emptyStateTitle : nil
     }
 
+    /// The headlines column — one instance shared by both layouts so the
+    /// header (and its layout toggle) stays put across the switch.
+    private var articleListView: some View {
+        ArticleListView(
+            viewModel: viewModel,
+            isSidebarHidden: isSidebarHidden,
+            onRevealSidebar: { isSidebarHidden = false },
+            headerTitle: selectedSidebarItem,
+            isColumnLayout: isColumnLayout,
+            onToggleLayout: {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    isColumnLayout.toggle()
+                    if !isColumnLayout {
+                        // Back to the stacked layout, where the sidebar and the
+                        // main pane share the window height — always bring the
+                        // sidebar back so it can't stay hidden from the
+                        // three-column view.
+                        isSidebarHidden = false
+                    }
+                }
+            }
+        )
+    }
+
+    /// The reading pane — identical wiring in the stacked and
+    /// three-column layouts.
+    private var readingPaneView: some View {
+        ReadingPaneView(
+            item: listIsEmpty ? nil : viewModel.selectedItem,
+            emptyMessage: paneEmptyMessage,
+            summaryOverride: selectedSummaryText,
+            feedWideSummary: viewModel.feedWideSummaryText,
+            isGeneratingSummary: viewModel.isGeneratingFeedWideSummary,
+            summaryProgress: viewModel.feedWideSummaryProgress,
+            onOpenInBrowser: {
+                guard let link = viewModel.selectedItem?.link,
+                      let url = URL(string: link) else { return }
+                NSWorkspace.shared.open(url)
+            },
+            isFetchingContent: !listIsEmpty && viewModel.loadingFullContentID == viewModel.selectedItem?.id,
+            onPreviousArticle: { viewModel.selectPrevious(context: modelContext) },
+            onNextArticle: { viewModel.selectNext(context: modelContext) },
+            canSelectPrevious: viewModel.canSelectPrevious,
+            canSelectNext: viewModel.canSelectNext
+        )
+    }
+
     init() {
         _viewModel = StateObject(wrappedValue: ArticleListViewModel())
     }
 
     var body: some View {
-        HStack(spacing: 0) {
-            // The sidebar slides out to the left (offset) while its layout
-            // slot collapses, so the main pane expands smoothly instead of
-            // the hide/show snapping instantly.
-            sidebarView
-                .frame(width: sidebarWidth)
-                .overlay(alignment: .trailing) {
-                    // Full-height sidebar border in the macOS accent color.
-                    Rectangle()
-                        .fill(Color.accentColor)
-                        .frame(width: 1)
-                }
-                .offset(x: isSidebarHidden ? -sidebarWidth : 0)
-                .frame(width: isSidebarHidden ? 0 : sidebarWidth, alignment: .leading)
-                .clipped()
-
-            // Draggable vertical divider for sidebar resize — collapses with
-            // the sidebar so no dead zone is left behind when it is hidden.
-            Rectangle()
-                .fill(Color.clear)
-                .frame(width: isSidebarHidden ? 0 : 6)
-                .contentShape(Rectangle())
-                .gesture(
-                    DragGesture(minimumDistance: 1)
-                        .onChanged { value in
-                            userAdjustedSidebarWidth = true
-                            let newWidth = sidebarWidth + value.translation.width
-                            sidebarWidth = max(180, min(newWidth, max(700, automaticSidebarWidth)))
-                        }
-                )
-                .onHover { inside in
-                    if inside {
-                        NSCursor.resizeLeftRight.push()
-                    } else {
-                        NSCursor.pop()
-                    }
-                }
-
-            VStack(spacing: 0) {
-                ArticleListView(
-                    viewModel: viewModel,
-                    isSidebarHidden: isSidebarHidden,
-                    onRevealSidebar: { isSidebarHidden = false },
-                    headerTitle: selectedSidebarItem
-                )
-                .frame(height: articleListHeight)
-
-                ResizableDivider()
-                    .frame(height: 4)
-                    .gesture(
-                        DragGesture(minimumDistance: 1)
-                            .onChanged { value in
-                                // First drag hands the position over to the
-                                // user — launch centering no longer applies.
-                                userAdjustedDivider = true
-                                let newHeight = articleListHeight + value.translation.height
-                                // Clamp against the window itself (not a fixed
-                                // fraction of the screen) so the divider can be
-                                // dragged to any position down to the last 140pt.
-                                let maxHeight = max(150, windowHeight - 140)
-                                articleListHeight = max(150, min(newHeight, maxHeight))
-                            }
-                    )
-
-                ReadingPaneView(
-                    item: listIsEmpty ? nil : viewModel.selectedItem,
-                    emptyMessage: paneEmptyMessage,
-                    summaryOverride: selectedSummaryText,
-                    feedWideSummary: viewModel.feedWideSummaryText,
-                    isGeneratingSummary: viewModel.isGeneratingFeedWideSummary,
-                    summaryProgress: viewModel.feedWideSummaryProgress,
-                    onOpenInBrowser: {
-                        guard let link = viewModel.selectedItem?.link,
-                              let url = URL(string: link) else { return }
-                        NSWorkspace.shared.open(url)
-                    },
-                    isFetchingContent: !listIsEmpty && viewModel.loadingFullContentID == viewModel.selectedItem?.id,
-                    onPreviousArticle: { viewModel.selectPrevious(context: modelContext) },
-                    onNextArticle: { viewModel.selectNext(context: modelContext) },
-                    canSelectPrevious: viewModel.canSelectPrevious,
-                    canSelectNext: viewModel.canSelectNext
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-        }
+        // The split layout owns every resizable width, so a divider drag only
+        // re-renders this subtree — not the sidebar, headline list and reader.
+        // Rebuilding those on every drag frame is what made resizing judder.
+        ReaderSplitLayout(
+            state: split,
+            isSidebarHidden: $isSidebarHidden,
+            isColumnLayout: isColumnLayout,
+            sidebar: sidebarView,
+            articleList: articleListView,
+            readingPane: readingPaneView
+        )
         .background(PrecisDesignSystem.background(for: colorScheme))
         // Drives the sidebar slide-in/slide-out; every layout change keyed to
         // `isSidebarHidden` (sidebar slot, drag handle) animates together.
         .animation(.easeInOut(duration: 0.3), value: isSidebarHidden)
-        .onGeometryChange(for: CGFloat.self) { proxy in
-            proxy.size.height
-        } action: { height in
-            // Used to clamp the horizontal divider to the real window height.
-            windowHeight = height
-            if !userAdjustedDivider {
-                // Not touched yet: open with the divider halfway down the
-                // window (4pt is the divider itself). Re-applied on every
-                // geometry event so intermediate window sizes during launch
-                // can't leave it parked off-center.
-                articleListHeight = max(150, (height - 4) / 2)
-            } else {
-                // The user owns the position now — if the window shrank below
-                // the current list height, pull it back so the reading pane
-                // never gets pushed off-screen.
-                let cap = max(150, height - 140)
-                if articleListHeight > cap {
-                    articleListHeight = cap
-                }
-            }
-        }
         .onChange(of: viewModel.selectedItemID) { _, _ in
             // A new story is being read — pull its full page (once per
             // article) so the pane shows the complete formatted article
             // instead of the feed's intro text.
             viewModel.loadFullContent(context: modelContext)
+            refreshSelectedSummaryText()
         }
         .onChange(of: viewModel.selectedFeedID) { _, _ in
             // Feed selection changed — regenerate digest for the new feed scope
@@ -247,6 +211,7 @@ struct MainWindowLayout: View {
             // The launch selection needs its full content too — the
             // selection-change observer only fires for later clicks.
             viewModel.loadFullContent(context: modelContext)
+            refreshSelectedSummaryText()
             Task { await repairURLTitledFeeds() }
             viewModel.loadFolders(context: modelContext)
             startSpacebarMonitor()
@@ -689,7 +654,10 @@ struct MainWindowLayout: View {
         return FeedDiscoveryService.conciseTitle(feed.title)
     }
 
-    private var automaticSidebarWidth: CGFloat {
+    /// Measures the widest feed title to pick the automatic sidebar width.
+    /// Expensive (one attributed-string measurement per feed), so it is only
+    /// called from `updateAutomaticSidebarWidth()` — never from a drag.
+    private func measuredAutomaticSidebarWidth() -> CGFloat {
         let font = NSFont.systemFont(ofSize: 15, weight: .regular)
         let widestFeedName = importedFeeds
             .map { ceil((sidebarDisplayTitle(for: $0) as NSString).size(withAttributes: [.font: font]).width) }
@@ -701,8 +669,10 @@ struct MainWindowLayout: View {
     }
 
     private func updateAutomaticSidebarWidth() {
-        guard !userAdjustedSidebarWidth else { return }
-        sidebarWidth = automaticSidebarWidth
+        let measured = measuredAutomaticSidebarWidth()
+        split.autoSidebarWidth = measured
+        guard !split.userAdjustedSidebarWidth else { return }
+        split.sidebarWidth = measured
     }
 
     private func deleteCategory(_ category: CategoryRecord) {
@@ -2162,6 +2132,284 @@ private struct ArticleRow: View {
 
 #Preview {
     MainWindowLayout()
+}
+
+// MARK: - Resizable split layout
+
+/// Resizable-width state for the reader's sidebar / headline column / reading
+/// pane. It deliberately lives outside `MainWindowLayout`: while a divider is
+/// dragged, only the split view observing this object re-renders, instead of
+/// the whole window's view tree (sidebar, headline list and the article web
+/// view) being rebuilt on every frame — which is what made resizing judder.
+final class ReaderSplitState: ObservableObject {
+    @Published var sidebarWidth: CGFloat = 260
+    @Published var articleListWidth: CGFloat = 250
+    @Published var articleListHeight: CGFloat = 350
+    /// True while a divider drag is in flight. The reading pane uses it to
+    /// hold back the article's height updates so the resize isn't fought by a
+    /// relayout of the pane on every frame.
+    @Published var isResizing = false
+    /// Measured auto width for the sidebar. Refreshed only when the feed list
+    /// changes — measuring it walks every feed title.
+    @Published var autoSidebarWidth: CGFloat = 260
+    /// Set once the user has dragged the sidebar themselves, after which the
+    /// automatic width stops overriding it.
+    var userAdjustedSidebarWidth = false
+    /// Set once the user has dragged the horizontal list/reader divider, after
+    /// which launch centering no longer applies.
+    var userAdjustedDivider = false
+}
+
+/// Environment flag mirroring `ReaderSplitState.isResizing`, so the reading pane
+/// can react to a drag without `MainWindowLayout` itself observing the state.
+struct LayoutResizingKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    var layoutIsResizing: Bool {
+        get { self[LayoutResizingKey.self] }
+        set { self[LayoutResizingKey.self] = newValue }
+    }
+}
+
+/// The sidebar + dividers + main pane arrangement. It takes the three panes as
+/// pre-built views, so re-rendering this view (once per drag tick) never
+/// re-renders their contents — only their frames change.
+private struct ReaderSplitLayout<Sidebar: View, ArticleList: View, ReadingPane: View>: View {
+    @ObservedObject var state: ReaderSplitState
+    @Binding var isSidebarHidden: Bool
+    let isColumnLayout: Bool
+
+    let sidebar: Sidebar
+    let articleList: ArticleList
+    let readingPane: ReadingPane
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    /// Width a divider drag began at — `DragGesture.translation` is cumulative
+    /// from the drag start, so the drag offsets from this instead of
+    /// compounding it every tick.
+    @State private var sidebarDragStartWidth: CGFloat?
+    @State private var columnDragStartWidth: CGFloat?
+    /// Widths proposed by an in-flight divider drag. The panes keep their
+    /// current size until the drag ends; only the guide line below moves. That
+    /// way nothing reflows on a drag frame — resizing the headline list and the
+    /// article's web view every frame is what made resizing judder.
+    @State private var pendingSidebarWidth: CGFloat?
+    @State private var pendingColumnWidth: CGFloat?
+    @State private var windowWidth: CGFloat = 1200
+    @State private var windowHeight: CGFloat = 900
+
+    /// Where the in-flight divider drag will land, in this view's coordinates.
+    private var guideX: CGFloat? {
+        let sidebarSlot = isSidebarHidden ? 0 : state.sidebarWidth
+        if let pending = pendingSidebarWidth { return pending }
+        if let pending = pendingColumnWidth { return sidebarSlot + 10 + pending }
+        return nil
+    }
+
+    /// Widest the headlines column may get in the three-column layout: leaves
+    /// room for the sidebar (when visible) and a readable reading pane. Floored
+    /// at 250pt — the same floor the divider drag uses.
+    private var articleListMaxWidth: CGFloat {
+        let sidebarRoom = isSidebarHidden ? 0 : state.sidebarWidth + 10
+        return max(250, windowWidth - sidebarRoom - 6 - 340)
+    }
+
+    var body: some View {
+        HStack(spacing: 0) {
+            // The sidebar slides out to the left (offset) while its layout
+            // slot collapses, so the main pane expands smoothly instead of
+            // the hide/show snapping instantly.
+            sidebar
+                .frame(width: state.sidebarWidth)
+                .overlay(alignment: .trailing) {
+                    // Full-height sidebar border in the macOS accent color.
+                    Rectangle()
+                        .fill(Color.accentColor)
+                        .frame(width: 1)
+                }
+                .offset(x: isSidebarHidden ? -state.sidebarWidth : 0)
+                .frame(width: isSidebarHidden ? 0 : state.sidebarWidth, alignment: .leading)
+                .clipped()
+
+            // Draggable vertical divider for sidebar resize. Kept wide enough
+            // (10pt) to grab at any window size, and drawn above the main pane
+            // (zIndex) so nothing overlaps its hit area; it collapses with the
+            // sidebar so no dead zone is left behind.
+            Rectangle()
+                .fill(Color.clear)
+                .frame(width: isSidebarHidden ? 0 : 10)
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture(minimumDistance: 1)
+                        .onChanged { value in
+                            let start = sidebarDragStartWidth ?? state.sidebarWidth
+                            sidebarDragStartWidth = start
+                            pendingSidebarWidth = max(
+                                180,
+                                min(start + value.translation.width, max(700, state.autoSidebarWidth))
+                            )
+                        }
+                        .onEnded { _ in
+                            // Hand width control to the user so an automatic
+                            // width update can't fight the drag, then apply the
+                            // width in one step.
+                            state.userAdjustedSidebarWidth = true
+                            if let pending = pendingSidebarWidth {
+                                state.sidebarWidth = pending
+                            }
+                            pendingSidebarWidth = nil
+                            sidebarDragStartWidth = nil
+                        }
+                )
+                .onHover { inside in
+                    if inside {
+                        NSCursor.resizeLeftRight.push()
+                    } else {
+                        NSCursor.pop()
+                    }
+                }
+                .zIndex(1)
+
+            // Main pane: the default stacked layout (headlines above the
+            // reading pane) or three vertical columns (headlines beside the
+            // reading pane), flipped by the toggle in the list header.
+            if isColumnLayout {
+                HStack(spacing: 0) {
+                    articleList
+                        .frame(width: state.articleListWidth)
+
+                    // Draggable divider between the headlines column and the
+                    // reading pane — the pane takes whatever width remains.
+                    Rectangle()
+                        .fill(Color.clear)
+                        .frame(width: 6)
+                        .contentShape(Rectangle())
+                        .gesture(
+                            DragGesture(minimumDistance: 1)
+                                .onChanged { value in
+                                    let start = columnDragStartWidth ?? state.articleListWidth
+                                    columnDragStartWidth = start
+                                    pendingColumnWidth = max(
+                                        250,
+                                        min(start + value.translation.width, articleListMaxWidth)
+                                    )
+                                }
+                                .onEnded { _ in
+                                    if let pending = pendingColumnWidth {
+                                        state.articleListWidth = pending
+                                    }
+                                    pendingColumnWidth = nil
+                                    columnDragStartWidth = nil
+                                }
+                        )
+                        .onHover { inside in
+                            if inside {
+                                NSCursor.resizeLeftRight.push()
+                            } else {
+                                NSCursor.pop()
+                            }
+                        }
+                        // Hairline between the columns, matching the stacked
+                        // layout's rule divider.
+                        .overlay(alignment: .leading) {
+                            Rectangle()
+                                .fill(PrecisDesignSystem.rule(for: colorScheme))
+                                .frame(width: 1)
+                        }
+
+                    readingPane
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            } else {
+                VStack(spacing: 0) {
+                    articleList
+                        .frame(height: state.articleListHeight)
+
+                    ResizableDivider()
+                        .frame(height: 4)
+                        .gesture(
+                            DragGesture(minimumDistance: 1)
+                                .onChanged { value in
+                                    // First drag hands the position over to the
+                                    // user — launch centering no longer applies.
+                                    state.userAdjustedDivider = true
+                                    let newHeight = state.articleListHeight + value.translation.height
+                                    // Clamp against the window itself (not a fixed
+                                    // fraction of the screen) so the divider can be
+                                    // dragged to any position down to the last 140pt.
+                                    let maxHeight = max(150, windowHeight - 140)
+                                    state.articleListHeight = max(150, min(newHeight, maxHeight))
+                                }
+                        )
+
+                    readingPane
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            }
+        }
+        // The only thing that moves while a divider is dragged: a guide line
+        // showing where it will land. The panes themselves are resized once, on
+        // release.
+        .overlay(alignment: .topLeading) {
+            if let guideX {
+                Rectangle()
+                    .fill(Color.accentColor)
+                    .frame(width: 2)
+                    .offset(x: guideX)
+                    .allowsHitTesting(false)
+            }
+        }
+        // The reading pane reads this instead of a parameter, so a drag doesn't
+        // have to re-render `MainWindowLayout` to tell it a resize is running.
+        .environment(\.layoutIsResizing, state.isResizing)
+        .onGeometryChange(for: CGFloat.self) { proxy in
+            proxy.size.height
+        } action: { height in
+            // Used to clamp the horizontal divider to the real window height.
+            windowHeight = height
+            if !state.userAdjustedDivider {
+                // Not touched yet: open with the divider halfway down the
+                // window (4pt is the divider itself). Re-applied on every
+                // geometry event so intermediate window sizes during launch
+                // can't leave it parked off-center.
+                state.articleListHeight = max(150, (height - 4) / 2)
+            } else {
+                // The user owns the position now — if the window shrank below
+                // the current list height, pull it back so the reading pane
+                // never gets pushed off-screen.
+                let cap = max(150, height - 140)
+                if state.articleListHeight > cap {
+                    state.articleListHeight = cap
+                }
+            }
+        }
+        .onGeometryChange(for: CGFloat.self) { proxy in
+            proxy.size.width
+        } action: { width in
+            // Tracked so the headlines column can be clamped whenever the
+            // window shrinks — the reading pane keeps a usable minimum.
+            windowWidth = width
+            let cap = articleListMaxWidth
+            if state.articleListWidth > cap {
+                state.articleListWidth = cap
+            }
+        }
+        .onChange(of: isSidebarHidden) { _, _ in
+            // Revealing the sidebar takes width from the main pane — keep
+            // the headlines column within what's left for the reading pane.
+            state.articleListWidth = min(state.articleListWidth, articleListMaxWidth)
+        }
+        .onChange(of: isColumnLayout) { _, columns in
+            // Switching into columns hands width to the headline column; make
+            // sure the reading pane keeps enough room to stay readable.
+            if columns {
+                state.articleListWidth = min(state.articleListWidth, articleListMaxWidth)
+            }
+        }
+    }
 }
 
 // MARK: - Resizable Divider

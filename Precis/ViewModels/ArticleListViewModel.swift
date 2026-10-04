@@ -36,12 +36,27 @@ public final class ArticleListViewModel: ObservableObject {
     // again on every arrow-key press. All cached here and dropped by
     // `invalidateDerivedState()` whenever an input changes.
     private var filteredItemsCache: [ArticleListItem]?
+    /// Whether the cached `filteredItems` holds unread / read rows. The list
+    /// header used to rescan the whole array twice per body evaluation.
+    private var visibleHasUnreadCache = false
+    private var visibleHasReadCache = false
+    /// Cached lookup for the selected row — `selectedItem` was an O(library)
+    /// linear scan, run several times per body evaluation.
+    private var selectedItemCache: ArticleListItem?
+    private var selectedItemCacheID: UUID?
+    private var canSelectPreviousCache: Bool?
+    private var canSelectNextCache: Bool?
     private var unreadCountsByFeedCache: [UUID: Int]?
     private var unreadTotalCache: Int?
     private var starredTotalCache: Int?
 
     private func invalidateDerivedState() {
         filteredItemsCache = nil
+        visibleHasUnreadCache = false
+        visibleHasReadCache = false
+        selectedItemCacheID = nil
+        canSelectPreviousCache = nil
+        canSelectNextCache = nil
         unreadCountsByFeedCache = nil
         unreadTotalCache = nil
         starredTotalCache = nil
@@ -71,7 +86,21 @@ public final class ArticleListViewModel: ObservableObject {
         if let filteredItemsCache { return filteredItemsCache }
         let computed = computeFilteredItems()
         filteredItemsCache = computed
+        visibleHasUnreadCache = computed.contains { !$0.isRead }
+        visibleHasReadCache = computed.contains { $0.isRead }
         return computed
+    }
+
+    /// Whether the visible rows include unread / read articles — cached with
+    /// `filteredItems` so the list header never rescans the array per render.
+    public var visibleHasUnread: Bool {
+        _ = filteredItems
+        return visibleHasUnreadCache
+    }
+
+    public var visibleHasRead: Bool {
+        _ = filteredItems
+        return visibleHasReadCache
     }
 
     /// Message shown when the current filter has no rows. Shared by the
@@ -323,7 +352,13 @@ public final class ArticleListViewModel: ObservableObject {
 
     public var selectedItem: ArticleListItem? {
         guard let selectedItemID else { return items.first }
-        return items.first(where: { $0.id == selectedItemID }) ?? items.first
+        if selectedItemCacheID == selectedItemID, let cached = selectedItemCache {
+            return cached
+        }
+        let found = items.first(where: { $0.id == selectedItemID }) ?? items.first
+        selectedItemCache = found
+        selectedItemCacheID = selectedItemID
+        return found
     }
 
     public func loadFromContext(_ context: ModelContext) {
@@ -419,8 +454,12 @@ public final class ArticleListViewModel: ObservableObject {
 
             let item = ArticleListItem(record: record)
             // Persist the plain-text render on first sight so no later launch
-            // has to re-run the HTML-stripping pass over this article.
-            if record.normalizedText == nil {
+            // has to re-run the HTML-stripping pass over this article — and
+            // rebuild renders written before the lead was cleaned of metadata
+            // and entity codes (only when the rebuild actually changes them).
+            let stored = record.normalizedText
+            if stored == nil
+                || (ArticleListItem.looksLikeMetadataLead(stored ?? "") && stored != item.cleanSnippet) {
                 record.normalizedText = item.cleanSnippet
                 didBackfillNormalizedText = true
             }
@@ -614,10 +653,9 @@ public final class ArticleListViewModel: ObservableObject {
             for (index, record) in digestRecords.enumerated() {
                 let articleValue = Article(record: record)
                 let text = articleValue.extractedContent ?? articleValue.rawContent ?? articleValue.title
-                let cleaned = text
-                    .replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression)
-                    .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                // Strip tags AND decode entities — entity codes that reached
+                // the digest prompt showed up verbatim in "Today's Precis".
+                let cleaned = ArticleHTMLSanitizer.plainText(fromHTML: text)
 
                 if !cleaned.isEmpty {
                     articleSummaries.append("• \(record.title): \(cleaned.prefix(200))")
@@ -770,17 +808,33 @@ public final class ArticleListViewModel: ObservableObject {
     /// An off-list selection (marked read under the Unread filter) counts as
     /// navigable, matching `selectNext`/`selectPrevious`'s resume fallbacks.
     public var canSelectPrevious: Bool {
-        guard !filteredItems.isEmpty else { return false }
-        guard let currentID = selectedItemID,
-              let index = filteredItems.firstIndex(where: { $0.id == currentID }) else { return true }
-        return index > 0
+        if let canSelectPreviousCache { return canSelectPreviousCache }
+        let value: Bool
+        if filteredItems.isEmpty {
+            value = false
+        } else if let currentID = selectedItemID,
+                  let index = filteredItems.firstIndex(where: { $0.id == currentID }) {
+            value = index > 0
+        } else {
+            value = true
+        }
+        canSelectPreviousCache = value
+        return value
     }
 
     public var canSelectNext: Bool {
-        guard !filteredItems.isEmpty else { return false }
-        guard let currentID = selectedItemID,
-              let index = filteredItems.firstIndex(where: { $0.id == currentID }) else { return true }
-        return index + 1 < filteredItems.count
+        if let canSelectNextCache { return canSelectNextCache }
+        let value: Bool
+        if filteredItems.isEmpty {
+            value = false
+        } else if let currentID = selectedItemID,
+                  let index = filteredItems.firstIndex(where: { $0.id == currentID }) {
+            value = index + 1 < filteredItems.count
+        } else {
+            value = true
+        }
+        canSelectNextCache = value
+        return value
     }
 
     /// Bumped by `selectNext`/`selectPrevious` (the pane's ‹ › buttons and

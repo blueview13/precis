@@ -217,4 +217,72 @@ final class ArticleHTMLSanitizerTests: XCTestCase {
         XCTAssertFalse(result.contains("Irrefutable Evidence"))
         XCTAssertTrue(result.contains("Body of the article"))
     }
+
+    // MARK: - Ad images
+
+    func testRemovesAdBannerImage() {
+        let html = """
+        <p>Real body text long enough to survive the retention check comfortably.</p>
+        <img src="https://ads.example.com/banner/300x250.jpg" alt="Advertisement">
+        <p>More real body text that keeps the article from being rejected.</p>
+        """
+        let result = sanitized(html)
+        XCTAssertFalse(result.contains("300x250"))
+        XCTAssertTrue(result.contains("Real body text"))
+    }
+
+    func testRemovesTrackingPixelButKeepsEditorialPhoto() {
+        let html = """
+        <p>Story text that is long enough to survive the sanitizer's retention check.</p>
+        <img src="https://example.com/photo.jpg" alt="A real photo">
+        <img src="https://tracker.example.com/p.gif" width="1" height="1">
+        <p>Trailing paragraph so plenty of visible text remains after sanitizing.</p>
+        """
+        let result = sanitized(html)
+        XCTAssertTrue(result.contains("photo.jpg"))
+        XCTAssertFalse(result.contains("p.gif"))
+    }
+
+    // MARK: - Entity decoding
+
+    func testPlainTextDecodesNumericAndNamedEntities() {
+        let html = "<p>John Ternus&#8217;s &#8216;hands-on&#8217; role &amp; more&hellip;</p>"
+        let result = ArticleHTMLSanitizer.plainText(fromHTML: html)
+        XCTAssertFalse(result.contains("&#"))
+        XCTAssertFalse(result.contains("&hellip;"))
+        XCTAssertTrue(result.contains("John Ternus’s ‘hands-on’ role & more…"))
+    }
+
+    // MARK: - Article-list lead-in
+
+    /// Mirrors the reported row: category tags + a duplicated headline + a
+    /// byline/date/comment row glued to the body, all entity-encoded.
+    func testLeadInDropsBylineChromeAndEntities() {
+        let html = """
+        <p>AAPL Company John Ternus John Ternus is taking a more &#8216;hands-on&#8217; \
+        role in Apple&#8217;s design teams as CEO: report</p>
+        <p>Michael Burkhardt | Oct 4 2026 - 8:15 am PT 3 Comments Since Jony Ive&#8217;s \
+        departure from Apple in 2019, the company hasn&#8217;t had much of a true design leader.</p>
+        """
+        let record = ArticleRecord(
+            title: "John Ternus is taking a more 'hands-on' role as CEO",
+            extractedContent: html
+        )
+        let item = ArticleListItem(record: record)
+
+        XCTAssertFalse(item.cleanSnippet.contains("Michael Burkhardt"))
+        XCTAssertFalse(item.cleanSnippet.contains("Comments"))
+        XCTAssertFalse(item.cleanSnippet.contains("&#"))
+        XCTAssertTrue(item.cleanSnippet.hasPrefix("Since Jony Ive’s departure"))
+    }
+
+    func testPersistedMetadataLeadIsDetected() {
+        let contaminated = "Michael Burkhardt | Oct 4 2026 - 8:15 am PT 3 Comments Since Jony Ive"
+        XCTAssertTrue(ArticleListItem.looksLikeMetadataLead(contaminated))
+        XCTAssertFalse(
+            ArticleListItem.looksLikeMetadataLead(
+                "Since Jony Ive's departure from Apple in 2019, the company has changed."
+            )
+        )
+    }
 }

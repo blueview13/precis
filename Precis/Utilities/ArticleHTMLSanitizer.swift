@@ -30,7 +30,8 @@ public enum ArticleHTMLSanitizer {
         guard !fragment.isEmpty else { return fragment }
 
         let withoutComments = strippingComments(from: fragment)
-        var text = strippedLeadingChrome(from: withoutComments, title: title)
+        var text = strippingAdImages(from: withoutComments)
+        text = strippedLeadingChrome(from: text, title: title)
         text = strippingDuplicateHeadline(from: text, title: title)
         text = strippingShareLinks(from: text)
 
@@ -70,6 +71,28 @@ public enum ArticleHTMLSanitizer {
         lines = lines.filter { !isShareLine($0) && !isHashtagLine($0) }
 
         return lines.joined(separator: "\n")
+    }
+
+    /// Plain text from an HTML or plain fragment: strips tags, decodes both
+    /// named and numeric character references, and collapses whitespace.
+    /// The summarizer uses this so entity codes can never reach the model and
+    /// come back verbatim in a summary.
+    public static func plainText(fromHTML html: String) -> String {
+        collapsed(html)
+    }
+
+    /// Plain text of an article body with source-site chrome (bylines, dates,
+    /// comment counts, share rows) removed — the render backing the article
+    /// list's lead-in snippet, so it starts at the article and not metadata.
+    public static func articlePlainText(from html: String, title: String?) -> String {
+        collapsed(sanitize(html, title: title))
+    }
+
+    /// Decodes HTML character references in already-plain text. Cheap: the
+    /// numeric pass only runs when a `&#` reference is actually present.
+    public static func decodingHTMLEntities(_ text: String) -> String {
+        guard text.contains("&") else { return text }
+        return decodeEntities(text)
     }
 
     // MARK: - Chrome predicates
@@ -453,6 +476,41 @@ public enum ArticleHTMLSanitizer {
         return trimmed.lowercased()
     }
 
+    // MARK: - Ad images
+
+    /// Matches ad/tracker imagery by URL, class, id or alt text — narrow
+    /// enough to spare ordinary editorial photos (a `/ad/` path segment, an
+    /// `advert`/`sponsor` token, or a known ad-network host).
+    private static let adImagePattern =
+        #"(?i)(?:advert|\bsponsor|sponsored|\bads?\b|/ad/|/ads/|_ad_|-ad-|adserver|adservice|doubleclick|googlesyndication|googleads|pagead|adnxs|criteo|taboola|outbrain|pubmatic|rubicon|smartad|adsystem|adform|/pixel|pixel\.gif|beacon|/trk/|/track/|\btracking\b|1x1|spacer\.gif)"#
+
+    /// Removes `<img>` tags that look like advertisements or tracking pixels.
+    /// An ad image inside an `<a>` wrapper leaves the (harmless) empty anchor.
+    private static func strippingAdImages(from html: String) -> String {
+        guard html.range(of: "<img", options: .caseInsensitive) != nil else { return html }
+        guard let regex = try? NSRegularExpression(pattern: #"<img\b[^>]*>"#, options: [.caseInsensitive]) else {
+            return html
+        }
+        // Walk matches back-to-front so earlier ranges stay valid as later
+        // ones are removed.
+        var result = html
+        for match in regex.matches(in: html, range: NSRange(html.startIndex..., in: html)).reversed() {
+            guard let range = Range(match.range, in: result) else { continue }
+            if isAdImageTag(String(result[range])) {
+                result.removeSubrange(range)
+            }
+        }
+        return result
+    }
+
+    private static func isAdImageTag(_ tag: String) -> Bool {
+        // 1×1 tracking pixels are dropped whatever their URL says.
+        if tag.range(of: #"(?i)\b(?:width|height)\s*=\s*["']?1(?:px)?["']?\b"#, options: .regularExpression) != nil {
+            return true
+        }
+        return tag.range(of: adImagePattern, options: .regularExpression) != nil
+    }
+
     // MARK: - Text helpers
 
     private static func innerHTML(ofAnchor anchor: String) -> String {
@@ -494,7 +552,11 @@ public enum ArticleHTMLSanitizer {
         var result = text
         for (entity, replacement) in [
             ("&nbsp;", " "), ("&amp;", "&"), ("&lt;", "<"), ("&gt;", ">"),
-            ("&quot;", "\""), ("&#39;", "'"), ("&rsquo;", "’"), ("&lsquo;", "‘")
+            ("&quot;", "\""), ("&#39;", "'"), ("&rsquo;", "’"), ("&lsquo;", "‘"),
+            ("&rdquo;", "”"), ("&ldquo;", "“"), ("&apos;", "'"), ("&hellip;", "…"),
+            ("&mdash;", "—"), ("&ndash;", "–"), ("&middot;", "·"), ("&bull;", "•"),
+            ("&copy;", "©"), ("&reg;", "®"), ("&deg;", "°"), ("&euro;", "€"),
+            ("&pound;", "£"), ("&trade;", "™")
         ] {
             result = result.replacingOccurrences(of: entity, with: replacement)
         }
