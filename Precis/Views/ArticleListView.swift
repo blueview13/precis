@@ -150,7 +150,7 @@ struct ArticleListView: View {
                         .help("Clear search")
                     }
                 }
-                .padding(.horizontal, 12)
+                .padding(.horizontal, 8)
                 .padding(.vertical, 6)
                 .background(Color(nsColor: .textBackgroundColor))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -158,9 +158,14 @@ struct ArticleListView: View {
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(PrecisDesignSystem.rule(for: colorScheme), lineWidth: 1)
                 )
-                .frame(minWidth: 110, maxWidth: 228)
+                .frame(minWidth: 70, maxWidth: 228)
             }
-            .padding(PrecisSpacing.md)
+            // Tight horizontal padding so the header's fixed-width controls
+            // plus the search field still fit inside the narrowest headline
+            // column — otherwise the whole column measures wider than its
+            // frame and gets centred and clipped.
+            .padding(.horizontal, PrecisSpacing.sm)
+            .padding(.vertical, PrecisSpacing.md)
 
             ScrollViewReader { proxy in
                 ScrollView {

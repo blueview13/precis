@@ -1325,13 +1325,18 @@ struct MainWindowLayout: View {
 
                 Spacer()
 
-                Button(action: { isSidebarHidden = true }) {
-                    Image(systemName: "sidebar.left")
-                        .font(.title3)
-                        .foregroundStyle(PrecisDesignSystem.marginalia)
+                // Hidden in the three-column layout: there the sidebar is part
+                // of the column arrangement and hiding it would leave the
+                // layout with a stray column.
+                if !isColumnLayout {
+                    Button(action: { isSidebarHidden = true }) {
+                        Image(systemName: "sidebar.left")
+                            .font(.title3)
+                            .foregroundStyle(PrecisDesignSystem.marginalia)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Hide sidebar")
                 }
-                .buttonStyle(.plain)
-                .help("Hide sidebar")
 
                 Button(action: {
                     Task { await refreshAllFeeds() }
@@ -2187,33 +2192,44 @@ private struct ReaderSplitLayout<Sidebar: View, ArticleList: View, ReadingPane: 
 
     @Environment(\.colorScheme) private var colorScheme
 
-    /// Width a divider drag began at — `DragGesture.translation` is cumulative
-    /// from the drag start, so the drag offsets from this instead of
-    /// compounding it every tick.
-    @State private var sidebarDragStartWidth: CGFloat?
-    @State private var columnDragStartWidth: CGFloat?
-    /// Widths proposed by an in-flight divider drag. The panes keep their
-    /// current size until the drag ends; only the guide line below moves. That
-    /// way nothing reflows on a drag frame — resizing the headline list and the
-    /// article's web view every frame is what made resizing judder.
+    /// Width proposed by an in-flight sidebar-border drag. Like the headline
+    /// column below, the sidebar itself keeps its current width until the drag
+    /// ends and only the guide line moves. Resizing the panes live re-laid out
+    /// the headline list and re-wrapped the article's web view on every frame —
+    /// that juddered, and in the worst case pegged the main thread inside
+    /// SwiftUI's layout/animation cycle for the whole drag (a 19s hang report
+    /// was captured on 2026-10-04). The width is committed once, on release.
     @State private var pendingSidebarWidth: CGFloat?
+    /// Width proposed by an in-flight headline-column drag. That pane keeps its
+    /// current size until the drag ends and only the guide line moves —
+    /// resizing the headline list and the article's web view every frame is
+    /// what made that resize judder.
     @State private var pendingColumnWidth: CGFloat?
     @State private var windowWidth: CGFloat = 1200
     @State private var windowHeight: CGFloat = 900
 
-    /// Where the in-flight divider drag will land, in this view's coordinates.
+    /// Where the in-flight headline-column drag will land, in this view's
+    /// coordinates. (The sidebar's own guide is drawn inside the sidebar, so it
+    /// is measured from the sidebar's edge instead of from here.)
     private var guideX: CGFloat? {
-        let sidebarSlot = isSidebarHidden ? 0 : state.sidebarWidth
-        if let pending = pendingSidebarWidth { return pending }
-        if let pending = pendingColumnWidth { return sidebarSlot + 10 + pending }
-        return nil
+        guard let pending = pendingColumnWidth else { return nil }
+        let sidebarSlot = isSidebarHidden ? 0 : state.sidebarWidth + 1
+        return sidebarSlot + 6 + pending
+    }
+
+    /// Where the in-flight sidebar-border drag will land, in this view's
+    /// coordinates — the guide line that tracks the pointer while the sidebar
+    /// is being resized.
+    private var sidebarGuideX: CGFloat? {
+        guard pendingSidebarWidth != nil, !isSidebarHidden else { return nil }
+        return pendingSidebarWidth
     }
 
     /// Widest the headlines column may get in the three-column layout: leaves
-    /// room for the sidebar (when visible) and a readable reading pane. Floored
-    /// at 250pt — the same floor the divider drag uses.
+    /// room for the sidebar (when visible, plus its 1pt border) and a readable
+    /// reading pane. Floored at 250pt — the same floor the divider uses.
     private var articleListMaxWidth: CGFloat {
-        let sidebarRoom = isSidebarHidden ? 0 : state.sidebarWidth + 10
+        let sidebarRoom = isSidebarHidden ? 0 : state.sidebarWidth + 1
         return max(250, windowWidth - sidebarRoom - 6 - 340)
     }
 
@@ -2225,7 +2241,9 @@ private struct ReaderSplitLayout<Sidebar: View, ArticleList: View, ReadingPane: 
             sidebar
                 .frame(width: state.sidebarWidth)
                 .overlay(alignment: .trailing) {
-                    // Full-height sidebar border in the macOS accent color.
+                    // Full-height sidebar border in the macOS accent color —
+                    // this 1pt line IS the divider between the sidebar and the
+                    // main pane.
                     Rectangle()
                         .fill(Color.accentColor)
                         .frame(width: 1)
@@ -2233,45 +2251,62 @@ private struct ReaderSplitLayout<Sidebar: View, ArticleList: View, ReadingPane: 
                 .offset(x: isSidebarHidden ? -state.sidebarWidth : 0)
                 .frame(width: isSidebarHidden ? 0 : state.sidebarWidth, alignment: .leading)
                 .clipped()
-
-            // Draggable vertical divider for sidebar resize. Kept wide enough
-            // (10pt) to grab at any window size, and drawn above the main pane
-            // (zIndex) so nothing overlaps its hit area; it collapses with the
-            // sidebar so no dead zone is left behind.
-            Rectangle()
-                .fill(Color.clear)
-                .frame(width: isSidebarHidden ? 0 : 10)
-                .contentShape(Rectangle())
-                .gesture(
-                    DragGesture(minimumDistance: 1)
-                        .onChanged { value in
-                            let start = sidebarDragStartWidth ?? state.sidebarWidth
-                            sidebarDragStartWidth = start
-                            pendingSidebarWidth = max(
-                                180,
-                                min(start + value.translation.width, max(700, state.autoSidebarWidth))
+                // Handle and guide are applied AFTER the clip above and aligned
+                // to this frame's trailing edge — the same edge the border line
+                // is drawn on — so they cannot drift from the visible divider,
+                // whatever the surrounding layout does (the earlier versions
+                // positioned them from the row's origin, which is what made
+                // them appear offset in the three-column layout).
+                .overlay(alignment: .trailing) {
+                    if !isSidebarHidden {
+                        Rectangle()
+                            .fill(Color.clear)
+                            // 14pt strip biased just inside the border (12pt in,
+                            // 2pt out) so the cursor reads as sitting on the
+                            // sidebar's edge rather than over the middle column.
+                            .frame(width: 14)
+                            .contentShape(Rectangle())
+                            .offset(x: 2)
+                            .gesture(
+                                DragGesture(minimumDistance: 1)
+                                    .onChanged { value in
+                                        // Hand width control to the user so an
+                                        // automatic width update can't fight
+                                        // the drag.
+                                        state.userAdjustedSidebarWidth = true
+                                        // `state.sidebarWidth` deliberately
+                                        // does not change until the drag ends:
+                                        // only the guide line tracks the
+                                        // pointer, and the panes are re-flowed
+                                        // once, on release.
+                                        pendingSidebarWidth = max(
+                                            180,
+                                            min(state.sidebarWidth + value.translation.width,
+                                                max(700, state.autoSidebarWidth))
+                                        )
+                                    }
+                                    .onEnded { _ in
+                                        if let pending = pendingSidebarWidth {
+                                            state.sidebarWidth = pending
+                                        }
+                                        pendingSidebarWidth = nil
+                                    }
                             )
-                        }
-                        .onEnded { _ in
-                            // Hand width control to the user so an automatic
-                            // width update can't fight the drag, then apply the
-                            // width in one step.
-                            state.userAdjustedSidebarWidth = true
-                            if let pending = pendingSidebarWidth {
-                                state.sidebarWidth = pending
+                            .onHover { inside in
+                                if inside {
+                                    NSCursor.resizeLeftRight.push()
+                                } else {
+                                    NSCursor.pop()
+                                }
                             }
-                            pendingSidebarWidth = nil
-                            sidebarDragStartWidth = nil
-                        }
-                )
-                .onHover { inside in
-                    if inside {
-                        NSCursor.resizeLeftRight.push()
-                    } else {
-                        NSCursor.pop()
                     }
                 }
-                .zIndex(1)
+
+            // Layout slot for the sidebar's border. The divider line is the
+            // sidebar's own 1pt border, so the middle column starts right after
+            // it — no blank gap to make the boundary ambiguous.
+            Color.clear
+                .frame(width: isSidebarHidden ? 0 : 1)
 
             // Main pane: the default stacked layout (headlines above the
             // reading pane) or three vertical columns (headlines beside the
@@ -2280,6 +2315,14 @@ private struct ReaderSplitLayout<Sidebar: View, ArticleList: View, ReadingPane: 
                 HStack(spacing: 0) {
                     articleList
                         .frame(width: state.articleListWidth)
+                        // The headline column's content (its header especially)
+                        // has a minimum width. At the narrow column widths it is
+                        // wider than the column, and because a fixed-width frame
+                        // centres its content it bled a couple of points over
+                        // the sidebar's 1pt border — which hid the divider and
+                        // sat on top of the resize handle, making it feel
+                        // offset. Keep it strictly inside its own column.
+                        .clipped()
 
                     // Draggable divider between the headlines column and the
                     // reading pane — the pane takes whatever width remains.
@@ -2290,11 +2333,12 @@ private struct ReaderSplitLayout<Sidebar: View, ArticleList: View, ReadingPane: 
                         .gesture(
                             DragGesture(minimumDistance: 1)
                                 .onChanged { value in
-                                    let start = columnDragStartWidth ?? state.articleListWidth
-                                    columnDragStartWidth = start
+                                    // `state.articleListWidth` stays put until
+                                    // the drag ends, so this is the starting
+                                    // width plus the cumulative translation.
                                     pendingColumnWidth = max(
                                         250,
-                                        min(start + value.translation.width, articleListMaxWidth)
+                                        min(state.articleListWidth + value.translation.width, articleListMaxWidth)
                                     )
                                 }
                                 .onEnded { _ in
@@ -2302,7 +2346,6 @@ private struct ReaderSplitLayout<Sidebar: View, ArticleList: View, ReadingPane: 
                                         state.articleListWidth = pending
                                     }
                                     pendingColumnWidth = nil
-                                    columnDragStartWidth = nil
                                 }
                         )
                         .onHover { inside in
@@ -2354,11 +2397,13 @@ private struct ReaderSplitLayout<Sidebar: View, ArticleList: View, ReadingPane: 
         // showing where it will land. The panes themselves are resized once, on
         // release.
         .overlay(alignment: .topLeading) {
-            if let guideX {
+            if let guide = sidebarGuideX ?? guideX {
                 Rectangle()
                     .fill(Color.accentColor)
                     .frame(width: 2)
-                    .offset(x: guideX)
+                    // Centre the 2pt line on the boundary rather than hanging
+                    // it off the right-hand side of it.
+                    .offset(x: guide - 1)
                     .allowsHitTesting(false)
             }
         }
