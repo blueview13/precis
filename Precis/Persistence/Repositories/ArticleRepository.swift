@@ -60,9 +60,17 @@ public final class ArticleRepository: ArticleRepositoryProtocol {
     public func markRead(_ article: ArticleRecord, read: Bool, context: ModelContext) throws {
         let hash = article.titleHash ?? DeduplicationPipeline.titleHash(article.title)
         article.titleHash = hash
-        let descriptor = FetchDescriptor<ArticleRecord>(
-            predicate: #Predicate { $0.titleHash == hash }
-        )
+        let cleanURL = article.cleanURL
+            ?? article.link.flatMap(URL.init(string:)).map(DeduplicationPipeline.canonicalURL)
+        article.cleanURL = cleanURL
+        let descriptor: FetchDescriptor<ArticleRecord>
+        if let cleanURL {
+            descriptor = FetchDescriptor<ArticleRecord>(predicate: #Predicate {
+                $0.titleHash == hash || $0.cleanURL == cleanURL
+            })
+        } else {
+            descriptor = FetchDescriptor<ArticleRecord>(predicate: #Predicate { $0.titleHash == hash })
+        }
         var matching = try context.fetch(descriptor)
         if !matching.contains(where: { $0.id == article.id }) { matching.append(article) }
         for record in matching { record.isRead = read }

@@ -49,7 +49,7 @@ public struct Article: Identifiable, Codable, Hashable {
         self.id = record.id
         self.feedID = record.feed?.id ?? UUID()
         self.title = record.title
-        self.cleanURL = record.cleanURL
+        self.cleanURL = record.cleanURL ?? record.link.flatMap(URL.init(string:)).map(DeduplicationPipeline.canonicalURL)
         self.titleHash = record.titleHash ?? DeduplicationPipeline.titleHash(record.title)
         self.author = record.author
         self.publishedDate = record.publishedDate

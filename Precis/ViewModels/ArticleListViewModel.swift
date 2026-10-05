@@ -186,25 +186,69 @@ public final class ArticleListViewModel: ObservableObject {
         return collapseDuplicateRows(applySort(to: matching))
     }
 
-    /// Keep the first (newest under the default sort) row and attach distinct
-    /// source names from the rest of its exact-title-hash group.
+    /// Collapse connected articles that share either a normalized title or a
+    /// canonical URL, keeping the first sorted article as primary.
     private func collapseDuplicateRows(_ sorted: [ArticleListItem]) -> [ArticleListItem] {
-        var primaryIndexByHash: [String: Int] = [:]
-        var result: [ArticleListItem] = []
-        result.reserveCapacity(sorted.count)
-        for item in sorted {
-            guard let primaryIndex = primaryIndexByHash[item.titleHash] else {
-                primaryIndexByHash[item.titleHash] = result.count
-                result.append(item)
-                continue
+        guard sorted.count > 1 else { return sorted }
+
+        var parents = Array(sorted.indices)
+        func root(of index: Int) -> Int {
+            var current = index
+            while parents[current] != current { current = parents[current] }
+            return current
+        }
+        func join(_ first: Int, _ second: Int) {
+            let firstRoot = root(of: first)
+            let secondRoot = root(of: second)
+            if firstRoot != secondRoot { parents[secondRoot] = firstRoot }
+        }
+
+        var firstIndexByHash: [String: Int] = [:]
+        var firstIndexByURL: [String: Int] = [:]
+        for (index, item) in sorted.enumerated() {
+            if let first = firstIndexByHash[item.titleHash] {
+                join(first, index)
+            } else {
+                firstIndexByHash[item.titleHash] = index
             }
-            let name = FeedDiscoveryService.conciseTitle(item.feedTitle)
-            if result[primaryIndex].feedTitle != item.feedTitle,
-               !result[primaryIndex].alsoIn.contains(name) {
-                result[primaryIndex].alsoIn.append(name)
+            if let cleanURL = item.cleanURL, !cleanURL.isEmpty {
+                if let first = firstIndexByURL[cleanURL] {
+                    join(first, index)
+                } else {
+                    firstIndexByURL[cleanURL] = index
+                }
             }
         }
+
+        var memberIndicesByRoot: [Int: [Int]] = [:]
+        for index in sorted.indices {
+            memberIndicesByRoot[root(of: index), default: []].append(index)
+        }
+
+        var result: [ArticleListItem] = []
+        result.reserveCapacity(memberIndicesByRoot.count)
+        for index in sorted.indices {
+            let groupRoot = root(of: index)
+            guard let members = memberIndicesByRoot[groupRoot], members.first == index else { continue }
+            var primary = sorted[index]
+            var sourceNames: [String] = []
+            var seenFeedIDs: Set<UUID> = []
+            if let feedID = primary.feedID { seenFeedIDs.insert(feedID) }
+            for memberIndex in members.dropFirst() {
+                let duplicate = sorted[memberIndex]
+                guard let feedID = duplicate.feedID, seenFeedIDs.insert(feedID).inserted else { continue }
+                let name = FeedDiscoveryService.conciseTitle(duplicate.feedTitle)
+                if !sourceNames.contains(name) { sourceNames.append(name) }
+            }
+            primary.alsoIn = sourceNames
+            result.append(primary)
+        }
         return result
+    }
+
+    private func sharesDuplicateKey(_ lhs: ArticleListItem, _ rhs: ArticleListItem) -> Bool {
+        lhs.titleHash == rhs.titleHash
+            || (lhs.cleanURL != nil && lhs.cleanURL == rhs.cleanURL)
     }
 
     /// Settings → "Default sort order". Stored (not re-read on each access) so
@@ -523,6 +567,7 @@ public final class ArticleListViewModel: ObservableObject {
         var rebuilt: [ArticleListItem] = []
         rebuilt.reserveCapacity(records.count)
         var didBackfillNormalizedText = false
+        var didBackfillDedupKeys = false
 
         for record in records {
             if var reused = existing[record.id] {
@@ -538,6 +583,17 @@ public final class ArticleListViewModel: ObservableObject {
             }
 
             let item = ArticleListItem(record: record)
+            // Backfill the optional migration columns once for records saved
+            // before deduplication keys were introduced. ArticleListItem has
+            // already computed these values for display/grouping.
+            if record.titleHash == nil {
+                record.titleHash = item.titleHash
+                didBackfillDedupKeys = true
+            }
+            if record.cleanURL == nil, let cleanURL = item.cleanURL {
+                record.cleanURL = cleanURL
+                didBackfillDedupKeys = true
+            }
             // Persist the plain-text render on first sight so no later launch
             // has to re-run the HTML-stripping pass over this article — and
             // rebuild renders written before the lead was cleaned of metadata
@@ -552,7 +608,7 @@ public final class ArticleListViewModel: ObservableObject {
         }
 
         items = rebuilt
-        if didBackfillNormalizedText {
+        if didBackfillNormalizedText || didBackfillDedupKeys {
             try? context.save()
         }
     }
@@ -986,7 +1042,7 @@ public final class ArticleListViewModel: ObservableObject {
             // mirror that value directly — the old `!record.isRead` computed
             // the OLD value here, which is why the first click never updated
             // the UI (the "double click to mark read" bug).
-            for index in items.indices where items[index].titleHash == item.titleHash {
+            for index in items.indices where sharesDuplicateKey(items[index], item) {
                 items[index].isRead = record.isRead
             }
         } catch {
@@ -1003,7 +1059,8 @@ public final class ArticleListViewModel: ObservableObject {
             for record in records where !record.isRead && targetIDs.contains(record.id) {
                 try articleRepository.markRead(record, read: true, context: context)
             }
-            for index in items.indices where targetIDs.contains(items[index].id) {
+            let targets = items.filter { targetIDs.contains($0.id) }
+            for index in items.indices where targets.contains(where: { sharesDuplicateKey(items[index], $0) }) {
                 items[index].isRead = true
             }
         } catch {}
@@ -1018,7 +1075,7 @@ public final class ArticleListViewModel: ObservableObject {
                 try articleRepository.markRead(record, read: true, context: context)
             }
             if let target = items.first(where: { $0.id == articleID }) {
-                for index in items.indices where items[index].titleHash == target.titleHash {
+                for index in items.indices where sharesDuplicateKey(items[index], target) {
                     items[index].isRead = true
                 }
             }
@@ -1032,7 +1089,8 @@ public final class ArticleListViewModel: ObservableObject {
             for record in records where record.isRead && targetIDs.contains(record.id) {
                 try articleRepository.markRead(record, read: false, context: context)
             }
-            for index in items.indices where targetIDs.contains(items[index].id) {
+            let targets = items.filter { targetIDs.contains($0.id) }
+            for index in items.indices where targets.contains(where: { sharesDuplicateKey(items[index], $0) }) {
                 items[index].isRead = false
             }
         } catch {}
