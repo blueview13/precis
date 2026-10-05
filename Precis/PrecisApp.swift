@@ -373,11 +373,13 @@ private struct DesktopFeedPanelView: View {
     @Query(sort: \ArticleRecord.publishedDate, order: .reverse)
     private var articles: [ArticleRecord]
     @AppStorage("desktopPanelSources") private var selectedFeedIDs = "*"
+    @AppStorage("desktopPanelSmartCategories") private var selectedSmartCategoryIDs = ""
     @AppStorage("desktopPanelWidth") private var panelWidth = Double(DesktopPanelPlacement.defaultWidth)
     @AppStorage("desktopPanelEdge") private var panelEdge = "right"
-    @AppStorage("desktopPanelBackground") private var backgroundHex = "#FFBE24"
-    @AppStorage("desktopPanelTextColor") private var textHex = ""
-    @AppStorage("desktopPanelOpacity") private var backgroundOpacity = 0.35
+    @AppStorage("desktopPanelBackground") private var backgroundHex = "#FFFFFF"
+    @AppStorage("desktopPanelTextColor") private var textHex = "#000000"
+    @AppStorage("desktopPanelOpacity") private var backgroundOpacity = 0.7
+    @ObservedObject private var smartCategoryStore = SmartCategoryStore.shared
     @Environment(\.modelContext) private var modelContext
 
     let onClose: () -> Void
@@ -396,21 +398,33 @@ private struct DesktopFeedPanelView: View {
             from: selectedFeedIDs,
             availableFeedIDs: availableFeedIDs
         )
+        let smartCategoryIDs = Set(selectedSmartCategoryIDs.split(separator: ",").compactMap {
+            UUID(uuidString: String($0))
+        })
+        let smartCategories = smartCategoryStore.categories.filter {
+            smartCategoryIDs.contains($0.id) && !$0.isDeleted
+        }
+        let evaluator = SmartCategoryEvaluator()
 
         return Array(articles.lazy.filter { article in
             guard let feed = article.feed, !feed.muted else { return false }
-            return selection.contains(feed.id)
+            if selection.contains(feed.id) { return true }
+            guard !smartCategories.isEmpty else { return false }
+            let articleValue = Article(record: article)
+            return smartCategories.contains { category in
+                evaluator.matches(articleValue, category: category, feedName: feed.title, categoryName: feed.category?.name)
+            }
         }.prefix(80))
     }
 
     private var panelBackground: Color {
-        PrecisDesignSystem.color(hex: backgroundHex) ?? PrecisTheme.current.background
+        PrecisDesignSystem.color(hex: backgroundHex) ?? .white
     }
 
     /// Article title/summary ink — the Settings "Text color" swatch, falling
     /// back to the theme foreground until the user picks one.
     private var panelText: Color {
-        PrecisDesignSystem.color(hex: textHex) ?? PrecisDesignSystem.foreground(for: .light)
+        PrecisDesignSystem.color(hex: textHex) ?? .black
     }
 
     var body: some View {
