@@ -7,6 +7,7 @@ struct MainWindowLayout: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     @StateObject private var viewModel: ArticleListViewModel
+    @ObservedObject private var smartCategoryStore = SmartCategoryStore.shared
     @AppStorage("notifyOnNewArticles") private var notifyOnNewArticles = false
     /// Hides the unread-count pills in the sidebar (feeds and Library items)
     /// when off.
@@ -43,6 +44,8 @@ struct MainWindowLayout: View {
     @State private var importStatusKind: ImportStatusKind = .neutral
     @State private var importedFeeds: [FeedRecord] = []
     @State private var showAddFeedSheet = false
+    @State private var showSmartCategoryEditor = false
+    @State private var editingSmartCategory: SmartCategory?
     @State private var isHoveringAddFeeds = false
     @State private var categories: [CategoryRecord] = []
     @State private var isAddingCategory = false
@@ -53,6 +56,7 @@ struct MainWindowLayout: View {
     @State private var editingFeedName = ""
     // Category whose color popover is open (set from its context menu).
     @State private var colorEditingCategoryID: UUID?
+    @State private var colorEditingSmartCategoryID: UUID?
     @FocusState private var isCategoryInputFocused: Bool
     @FocusState private var isCategoryEditFocused: Bool
     @FocusState private var isFeedEditFocused: Bool
@@ -274,6 +278,13 @@ struct MainWindowLayout: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .precisFeedsRefreshed)) { _ in
             refreshFeeds()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .precisNewSmartCategory)) { _ in
+            editingSmartCategory = nil
+            showSmartCategoryEditor = true
+        }
+        .onChange(of: smartCategoryStore.categories) { _, _ in
+            viewModel.invalidateSmartCategoryCaches()
         }
         .onReceive(NotificationCenter.default.publisher(for: .precisFeedsImported)) { _ in
             // OPML import finished in the Settings window — reload the feed
@@ -543,6 +554,75 @@ struct MainWindowLayout: View {
         }
         .padding(PrecisSpacing.md)
         .frame(minWidth: 260)
+    }
+
+    private func smartCategoryColorBinding(for category: SmartCategory) -> Binding<Color> {
+        Binding(
+            get: { category.colorHex.flatMap { PrecisDesignSystem.color(hex: $0) } ?? Color.accentColor },
+            set: { SmartCategoryStore.shared.setColor(PrecisDesignSystem.hexString(from: $0), for: category.id) }
+        )
+    }
+
+    private func smartCategoryColorPopover(for category: SmartCategory) -> some View {
+        VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
+            Text("Text & Icon Color")
+                .font(PrecisTypography.metadata)
+                .foregroundStyle(PrecisDesignSystem.marginalia)
+                .textCase(.uppercase)
+                .tracking(1.2)
+            ColorPicker("Color", selection: smartCategoryColorBinding(for: category), supportsOpacity: false)
+            HStack {
+                Button("Use Default") { SmartCategoryStore.shared.setColor(nil, for: category.id) }
+                    .disabled(category.colorHex == nil)
+                Spacer()
+                Button("Done") { colorEditingSmartCategoryID = nil }
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(PrecisSpacing.md)
+        .frame(minWidth: 260)
+    }
+
+    private func smartCategoryColorPopoverIsPresented(for id: UUID) -> Binding<Bool> {
+        Binding(
+            get: { colorEditingSmartCategoryID == id },
+            set: { presented in
+                if !presented, colorEditingSmartCategoryID == id {
+                    colorEditingSmartCategoryID = nil
+                }
+            }
+        )
+    }
+
+    @ViewBuilder
+    private var smartCategorySidebarSection: some View {
+        if !smartCategoryStore.categories.filter({ !$0.isDeleted }).isEmpty {
+            SidebarSection(title: "Smart Categories")
+            ForEach(smartCategoryStore.categories.filter({ !$0.isDeleted })) { smartCategory in
+                SidebarItem(title: smartCategory.name, icon: "gearshape", badge: sidebarCount(viewModel.unreadCount(inSmartCategory: smartCategory.id)), tint: smartCategory.colorHex.flatMap { PrecisDesignSystem.color(hex: $0) }, active: viewModel.selectedSidebarFilter == .smartCategory(smartCategory.id)) {
+                    selectedSidebarItem = smartCategory.name
+                    viewModel.selectedSidebarFilter = .smartCategory(smartCategory.id)
+                }
+                .contextMenu {
+                    Button("Edit Smart Category…") { editingSmartCategory = smartCategory; showSmartCategoryEditor = true }
+                    Button("Rename…") { editingSmartCategory = smartCategory; showSmartCategoryEditor = true }
+                    Button("Duplicate") {
+                        let duplicate = SmartCategory(name: "\(smartCategory.name) Copy", colorHex: smartCategory.colorHex, matchMode: smartCategory.matchMode, rootGroup: smartCategory.rootGroup, sortOrder: smartCategoryStore.categories.filter({ !$0.isDeleted }).count)
+                        smartCategoryStore.upsert(duplicate); viewModel.invalidateSmartCategoryCaches()
+                    }
+                    Button("Change Color…") { colorEditingSmartCategoryID = smartCategory.id }
+                    Divider()
+                    Button("New Smart Category…") { editingSmartCategory = nil; showSmartCategoryEditor = true }
+                    Button("Delete Smart Category", role: .destructive) {
+                        smartCategoryStore.remove(id: smartCategory.id); viewModel.invalidateSmartCategoryCaches()
+                        if viewModel.selectedSidebarFilter == .smartCategory(smartCategory.id) { viewModel.selectedSidebarFilter = .all; selectedSidebarItem = "All Items" }
+                    }
+                }
+                .popover(isPresented: smartCategoryColorPopoverIsPresented(for: smartCategory.id)) {
+                    smartCategoryColorPopover(for: smartCategory)
+                }
+            }
+        }
     }
 
     private func beginEditingCategory(_ category: CategoryRecord) {
@@ -1347,10 +1427,9 @@ struct MainWindowLayout: View {
             ScrollView {
             LazyVStack(alignment: .leading, spacing: 9) {
                 // Categories section
-                SidebarSection(title: "Categories", addActive: isAddingCategory) {
-                    isAddingCategory.toggle()
-                    newCategoryName = ""
-                }
+                SidebarSection(title: "Categories", addActive: isAddingCategory, onAdd: {
+                    isAddingCategory.toggle(); newCategoryName = ""
+                }, onAddSmartCategory: { editingSmartCategory = nil; showSmartCategoryEditor = true })
 
                 if isAddingCategory {
                     TextField("", text: $newCategoryName, prompt: Text("Category name"))
@@ -1387,6 +1466,8 @@ struct MainWindowLayout: View {
                         // User-chosen tint from "Change Color…" — nil keeps
                         // the default selection/neutral row colors.
                         let customTint = category.colorHex.flatMap { PrecisDesignSystem.color(hex: $0) }
+                        let categoryIconColor = customTint ?? (isCategorySelected ? Color.accentColor : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.6))
+                        let categoryTextColor = customTint ?? (isCategorySelected ? Color.accentColor : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.75))
                         HStack(spacing: 10) {
                             if isCategorySelected {
                                 Capsule()
@@ -1400,12 +1481,12 @@ struct MainWindowLayout: View {
                             Image(systemName: "square.grid.2x2")
                                 .font(.body)
                                 .frame(width: 18)
-                                .foregroundStyle(customTint ?? (isCategorySelected ? Color.accentColor : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.6)))
+                                .foregroundStyle(categoryIconColor)
 
                             Text(category.name)
                                 .font(PrecisTypography.body)
                                 .fontWeight(isCategorySelected ? .semibold : nil)
-                                .foregroundStyle(customTint ?? (isCategorySelected ? Color.accentColor : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.75)))
+                                .foregroundStyle(categoryTextColor)
 
                             Spacer(minLength: 0)
                         }
@@ -1543,6 +1624,8 @@ struct MainWindowLayout: View {
                     }
                 }
 
+                smartCategorySidebarSection
+
                 // Feeds not assigned to a category
                 if !uncategorizedFeeds.isEmpty {
                     SidebarSection(title: "Feeds")
@@ -1632,6 +1715,12 @@ struct MainWindowLayout: View {
                     }
                 }
             )
+        }
+        .sheet(isPresented: $showSmartCategoryEditor) {
+            SmartCategoryEditorView(category: editingSmartCategory) { category in
+                smartCategoryStore.upsert(category)
+                viewModel.invalidateSmartCategoryCaches()
+            }
         }
         // Favicon loading moved into `FeedFaviconView` itself: the old
         // warm-up loop wrote into a `@State` dictionary once PER feed, so
@@ -1985,6 +2074,7 @@ private struct SidebarSection: View {
     let title: String
     var addActive: Bool = false
     var onAdd: (() -> Void)? = nil
+    var onAddSmartCategory: (() -> Void)? = nil
 
     @Environment(\.colorScheme) private var colorScheme
     @State private var isHoveringAdd = false
@@ -1999,7 +2089,24 @@ private struct SidebarSection: View {
 
             Spacer(minLength: 0)
 
-            if let onAdd {
+            if let onAdd, let onAddSmartCategory {
+                Menu {
+                    Button("New Category", action: onAdd)
+                    Button("New Smart Category…", action: onAddSmartCategory)
+                    Divider()
+                    Button("Choose Smart Category Sync Folder…") { SmartCategoryStore.shared.chooseSyncFolder() }
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(Color.accentColor)
+                        .frame(width: 20, height: 20)
+                        .background(Circle().fill(Color.accentColor.opacity(isHoveringAdd ? 0.24 : 0.12)))
+                        .overlay(Circle().strokeBorder(Color.accentColor.opacity(isHoveringAdd ? 0.55 : 0.30), lineWidth: 1))
+                }
+                .menuStyle(.borderlessButton)
+                .onHover { isHoveringAdd = $0 }
+                .help("Add category")
+            } else if let onAdd {
                 Button(action: onAdd) {
                     Image(systemName: "plus")
                         .font(.system(size: 10, weight: .bold))
@@ -2033,6 +2140,7 @@ private struct SidebarItem: View {
     let title: String
     var icon: String? = nil
     var badge: Int = 0
+    var tint: Color? = nil
     let active: Bool
     let action: () -> Void
 
@@ -2055,12 +2163,12 @@ private struct SidebarItem: View {
                     Image(systemName: icon)
                         .font(.body)
                         .frame(width: 18)
-                        .foregroundStyle(active ? PrecisDesignSystem.flag : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.6))
+                        .foregroundStyle(tint ?? (active ? PrecisDesignSystem.flag : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.6)))
                 }
 
                 Text(title)
                     .font(PrecisTypography.body)
-                    .foregroundStyle(active ? PrecisDesignSystem.foreground(for: colorScheme) : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.75))
+                    .foregroundStyle(tint ?? (active ? PrecisDesignSystem.foreground(for: colorScheme) : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.75)))
 
                 Spacer()
 

@@ -5,7 +5,7 @@ import SwiftUI
 @MainActor
 public final class ArticleListViewModel: ObservableObject {
     @Published public var items: [ArticleListItem] {
-        didSet { invalidateDerivedState() }
+        didSet { invalidateSmartCategoryCaches() }
     }
     @Published public var selectedItemID: UUID? {
         // The Unread filter keeps the selected row visible, so the filtered
@@ -54,6 +54,10 @@ public final class ArticleListViewModel: ObservableObject {
     private var unreadCountsByFeedCache: [UUID: Int]?
     private var unreadTotalCache: Int?
     private var starredTotalCache: Int?
+    private var unreadCountsBySmartCategory: [UUID: Int] = [:]
+    private var smartCategoryMatchesCache: [UUID: [ArticleListItem]] = [:]
+    private var smartCategoryEvaluationsInFlight: Set<UUID> = []
+    private var smartCategoryEvaluationGeneration = 0
 
     private func invalidateDerivedState() {
         filteredItemsCache = nil
@@ -122,6 +126,8 @@ public final class ArticleListViewModel: ObservableObject {
             return "No starred articles yet"
         case .category:
             return "No articles in this category yet"
+        case .smartCategory:
+            return "No articles match this Smart Category yet"
         default:
             return "No articles here yet"
         }
@@ -154,6 +160,8 @@ public final class ArticleListViewModel: ObservableObject {
                 guard let feedID = item.feedID else { return false }
                 return categoryFeedIDs.contains(feedID)
             }
+        case .smartCategory(let smartCategoryID):
+            base = smartCategoryMatches(for: smartCategoryID)
         case .folder(let folderID):
             let feedIDs = Set(allFeeds.filter { $0.folder?.id == folderID }.map(\.id))
             base = items.filter { item in
@@ -214,6 +222,7 @@ public final class ArticleListViewModel: ObservableObject {
         case feed(UUID)
         case folder(UUID)
         case category(UUID)
+        case smartCategory(UUID)
     }
 
     @Published public var selectedSidebarFilter: SidebarFilter = .unread {
@@ -239,7 +248,48 @@ public final class ArticleListViewModel: ObservableObject {
     /// All feeds loaded from SwiftData. Category/folder filters resolve
     /// through this, so it feeds the derived-state cache as well.
     @Published public var allFeeds: [FeedRecord] = [] {
-        didSet { invalidateDerivedState() }
+        didSet { invalidateSmartCategoryCaches() }
+    }
+
+    public func smartCategoryMatches(for id: UUID) -> [ArticleListItem] {
+        if let cached = smartCategoryMatchesCache[id] { return cached }
+        guard let category = SmartCategoryStore.shared.categories.first(where: { $0.id == id }) else { return [] }
+        guard !smartCategoryEvaluationsInFlight.contains(id) else { return [] }
+        smartCategoryEvaluationsInFlight.insert(id)
+        let snapshot = items
+        let feedByID = Dictionary(uniqueKeysWithValues: allFeeds.map { ($0.id, ($0.title, $0.category?.name)) })
+        let generation = smartCategoryEvaluationGeneration
+        Task.detached(priority: .userInitiated) { [weak self] in
+            let evaluator = SmartCategoryEvaluator()
+            let matches = snapshot.filter { item in
+                guard let feedID = item.feedID else { return false }
+                let feed = feedByID[feedID]
+                let article = Article(id: item.id, feedID: feedID, title: item.title, author: item.author, publishedDate: item.publishedDate, link: item.link.flatMap(URL.init(string:)), rawContent: item.snippet, extractedContent: item.snippet, isRead: item.isRead, isStarred: item.isStarred, imageURL: item.imageURL.flatMap(URL.init(string:)))
+                return evaluator.matches(article, category: category, feedName: feed?.0 ?? item.feedTitle, categoryName: feed?.1)
+            }
+            await MainActor.run {
+                guard let self, generation == self.smartCategoryEvaluationGeneration else { return }
+                self.smartCategoryEvaluationsInFlight.remove(id)
+                self.smartCategoryMatchesCache[id] = matches
+                self.unreadCountsBySmartCategory[id] = matches.filter { !$0.isRead }.count
+                self.invalidateDerivedState()
+                self.objectWillChange.send()
+            }
+        }
+        return []
+    }
+
+    public func unreadCount(inSmartCategory id: UUID) -> Int {
+        if unreadCountsBySmartCategory[id] == nil { _ = smartCategoryMatches(for: id) }
+        return unreadCountsBySmartCategory[id] ?? 0
+    }
+
+    public func invalidateSmartCategoryCaches() {
+        smartCategoryMatchesCache = [:]
+        unreadCountsBySmartCategory = [:]
+        smartCategoryEvaluationGeneration += 1
+        smartCategoryEvaluationsInFlight = []
+        invalidateDerivedState()
     }
 
     public func loadFolders(context: ModelContext) {

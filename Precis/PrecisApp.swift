@@ -42,6 +42,14 @@ struct PrecisApp: App {
         }
         .defaultSize(width: 480, height: 560)
         .commands {
+            CommandGroup(after: .newItem) {
+                Button("New Smart Category…") {
+                    NotificationCenter.default.post(name: .precisNewSmartCategory, object: nil)
+                }
+                Button("Choose Smart Category Sync Folder…") {
+                    SmartCategoryStore.shared.chooseSyncFolder()
+                }
+            }
             // Settings… in the Precis app menu (⌘,)
             CommandGroup(replacing: .appSettings) {
                 Button("Settings…") {
@@ -64,6 +72,7 @@ extension Notification.Name {
     /// window's list can mirror the read state without re-fetching everything.
     static let precisArticleRead = Notification.Name("PrecisArticleRead")
     static let precisFeedsRefreshed = Notification.Name("PrecisFeedsRefreshed")
+    static let precisNewSmartCategory = Notification.Name("PrecisNewSmartCategory")
 }
 
 @MainActor

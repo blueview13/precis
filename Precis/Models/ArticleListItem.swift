@@ -1,10 +1,11 @@
 import Foundation
 import SwiftData
 
-public struct ArticleListItem: Identifiable, Hashable {
+public struct ArticleListItem: Identifiable, Hashable, Sendable {
     public let id: UUID
     public var title: String
     public var feedTitle: String
+    public var author: String?
     public var feedID: UUID?
     public var publishedDate: Date?
     public var isRead: Bool
@@ -58,6 +59,7 @@ public struct ArticleListItem: Identifiable, Hashable {
         self.id = id
         self.title = title
         self.feedTitle = feedTitle
+        self.author = nil
         self.publishedDate = publishedDate
         self.isRead = isRead
         self.isStarred = isStarred
@@ -72,6 +74,7 @@ public struct ArticleListItem: Identifiable, Hashable {
         self.id = record.id
         self.title = record.title
         self.feedTitle = record.feed?.title ?? "Inbox"
+        self.author = record.author
         self.feedID = record.feed?.id
         self.publishedDate = record.publishedDate ?? Date()
         self.isRead = record.isRead

@@ -69,6 +69,8 @@ targets:
       - target: Precis
     settings:
       base:
+        PRODUCT_NAME: PrecisTests
+        PRODUCT_MODULE_NAME: PrecisTests
         PRODUCT_BUNDLE_IDENTIFIER: app.precis.PrecisTests
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_FILE: ""
