@@ -260,7 +260,7 @@ struct ArticleListView: View {
     }
 }
 
-private struct ArticleListRow: View {
+private struct ArticleListRow: View, Equatable {
     let item: ArticleListItem
     let isSelected: Bool
     let showThumbnails: Bool
@@ -273,7 +273,26 @@ private struct ArticleListRow: View {
     /// side-by-side row (thumbnail left of the text) — unchanged.
     var showsThumbnailAbove: Bool = false
 
+    /// Compared on the parameters the body reads, never on the closures: a
+    /// width-only change (a live resize tick) leaves every one of these alone,
+    /// so the row's body is skipped and only the layout re-wraps its text at
+    /// the new width. The row's own `@AppStorage`/environment changes
+    /// invalidate it independently, so this can't mask a real update.
+    /// `nonisolated` because the `View` conformance makes the type's members
+    /// main-actor isolated, and `Equatable`'s requirement isn't.
+    nonisolated static func == (lhs: ArticleListRow, rhs: ArticleListRow) -> Bool {
+        lhs.item == rhs.item
+            && lhs.isSelected == rhs.isSelected
+            && lhs.showThumbnails == rhs.showThumbnails
+            && lhs.showsThumbnailAbove == rhs.showsThumbnailAbove
+    }
+
     var body: some View {
+        // TEMPORARY live-resize diagnostic: prints which property invalidated
+        // this row. Run once to see whether a width-only drag re-runs row
+        // bodies, then DELETE this line — it logs on every render, which would
+        // distort the Instruments numbers it is meant to explain.
+        let _ = Self._printChanges()
         Group {
             if showsThumbnailAbove {
                 // Card-style row: full-width banner over the headline and
@@ -295,15 +314,8 @@ private struct ArticleListRow: View {
         // article and (via the view model) marks it read.
         .contentShape(Rectangle())
         .onTapGesture(perform: onSelect)
-        // Highlight the selected row: accent tint under the leading accent bar.
+        // Highlight the selected row with a subtle tint only.
         .background(isSelected ? Color.accentColor.opacity(0.10) : Color.clear)
-        .overlay(alignment: .leading) {
-            if isSelected {
-                Rectangle()
-                    .fill(Color.accentColor)
-                    .frame(width: 3)
-            }
-        }
         .overlay(
             Rectangle()
                 .frame(height: 1)

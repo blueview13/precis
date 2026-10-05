@@ -6,49 +6,34 @@ import XCTest
 final class TopChromeRevealTests: XCTestCase {
     private let windowedMask: NSWindow.StyleMask = [.titled, .closable, .miniaturizable, .resizable]
 
-    func testWindowedWindowContributesNoTitlebarHeight() {
-        XCTAssertEqual(TopChromeReveal.revealedTitlebarHeight(for: windowedMask), 0)
-        XCTAssertEqual(TopChromeReveal.revealedTitlebarHeight(for: .borderless), 0)
-    }
+    /// A standard (non-notched) menu bar. The inset has to fit this plus the
+    /// titlebar, because in full screen the menu bar slides the titlebar — and
+    /// the traffic lights in it — down by its own height.
+    private let standardMenuBarHeight: CGFloat = 24
 
-    func testFullScreenTitlebarHeightMatchesTheSystemTitlebarMetric() {
+    /// The system's titlebar metric, measured the way AppKit reports it.
+    private func systemTitlebarHeight() -> CGFloat {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 200, height: 200),
             styleMask: windowedMask,
             backing: .buffered,
             defer: false
         )
-        let systemTitlebarHeight = window.frame.height - window.contentLayoutRect.height
-        XCTAssertGreaterThan(systemTitlebarHeight, 0)
-
-        XCTAssertEqual(TopChromeReveal.revealedTitlebarHeight(for: windowedMask.union(.fullScreen)), systemTitlebarHeight)
-        // A content-under-titlebar window still slides the same strip down.
-        XCTAssertEqual(
-            TopChromeReveal.revealedTitlebarHeight(for: windowedMask.union([.fullScreen, .fullSizeContentView])),
-            systemTitlebarHeight
-        )
+        let height = window.frame.height - window.contentLayoutRect.height
+        XCTAssertGreaterThan(height, 0)
+        return height
     }
 
-    func testShiftStaysZeroWhileChromeIsHidden() {
-        XCTAssertEqual(
-            TopChromeReveal.contentShift(isChromeRevealed: false, menuBarHeight: 31, titlebarHeight: 32),
-            0
+    /// The strip is content-free in every mode, so it must be at least as tall
+    /// as the chrome that can be drawn inside it: the titlebar the traffic
+    /// lights sit in, plus the menu bar that pushes it down in full screen.
+    /// Lowering the inset below that puts the lights on the header row when a
+    /// full-screen titlebar is revealed.
+    func testInsetFitsTheTitlebarAndTheMenuBarAboveIt() {
+        XCTAssertGreaterThanOrEqual(TopChromeReveal.topContentInset, systemTitlebarHeight())
+        XCTAssertGreaterThanOrEqual(
+            TopChromeReveal.topContentInset,
+            systemTitlebarHeight() + standardMenuBarHeight
         )
-    }
-
-    func testShiftClearsTheTitlebarAndMenuBarTogether() {
-        let titlebarHeight = TopChromeReveal.revealedTitlebarHeight(for: windowedMask.union(.fullScreen))
-        let menuBarHeight: CGFloat = 31
-        let shift = TopChromeReveal.contentShift(
-            isChromeRevealed: true,
-            menuBarHeight: menuBarHeight,
-            titlebarHeight: titlebarHeight
-        )
-
-        XCTAssertEqual(TopChromeReveal.revealedHeight(menuBarHeight: menuBarHeight, titlebarHeight: titlebarHeight), menuBarHeight + titlebarHeight)
-        // Covering only the menu bar — the old behaviour — left the traffic
-        // lights sitting on the content's top row.
-        XCTAssertGreaterThan(shift, menuBarHeight + TopChromeReveal.clearance)
-        XCTAssertGreaterThanOrEqual(shift, TopChromeReveal.revealedHeight(menuBarHeight: menuBarHeight, titlebarHeight: titlebarHeight))
     }
 }

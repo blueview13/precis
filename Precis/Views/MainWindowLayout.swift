@@ -65,14 +65,13 @@ struct MainWindowLayout: View {
     /// list never fires once focus lands on a child control (buttons,
     /// rows), which is why space appeared dead.
     @State private var spaceKeyMonitor: Any?
-    /// Auto-hidden top chrome handling: when the menu bar reveals over a
-    /// maximised/full-screen window it covers the top bar — and in full
-    /// screen the titlebar comes down with it — so the content slides down by
-    /// the revealed height while it's showing.
+    /// Auto-hidden top chrome handling: the window's content is laid out to
+    /// reach the top of the window (see `configureWindowChrome`) and the whole
+    /// layout is inset by the fixed `TopChromeReveal.topContentInset`, so the
+    /// menu bar and the full-screen titlebar have a strip of their own to
+    /// appear in. Nothing here reacts to the chrome showing — the header rows
+    /// keep their position instead of sliding down with it.
     @State private var hostingWindow: NSWindow?
-    @State private var mouseMonitor: Any?
-    @State private var globalMouseMonitor: Any?
-    @State private var menuBarShift: CGFloat = 0
     /// True between `presentSettings` un-minimizing the reader and that
     /// window reporting the restore finished.
     @State private var wasRestoringReader = false
@@ -218,7 +217,6 @@ struct MainWindowLayout: View {
             Task { await repairURLTitledFeeds() }
             viewModel.loadFolders(context: modelContext)
             startSpacebarMonitor()
-            startMenuBarMonitor()
             // Auto-generate feed-wide 12-hour summary on launch
             Task {
                 await viewModel.generateFeedWideSummary(context: modelContext, feedIDs: digestFeedIDs)
@@ -226,7 +224,6 @@ struct MainWindowLayout: View {
         }
         .onDisappear {
             stopSpacebarMonitor()
-            stopMenuBarMonitor()
         }
         .onReceive(NotificationCenter.default.publisher(for: .precisOpenSettings)) { _ in
             presentSettings()
@@ -245,9 +242,6 @@ struct MainWindowLayout: View {
             // list so the sidebar shows the new feeds immediately.
             refreshFeeds()
         }
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)) { _ in
-            updateMenuBarShift()
-        }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didDeminiaturizeNotification)) { notification in
             // Only for the reader we restored on Settings' behalf. A reader
             // un-minimized by hand is what the reader asked for, so Settings
@@ -258,25 +252,45 @@ struct MainWindowLayout: View {
             wasRestoringReader = false
             raiseSettingsWindow()
         }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didEnterFullScreenNotification)) { _ in
-            updateMenuBarShift()
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didEnterFullScreenNotification)) { notification in
+            // Re-assert the chrome config: AppKit rewrites the titlebar's
+            // appearance as it animates into full screen.
+            if let window = notification.object as? NSWindow {
+                configureWindowChrome(window)
+            }
         }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didExitFullScreenNotification)) { _ in
-            updateMenuBarShift()
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didExitFullScreenNotification)) { notification in
+            if let window = notification.object as? NSWindow {
+                configureWindowChrome(window)
+            }
         }
         .background(
             WindowCaptureView { window in
                 hostingWindow = window
                 window?.identifier = NSUserInterfaceItemIdentifier("PrecisMainWindow")
                 window?.acceptsMouseMovedEvents = true
-                DispatchQueue.main.async { updateMenuBarShift() }
+                if let window { configureWindowChrome(window) }
             }
         )
-        // When the auto-hidden menu bar reveals over this window, drop the
-        // content so the top bar sits below it (and below the full-screen
-        // titlebar it brings with it) instead of underneath it.
-        .padding(.top, menuBarShift)
+        // The fixed strip the auto-hidden chrome appears in. It never changes,
+        // so the top bar (and every header under it) holds still while the menu
+        // bar slides in — see `TopChromeReveal.topContentInset` for why the
+        // strip is as tall as it is. `ignoresSafeArea` first, so the titlebar's
+        // own inset can't add to it (which is what made the header move).
+        .ignoresSafeArea(.container, edges: .top)
+        .padding(.top, TopChromeReveal.topContentInset)
         .background(PrecisDesignSystem.background(for: colorScheme))
+    }
+
+    /// Lets the window's content run under its titlebar, so the strip the
+    /// traffic lights sit in belongs to the app's own background instead of a
+    /// system bar, and hides the title text. The lights themselves stay where
+    /// the system puts them — the layout reserves room for them rather than
+    /// moving out of the way (see `TopChromeReveal.topContentInset`).
+    private func configureWindowChrome(_ window: NSWindow) {
+        window.styleMask.insert(.fullSizeContentView)
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
     }
 
     // MARK: - Settings window
@@ -354,100 +368,6 @@ struct MainWindowLayout: View {
             NSEvent.removeMonitor(spaceKeyMonitor)
             self.spaceKeyMonitor = nil
         }
-    }
-
-    // MARK: - Auto-hidden menu bar reveal
-
-    /// Watches the mouse so `updateMenuBarShift()` can react whenever the
-    /// pointer enters or leaves the menu bar strip. Both monitors are
-    /// needed: while the menu bar overlays the window, its events can land
-    /// on our app or elsewhere depending on focus.
-    private func startMenuBarMonitor() {
-        guard mouseMonitor == nil else { return }
-        mouseMonitor = NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved, .leftMouseDown, .leftMouseUp]) { event in
-            MainActor.assumeIsolated {
-                updateMenuBarShift()
-            }
-            return event
-        }
-        globalMouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved, .leftMouseDown, .leftMouseUp]) { _ in
-            DispatchQueue.main.async {
-                self.updateMenuBarShift()
-            }
-        }
-    }
-
-    private func stopMenuBarMonitor() {
-        if let mouseMonitor {
-            NSEvent.removeMonitor(mouseMonitor)
-            self.mouseMonitor = nil
-        }
-        if let globalMouseMonitor {
-            NSEvent.removeMonitor(globalMouseMonitor)
-            self.globalMouseMonitor = nil
-        }
-    }
-
-    /// Slides the window content down while the auto-hidden chrome is showing
-    /// over a window that reaches the top of the screen (full screen, or
-    /// maximised with the menu bar set to hide), and back up when it goes
-    /// away. Clearing the menu bar alone is not enough in full screen: the
-    /// window's titlebar — and the traffic-light buttons in it — comes down
-    /// with the bar, right on top of the top row of the sidebar and list.
-    private func updateMenuBarShift() {
-        guard let window = hostingWindow,
-              let screen = window.screen ?? NSScreen.main else { return }
-
-        // Only windows that reach into the menu bar strip can be covered by
-        // it — in windowed mode the menu bar never overlaps us, so shifting
-        // would just add dead space.
-        guard window.frame.maxY >= screen.frame.maxY - 1 else {
-            if menuBarShift != 0 {
-                withAnimation(.easeOut(duration: 0.15)) { menuBarShift = 0 }
-            }
-            return
-        }
-
-        let overlayHeight = menuBarOverlayHeight(on: screen)
-        let mouse = NSEvent.mouseLocation
-        let overMenuBar = overlayHeight > 0
-            && mouse.x >= screen.frame.minX && mouse.x <= screen.frame.maxX
-            && mouse.y >= screen.frame.maxY - overlayHeight
-        // Keep the shift while the button is held so dragging a menu open
-        // and down through the list doesn't yank the content mid-drag.
-        let draggingThroughMenu = overlayHeight > 0 && menuBarShift > 0 && NSEvent.pressedMouseButtons != 0
-        let target = TopChromeReveal.contentShift(
-            isChromeRevealed: overMenuBar || draggingThroughMenu,
-            menuBarHeight: overlayHeight,
-            titlebarHeight: TopChromeReveal.revealedTitlebarHeight(for: window.styleMask)
-        )
-        guard target != menuBarShift else { return }
-        withAnimation(.easeOut(duration: 0.2)) { menuBarShift = target }
-    }
-
-    /// Height the revealed menu bar actually occupies on this screen: the
-    /// revealed bar is a top-edge window of the active app, so measure it
-    /// when it's showing; otherwise fall back to the reserved strip.
-    private func menuBarOverlayHeight(on screen: NSScreen) -> CGFloat {
-        let top = screen.frame.maxY
-        let measured = NSApp.windows
-            .filter { candidate in
-                guard candidate.isVisible,
-                      candidate !== hostingWindow,
-                      // Plain top-edge chrome: excludes menus/popovers
-                      // (popup levels) and the main content windows.
-                      candidate.level.rawValue < 100,
-                      candidate.frame.height >= 20,
-                      candidate.frame.height <= 64,
-                      candidate.frame.maxY <= top + 2,
-                      candidate.frame.maxY >= top - 64
-                else { return false }
-                return true
-            }
-            .map(\.frame.height)
-            .max() ?? 0
-        let reserved = top - screen.visibleFrame.maxY
-        return max(measured, reserved)
     }
 
     private func refreshFeeds() {
@@ -2177,8 +2097,9 @@ final class ReaderSplitState: ObservableObject {
     @Published var sidebarWidth: CGFloat = 260
     @Published var articleListWidth: CGFloat = 250
     @Published var articleListHeight: CGFloat = 350
-    /// True while a divider drag is in flight. The reading pane uses it to
-    /// hold back the article's height updates so the resize isn't fought by a
+    /// True while a divider drag is in flight. The reading pane uses it to hold
+    /// its article column at the width it already had (no web-view reflow) and
+    /// to hold back the height updates, so the resize isn't fought by a
     /// relayout of the pane on every frame.
     @Published var isResizing = false
     /// Measured auto width for the sidebar. Refreshed only when the feed list
@@ -2205,6 +2126,21 @@ extension EnvironmentValues {
     }
 }
 
+/// Live column resizing, the one switch between the two width-drag modes.
+///
+/// `false` — the deferred redraw that shipped first, and the fallback. While a
+/// width divider is dragged only the guide line moves; the panes are re-flowed
+/// once, on release. It never judders because nothing re-wraps mid-drag.
+///
+/// `true` — the pane takes the in-flight width on every drag tick, so headlines,
+/// summaries and banner thumbnails reflow under the pointer. The in-flight width
+/// still lives in `@State` and is committed to `ReaderSplitState` only on
+/// release, so a tick costs one relayout of the visible rows and does NOT
+/// re-evaluate the sidebar or reading-pane bodies. The reading pane is told a
+/// drag is running so its web view keeps the width it had rather than reflowing
+/// its document on every frame.
+private let liveResizeEnabled = true
+
 /// The sidebar + dividers + main pane arrangement. It takes the three panes as
 /// pre-built views, so re-rendering this view (once per drag tick) never
 /// re-renders their contents — only their frames change.
@@ -2219,18 +2155,17 @@ private struct ReaderSplitLayout<Sidebar: View, ArticleList: View, ReadingPane: 
 
     @Environment(\.colorScheme) private var colorScheme
 
-    /// Width proposed by an in-flight sidebar-border drag. Like the headline
-    /// column below, the sidebar itself keeps its current width until the drag
-    /// ends and only the guide line moves. Resizing the panes live re-laid out
-    /// the headline list and re-wrapped the article's web view on every frame —
-    /// that juddered, and in the worst case pegged the main thread inside
-    /// SwiftUI's layout/animation cycle for the whole drag (a 19s hang report
-    /// was captured on 2026-10-04). The width is committed once, on release.
+    /// Width proposed by an in-flight sidebar-border drag. Below the panes are
+    /// laid out at `displayedSidebarWidth`: in live mode that follows the drag,
+    /// otherwise the sidebar keeps its current width and only the guide line
+    /// moves. The width is always committed to the state on release, and the
+    /// fallback exists because resizing the panes live re-laid out the headline
+    /// list and re-wrapped the article's web view on every frame — that
+    /// juddered, and in the worst case pegged the main thread inside SwiftUI's
+    /// layout cycle for the whole drag (a 19s hang report on 2026-10-04).
     @State private var pendingSidebarWidth: CGFloat?
-    /// Width proposed by an in-flight headline-column drag. That pane keeps its
-    /// current size until the drag ends and only the guide line moves —
-    /// resizing the headline list and the article's web view every frame is
-    /// what made that resize judder.
+    /// Width proposed by an in-flight headline-column drag — the same deal as
+    /// `pendingSidebarWidth` above.
     @State private var pendingColumnWidth: CGFloat?
     @State private var windowWidth: CGFloat = 1200
     @State private var windowHeight: CGFloat = 900
@@ -2260,13 +2195,41 @@ private struct ReaderSplitLayout<Sidebar: View, ArticleList: View, ReadingPane: 
         return max(250, windowWidth - sidebarRoom - 6 - 340)
     }
 
+    /// Width the sidebar is laid out at right now: the in-flight drag width in
+    /// live mode, the committed width otherwise.
+    private var displayedSidebarWidth: CGFloat {
+        liveResizeEnabled ? (pendingSidebarWidth ?? state.sidebarWidth) : state.sidebarWidth
+    }
+
+    /// Width the headline column is laid out at right now — see
+    /// `displayedSidebarWidth`.
+    private var displayedColumnWidth: CGFloat {
+        liveResizeEnabled ? (pendingColumnWidth ?? state.articleListWidth) : state.articleListWidth
+    }
+
+    /// Live mode: flags a width drag as running so the reading pane holds its
+    /// web view at the width it already had instead of reflowing its document
+    /// on every tick. Guarded so the `@Published` flag only fires on the two
+    /// transitions, not once per frame.
+    private func beginLiveResize() {
+        guard liveResizeEnabled, !state.isResizing else { return }
+        state.isResizing = true
+    }
+
+    /// Ends a live width drag, releasing the reading pane's held width (it
+    /// re-measures once, here).
+    private func endLiveResize() {
+        guard liveResizeEnabled else { return }
+        state.isResizing = false
+    }
+
     var body: some View {
         HStack(spacing: 0) {
             // The sidebar slides out to the left (offset) while its layout
             // slot collapses, so the main pane expands smoothly instead of
             // the hide/show snapping instantly.
             sidebar
-                .frame(width: state.sidebarWidth)
+                .frame(width: displayedSidebarWidth)
                 .overlay(alignment: .trailing) {
                     // Full-height sidebar border in the macOS accent color —
                     // this 1pt line IS the divider between the sidebar and the
@@ -2275,8 +2238,8 @@ private struct ReaderSplitLayout<Sidebar: View, ArticleList: View, ReadingPane: 
                         .fill(Color.accentColor)
                         .frame(width: 1)
                 }
-                .offset(x: isSidebarHidden ? -state.sidebarWidth : 0)
-                .frame(width: isSidebarHidden ? 0 : state.sidebarWidth, alignment: .leading)
+                .offset(x: isSidebarHidden ? -displayedSidebarWidth : 0)
+                .frame(width: isSidebarHidden ? 0 : displayedSidebarWidth, alignment: .leading)
                 .clipped()
                 // Handle and guide are applied AFTER the clip above and aligned
                 // to this frame's trailing edge — the same edge the border line
@@ -2295,17 +2258,23 @@ private struct ReaderSplitLayout<Sidebar: View, ArticleList: View, ReadingPane: 
                             .contentShape(Rectangle())
                             .offset(x: 2)
                             .gesture(
-                                DragGesture(minimumDistance: 1)
+                                // Global coordinates: in live mode this handle
+                                // moves with the sidebar, so a drag anchored to
+                                // the handle's own space would chase itself.
+                                // Global and local translations are identical
+                                // while the handle is stationary, which is the
+                                // fallback's case.
+                                DragGesture(minimumDistance: 1, coordinateSpace: .global)
                                     .onChanged { value in
                                         // Hand width control to the user so an
                                         // automatic width update can't fight
                                         // the drag.
                                         state.userAdjustedSidebarWidth = true
-                                        // `state.sidebarWidth` deliberately
-                                        // does not change until the drag ends:
-                                        // only the guide line tracks the
-                                        // pointer, and the panes are re-flowed
-                                        // once, on release.
+                                        beginLiveResize()
+                                        // Fallback: `state.sidebarWidth` stays
+                                        // put for the whole drag and only the
+                                        // guide line tracks the pointer, with
+                                        // the panes re-flowed once on release.
                                         pendingSidebarWidth = max(
                                             180,
                                             min(state.sidebarWidth + value.translation.width,
@@ -2317,6 +2286,7 @@ private struct ReaderSplitLayout<Sidebar: View, ArticleList: View, ReadingPane: 
                                             state.sidebarWidth = pending
                                         }
                                         pendingSidebarWidth = nil
+                                        endLiveResize()
                                     }
                             )
                             .onHover { inside in
@@ -2341,7 +2311,7 @@ private struct ReaderSplitLayout<Sidebar: View, ArticleList: View, ReadingPane: 
             if isColumnLayout {
                 HStack(spacing: 0) {
                     articleList
-                        .frame(width: state.articleListWidth)
+                        .frame(width: displayedColumnWidth)
                         // The headline column's content (its header especially)
                         // has a minimum width. At the narrow column widths it is
                         // wider than the column, and because a fixed-width frame
@@ -2358,8 +2328,10 @@ private struct ReaderSplitLayout<Sidebar: View, ArticleList: View, ReadingPane: 
                         .frame(width: 6)
                         .contentShape(Rectangle())
                         .gesture(
-                            DragGesture(minimumDistance: 1)
+                            // Global coordinates — see the sidebar handle.
+                            DragGesture(minimumDistance: 1, coordinateSpace: .global)
                                 .onChanged { value in
+                                    beginLiveResize()
                                     // `state.articleListWidth` stays put until
                                     // the drag ends, so this is the starting
                                     // width plus the cumulative translation.
@@ -2373,6 +2345,7 @@ private struct ReaderSplitLayout<Sidebar: View, ArticleList: View, ReadingPane: 
                                         state.articleListWidth = pending
                                     }
                                     pendingColumnWidth = nil
+                                    endLiveResize()
                                 }
                         )
                         .onHover { inside in
@@ -2420,11 +2393,12 @@ private struct ReaderSplitLayout<Sidebar: View, ArticleList: View, ReadingPane: 
                 }
             }
         }
-        // The only thing that moves while a divider is dragged: a guide line
-        // showing where it will land. The panes themselves are resized once, on
-        // release.
+        // Fallback mode's drag feedback — the only thing that moves while a
+        // divider is dragged is a guide line showing where it will land; the
+        // panes themselves are resized once, on release. In live mode the panes
+        // follow the pointer instead, so there is nothing to preview.
         .overlay(alignment: .topLeading) {
-            if let guide = sidebarGuideX ?? guideX {
+            if !liveResizeEnabled, let guide = sidebarGuideX ?? guideX {
                 Rectangle()
                     .fill(Color.accentColor)
                     .frame(width: 2)
