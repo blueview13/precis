@@ -584,6 +584,9 @@ public final class ArticleListViewModel: ObservableObject {
 
         let processor = ArticleIngestProcessor()
         try await processor.ingestParsed(parsed.entries, feedID: feed.id, container: context.container)
+        // Ingest writes from its own background context. Drop any stale
+        // registered snapshots before querying from the window context.
+        context.rollback()
 
         let records = try articleRepository.fetchAll(context: context)
         rebuildItems(from: records, in: context)

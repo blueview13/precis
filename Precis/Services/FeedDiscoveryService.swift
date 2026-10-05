@@ -311,21 +311,26 @@ public final class FeedDiscoveryService: FeedDiscoveryServiceProtocol {
         let host = url.host?.lowercased() ?? ""
         guard host.contains("youtube.com") || host == "youtu.be" else { return nil }
 
-        let path = url.path
+        let pathComponents = url.path.split(separator: "/").map(String.init)
         var channelID: String?
         var handle: String?
 
-        if path.contains("/channel/") {
-            channelID = path.components(separatedBy: "/channel/").last
-        } else if path.contains("/user/") {
-            channelID = path.components(separatedBy: "/user/").last
-        } else if path.contains("/@") {
-            handle = path.components(separatedBy: "/@").last
+        if pathComponents.count >= 2, pathComponents[0] == "channel" {
+            channelID = pathComponents[1]
+        } else if pathComponents.count >= 2, pathComponents[0] == "user" {
+            // Legacy /user/name URLs contain a username, not a channel ID.
+            handle = pathComponents[1]
+        } else if pathComponents.first?.hasPrefix("@") == true {
+            handle = String(pathComponents[0].dropFirst())
+        } else if pathComponents.count >= 2, pathComponents[0] == "c" {
+            // Custom URLs also need resolving before constructing an Atom URL.
+            handle = pathComponents[1]
         }
 
-        // Try to resolve @handle to channel ID via page fetch
+        // Atom's channel_id parameter must be the UC… channel ID. Usernames,
+        // handles and custom URLs all need one page lookup to resolve it.
         if let handle, !handle.isEmpty {
-            channelID = try? await resolveYouTubeHandle(handle)
+            channelID = try? await resolveYouTubeChannelID(from: url)
         }
 
         // If we have a channel ID, use the direct Atom feed
@@ -395,11 +400,8 @@ public final class FeedDiscoveryService: FeedDiscoveryServiceProtocol {
         return nil
     }
 
-    /// Resolve a YouTube @handle to a channel ID by fetching the page.
-    private func resolveYouTubeHandle(_ handle: String) async throws -> String? {
-        let profileURL = URL(string: "https://www.youtube.com/@\(handle)")
-        guard let profileURL else { return nil }
-
+    /// Resolve a YouTube profile page to its channel ID.
+    private func resolveYouTubeChannelID(from profileURL: URL) async throws -> String? {
         var request = URLRequest(url: profileURL)
         request.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15", forHTTPHeaderField: "User-Agent")
         // Bypass YouTube GDPR consent page
@@ -407,7 +409,7 @@ public final class FeedDiscoveryService: FeedDiscoveryServiceProtocol {
         let (data, _) = try await URLSession.shared.data(for: request)
         guard let html = String(data: data, encoding: .utf8) else { return nil }
 
-        // Try "externalId":"UC..." (most reliable — YouTube's own identifier)
+        // Try "externalId":"UC..." (YouTube's canonical channel identifier).
         let externalPattern = #""externalId":"(UC[a-zA-Z0-9_-]{22})"#
         if let regex = try? NSRegularExpression(pattern: externalPattern),
            let match = regex.firstMatch(in: html, range: NSRange(html.startIndex..<html.endIndex, in: html)),

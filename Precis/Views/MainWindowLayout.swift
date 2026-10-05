@@ -1110,6 +1110,7 @@ struct MainWindowLayout: View {
                 feedID: feed.id,
                 container: modelContext.container
             )
+            modelContext.rollback()
 
             try FeedRepository().update(feed, context: modelContext)
             if reload {
@@ -2367,63 +2368,6 @@ private struct ReaderSplitLayout<Sidebar: View, ArticleList: View, ReadingPane: 
                 .offset(x: isSidebarHidden ? -displayedSidebarWidth : 0)
                 .frame(width: isSidebarHidden ? 0 : displayedSidebarWidth, alignment: .leading)
                 .clipped()
-                // Handle and guide are applied AFTER the clip above and aligned
-                // to this frame's trailing edge — the same edge the border line
-                // is drawn on — so they cannot drift from the visible divider,
-                // whatever the surrounding layout does (the earlier versions
-                // positioned them from the row's origin, which is what made
-                // them appear offset in the three-column layout).
-                .overlay(alignment: .trailing) {
-                    if !isSidebarHidden {
-                        Rectangle()
-                            .fill(Color.clear)
-                            // 14pt strip biased just inside the border (12pt in,
-                            // 2pt out) so the cursor reads as sitting on the
-                            // sidebar's edge rather than over the middle column.
-                            .frame(width: 14)
-                            .contentShape(Rectangle())
-                            .offset(x: 2)
-                            .gesture(
-                                // Global coordinates: in live mode this handle
-                                // moves with the sidebar, so a drag anchored to
-                                // the handle's own space would chase itself.
-                                // Global and local translations are identical
-                                // while the handle is stationary, which is the
-                                // fallback's case.
-                                DragGesture(minimumDistance: 1, coordinateSpace: .global)
-                                    .onChanged { value in
-                                        // Hand width control to the user so an
-                                        // automatic width update can't fight
-                                        // the drag.
-                                        state.userAdjustedSidebarWidth = true
-                                        beginLiveResize()
-                                        // Fallback: `state.sidebarWidth` stays
-                                        // put for the whole drag and only the
-                                        // guide line tracks the pointer, with
-                                        // the panes re-flowed once on release.
-                                        pendingSidebarWidth = max(
-                                            180,
-                                            min(state.sidebarWidth + value.translation.width,
-                                                max(700, state.autoSidebarWidth))
-                                        )
-                                    }
-                                    .onEnded { _ in
-                                        if let pending = pendingSidebarWidth {
-                                            state.sidebarWidth = pending
-                                        }
-                                        pendingSidebarWidth = nil
-                                        endLiveResize()
-                                    }
-                            )
-                            .onHover { inside in
-                                if inside {
-                                    NSCursor.resizeLeftRight.push()
-                                } else {
-                                    NSCursor.pop()
-                                }
-                            }
-                    }
-                }
 
             // Layout slot for the sidebar's border. The divider line is the
             // sidebar's own 1pt border, so the middle column starts right after
@@ -2532,6 +2476,67 @@ private struct ReaderSplitLayout<Sidebar: View, ArticleList: View, ReadingPane: 
                     // it off the right-hand side of it.
                     .offset(x: guide - 1)
                     .allowsHitTesting(false)
+            }
+        }
+        // The sidebar's resize handle — an overlay on the WHOLE split, so it
+        // sits above both panes and can't drift from the divider whatever the
+        // surrounding layout does.
+        //
+        // Anchored to the border line, the strip spans [W-1 … W+13]: the
+        // divider line itself, the 1pt border slot, and the first 12pt of the
+        // headline column's leading padding. The old strip hung off the
+        // sidebar's own trailing edge (12pt in, 2pt out), which laid it over
+        // almost all of the sidebar scrollbar's hit band — clicks and drags on
+        // the bar were claimed by this gesture, so the bar would only move
+        // with the wheel. The band is now clear apart from a couple of points
+        // at the divider itself, and the column's controls (12pt header
+        // padding, 16pt row padding) still start outside the strip.
+        .overlay(alignment: .topLeading) {
+            if !isSidebarHidden {
+                Rectangle()
+                    .fill(Color.clear)
+                    .frame(width: 14)
+                    .contentShape(Rectangle())
+                    .offset(x: displayedSidebarWidth - 1)
+                    .gesture(
+                        // Global coordinates: in live mode this handle
+                        // moves with the sidebar, so a drag anchored to
+                        // the handle's own space would chase itself.
+                        // Global and local translations are identical
+                        // while the handle is stationary, which is the
+                        // fallback's case.
+                        DragGesture(minimumDistance: 1, coordinateSpace: .global)
+                            .onChanged { value in
+                                // Hand width control to the user so an
+                                // automatic width update can't fight
+                                // the drag.
+                                state.userAdjustedSidebarWidth = true
+                                beginLiveResize()
+                                // Fallback: `state.sidebarWidth` stays
+                                // put for the whole drag and only the
+                                // guide line tracks the pointer, with
+                                // the panes re-flowed once on release.
+                                pendingSidebarWidth = max(
+                                    180,
+                                    min(state.sidebarWidth + value.translation.width,
+                                        max(700, state.autoSidebarWidth))
+                                )
+                            }
+                            .onEnded { _ in
+                                if let pending = pendingSidebarWidth {
+                                    state.sidebarWidth = pending
+                                }
+                                pendingSidebarWidth = nil
+                                endLiveResize()
+                            }
+                    )
+                    .onHover { inside in
+                        if inside {
+                            NSCursor.resizeLeftRight.push()
+                        } else {
+                            NSCursor.pop()
+                        }
+                    }
             }
         }
         // The reading pane reads this instead of a parameter, so a drag doesn't

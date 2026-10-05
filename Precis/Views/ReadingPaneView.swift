@@ -100,6 +100,20 @@ struct ReadingPaneView: View {
         return item.articleBody.isEmpty ? "No article content is available yet." : item.articleBody
     }
 
+    /// YouTube requires embedded players in desktop apps to send an app
+    /// identity as the HTTP Referer. For WKWebView HTML loaded from a string,
+    /// its base URL supplies that Referer; use the bundle identifier for
+    /// YouTube entries and keep the article URL for ordinary feed content.
+    private var articleBaseURL: URL? {
+        guard let item else { return nil }
+        if Self.youtubeVideoID(from: item.link) != nil,
+           let bundleID = Bundle.main.bundleIdentifier,
+           let appBaseURL = URL(string: "https://\(bundleID.lowercased())/") {
+            return appBaseURL
+        }
+        return item.link.flatMap(URL.init(string:))
+    }
+
     /// Loaded once from the bundle. As a computed property this decoded the
     /// PNG from disk on every pane render — it showed up in a resize profile.
     private static let cachedPrecisIcon: NSImage? = {
@@ -149,6 +163,25 @@ struct ReadingPaneView: View {
         let bodyHTML: String
         if let cached {
             bodyHTML = cached
+        } else if let videoID = Self.youtubeVideoID(from: item.link) {
+            let watchURL = "https://www.youtube.com/watch?v=\(videoID)"
+            let description: String
+            if !item.contentHTML.isEmpty {
+                let sanitized = ArticleHTMLSanitizer.sanitize(item.rawArticleHTML, title: item.title)
+                description = ArticleContentLoader.resolveURLs(
+                    in: sanitized,
+                    base: URL(string: watchURL)!
+                )
+            } else {
+                description = ""
+            }
+            bodyHTML = """
+            <div class="youtube-embed">
+              <iframe src="https://www.youtube.com/embed/\(videoID)" title="\(Self.htmlEscaped(item.title))" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+              <p><a href="\(watchURL)">Watch on YouTube ↗</a></p>
+            </div>
+            \(description)
+            """
         } else {
             if item.contentHTML.isEmpty {
                 // Only plain text is known (fetch failed / no link yet) —
@@ -441,7 +474,7 @@ struct ReadingPaneView: View {
                     // a font-size change rewrites `articleDocument`.
                     ArticleHTMLView(
                         document: articleDocument,
-                        baseURL: item?.link.flatMap(URL.init(string:)),
+                        baseURL: articleBaseURL,
                         isResizing: isResizing,
                         onHeightChange: { articleHeight = $0 }
                     )
@@ -742,6 +775,9 @@ struct ReadingPaneView: View {
         h3 { font-size: 1.12em; }
         h4, h5 { font-size: 1em; }
         ul, ol { margin: 0 0 1.05em; padding-left: 1.5em; }
+        .youtube-embed { margin: 0 0 1.4em; }
+        .youtube-embed iframe { display: block !important; width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: 10px; background: #000; }
+        .youtube-embed p { margin: .6em 0 0; font-size: .9em; }
         li { margin: .3em 0; }
         blockquote { margin: 1.2em 0; padding: .3em 0 .3em 1em; border-left: 3px solid \(marginalia); color: \(muted); font-style: italic; }
         pre { margin: 1.2em 0; padding: 12px 14px; background: \(surface); border-radius: 8px; overflow-x: auto; font-size: .88em; line-height: 1.5; }
@@ -774,6 +810,42 @@ struct ReadingPaneView: View {
             return "<p>No article content is available yet.</p>"
         }
         return paragraphs.map { "<p>\($0)</p>" }.joined()
+    }
+
+    /// Extract a playable video ID from the URL formats YouTube publishes in
+    /// Atom feeds and accepts in ordinary channel pages.
+    private static func youtubeVideoID(from rawURL: String?) -> String? {
+        guard let rawURL, let url = URL(string: rawURL),
+              let host = url.host?.lowercased(),
+              host == "youtu.be" || host == "youtube.com" || host.hasSuffix(".youtube.com") else {
+            return nil
+        }
+        let pathParts = url.path.split(separator: "/").map(String.init)
+        let candidate: String?
+        if host == "youtu.be" {
+            candidate = pathParts.first
+        } else if url.path == "/watch" {
+            candidate = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+                .queryItems?.first(where: { $0.name == "v" })?.value
+        } else if pathParts.count >= 2, ["shorts", "live", "embed", "v"].contains(pathParts[0]) {
+            candidate = pathParts[1]
+        } else {
+            candidate = nil
+        }
+        guard let candidate,
+              (6...20).contains(candidate.count),
+              candidate.unicodeScalars.allSatisfy({
+                  CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-").contains($0)
+              }) else { return nil }
+        return candidate
+    }
+
+    private static func htmlEscaped(_ value: String) -> String {
+        value
+            .replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "\"", with: "&quot;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
     }
 
     /// Design-system color → CSS `rgba()` so the document matches the pane.
