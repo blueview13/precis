@@ -322,7 +322,6 @@ final class AppScopedFeedRefreshCoordinator: NSObject {
 
         do {
             let feeds = try FeedRepository().fetchAll(context: context)
-            let articleRepository = ArticleRepository()
             let feedRepository = FeedRepository()
             var newArticleCount = 0
             var refreshedFeedNames: [String] = []
@@ -336,27 +335,12 @@ final class AppScopedFeedRefreshCoordinator: NSObject {
                         feed.title = betterTitle
                     }
 
-                    var feedNewArticleCount = 0
-                    for entry in parsed.entries {
-                        let article = ArticleRecord(
-                            feed: feed,
-                            title: entry.title,
-                            author: entry.author,
-                            publishedDate: entry.publishedDate,
-                            link: entry.link?.absoluteString,
-                            rawContent: entry.content,
-                            extractedContent: entry.content,
-                            contentHTML: entry.contentHTML,
-                            isRead: false,
-                            isStarred: false,
-                            imageURL: entry.imageURL?.absoluteString
-                        )
-                        if try articleRepository.saveIfNew(article, context: context) {
-                            feedNewArticleCount += 1
-                        }
-                    }
-
                     try feedRepository.update(feed, context: context)
+                    let feedNewArticleCount = try await ArticleIngestProcessor().ingestParsed(
+                        parsed.entries,
+                        feedID: feed.id,
+                        container: context.container
+                    )
                     newArticleCount += feedNewArticleCount
                     if feedNewArticleCount > 0 {
                         refreshedFeedNames.append(feed.sidebarTitle ?? feed.title)

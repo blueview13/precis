@@ -631,7 +631,6 @@ struct SettingsView: View {
                         return
                     }
                     let feedRepository = FeedRepository()
-                    let articleRepository = ArticleRepository()
                     let refreshService = FeedRefreshService()
                     let total = opmlFeeds.count
 
@@ -684,22 +683,11 @@ struct SettingsView: View {
                                     feed.title = displayTitle
                                 }
                                 try modelContext.save()
-                                for entry in parsed.entries {
-                                    let record = ArticleRecord(
-                                        feed: feed,
-                                        title: entry.title,
-                                        author: entry.author,
-                                        publishedDate: entry.publishedDate,
-                                        link: entry.link?.absoluteString,
-                                        rawContent: entry.content,
-                                        extractedContent: entry.content,
-                                        contentHTML: entry.contentHTML,
-                                        isRead: false,
-                                        isStarred: false,
-                                        imageURL: entry.imageURL?.absoluteString
-                                    )
-                                    try articleRepository.saveIfNew(record, context: modelContext)
-                                }
+                                try await ArticleIngestProcessor().ingestParsed(
+                                    parsed.entries,
+                                    feedID: feed.id,
+                                    container: modelContext.container
+                                )
                             } catch {
                                 // Feed still imported without articles.
                                 PrecisLogger.error("OPML: could not fetch \(opmlFeed.url) — \(error.localizedDescription)")

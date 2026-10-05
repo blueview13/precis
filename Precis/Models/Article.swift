@@ -4,6 +4,8 @@ public struct Article: Identifiable, Codable, Hashable {
     public let id: UUID
     public var feedID: UUID
     public var title: String
+    public var cleanURL: String?
+    public var titleHash: String
     public var author: String?
     public var publishedDate: Date?
     public var link: URL?
@@ -17,6 +19,8 @@ public struct Article: Identifiable, Codable, Hashable {
         id: UUID = UUID(),
         feedID: UUID,
         title: String,
+        cleanURL: String? = nil,
+        titleHash: String? = nil,
         author: String? = nil,
         publishedDate: Date? = nil,
         link: URL? = nil,
@@ -29,6 +33,8 @@ public struct Article: Identifiable, Codable, Hashable {
         self.id = id
         self.feedID = feedID
         self.title = title
+        self.cleanURL = cleanURL ?? link.map(DeduplicationPipeline.canonicalURL)
+        self.titleHash = titleHash ?? DeduplicationPipeline.titleHash(title)
         self.author = author
         self.publishedDate = publishedDate
         self.link = link
@@ -43,6 +49,8 @@ public struct Article: Identifiable, Codable, Hashable {
         self.id = record.id
         self.feedID = record.feed?.id ?? UUID()
         self.title = record.title
+        self.cleanURL = record.cleanURL
+        self.titleHash = record.titleHash ?? DeduplicationPipeline.titleHash(record.title)
         self.author = record.author
         self.publishedDate = record.publishedDate
         self.link = record.link.flatMap { URL(string: $0) }

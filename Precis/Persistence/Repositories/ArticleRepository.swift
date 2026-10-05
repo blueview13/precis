@@ -38,13 +38,18 @@ public final class ArticleRepository: ArticleRepositoryProtocol {
     /// Returns true if the article was saved, false if it was a duplicate.
     @discardableResult
     public func saveIfNew(_ article: ArticleRecord, context: ModelContext) throws -> Bool {
-        let title = article.title
+        let titleHash = article.titleHash ?? DeduplicationPipeline.titleHash(article.title)
         let feedID = article.feed?.id
-        let descriptor = FetchDescriptor<ArticleRecord>(
-            predicate: #Predicate { record in
-                record.title == title && record.feed?.id == feedID
-            }
-        )
+        let descriptor: FetchDescriptor<ArticleRecord>
+        if let cleanURL = article.cleanURL {
+            descriptor = FetchDescriptor<ArticleRecord>(predicate: #Predicate { record in
+                record.feed?.id == feedID && (record.titleHash == titleHash || record.cleanURL == cleanURL)
+            })
+        } else {
+            descriptor = FetchDescriptor<ArticleRecord>(predicate: #Predicate { record in
+                record.feed?.id == feedID && record.titleHash == titleHash
+            })
+        }
         let existing = try context.fetch(descriptor)
         guard existing.isEmpty else { return false }
         context.insert(article)
@@ -53,7 +58,14 @@ public final class ArticleRepository: ArticleRepositoryProtocol {
     }
 
     public func markRead(_ article: ArticleRecord, read: Bool, context: ModelContext) throws {
-        article.isRead = read
+        let hash = article.titleHash ?? DeduplicationPipeline.titleHash(article.title)
+        article.titleHash = hash
+        let descriptor = FetchDescriptor<ArticleRecord>(
+            predicate: #Predicate { $0.titleHash == hash }
+        )
+        var matching = try context.fetch(descriptor)
+        if !matching.contains(where: { $0.id == article.id }) { matching.append(article) }
+        for record in matching { record.isRead = read }
         try context.save()
     }
 

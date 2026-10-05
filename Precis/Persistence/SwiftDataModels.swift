@@ -61,6 +61,9 @@ public final class ArticleRecord {
     @Attribute(.unique) public var id: UUID
     public var feed: FeedRecord?
     public var title: String
+    /// Optional so existing SwiftData stores can migrate in place.
+    public var cleanURL: String?
+    public var titleHash: String?
     public var author: String?
     public var publishedDate: Date?
     public var link: String?
@@ -87,6 +90,8 @@ public final class ArticleRecord {
         id: UUID = UUID(),
         feed: FeedRecord? = nil,
         title: String,
+        cleanURL: String? = nil,
+        titleHash: String? = nil,
         author: String? = nil,
         publishedDate: Date? = nil,
         link: String? = nil,
@@ -100,6 +105,8 @@ public final class ArticleRecord {
         self.id = id
         self.feed = feed
         self.title = title
+        self.cleanURL = cleanURL ?? link.flatMap { URL(string: $0) }.map(DeduplicationPipeline.canonicalURL)
+        self.titleHash = titleHash ?? DeduplicationPipeline.titleHash(title)
         self.author = author
         self.publishedDate = publishedDate
         self.link = link

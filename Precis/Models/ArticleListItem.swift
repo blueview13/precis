@@ -4,6 +4,8 @@ import SwiftData
 public struct ArticleListItem: Identifiable, Hashable, Sendable {
     public let id: UUID
     public var title: String
+    public var titleHash: String
+    public var alsoIn: [String] = []
     public var feedTitle: String
     public var author: String?
     public var feedID: UUID?
@@ -58,6 +60,7 @@ public struct ArticleListItem: Identifiable, Hashable, Sendable {
     ) {
         self.id = id
         self.title = title
+        self.titleHash = DeduplicationPipeline.titleHash(title)
         self.feedTitle = feedTitle
         self.author = nil
         self.publishedDate = publishedDate
@@ -73,6 +76,7 @@ public struct ArticleListItem: Identifiable, Hashable, Sendable {
     public init(record: ArticleRecord) {
         self.id = record.id
         self.title = record.title
+        self.titleHash = record.titleHash ?? DeduplicationPipeline.titleHash(record.title)
         self.feedTitle = record.feed?.title ?? "Inbox"
         self.author = record.author
         self.feedID = record.feed?.id

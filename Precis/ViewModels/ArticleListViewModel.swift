@@ -169,12 +169,42 @@ public final class ArticleListViewModel: ObservableObject {
                 return feedIDs.contains(feedID)
             }
         }
+        // Keep the live unread timeline bounded to the recent three days.
+        // Older unread records remain stored and searchable in other scopes.
+        let timeline: [ArticleListItem]
+        if case .unread = selectedSidebarFilter {
+            let cutoff = Date().addingTimeInterval(-72 * 60 * 60)
+            timeline = base.filter { ($0.publishedDate ?? .distantPast) >= cutoff }
+        } else {
+            timeline = base
+        }
         guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return applySort(to: base)
+            return collapseDuplicateRows(applySort(to: timeline))
         }
         let query = searchText.lowercased()
-        let matching = base.filter { $0.title.lowercased().contains(query) || $0.snippet.lowercased().contains(query) }
-        return applySort(to: matching)
+        let matching = timeline.filter { $0.title.lowercased().contains(query) || $0.snippet.lowercased().contains(query) }
+        return collapseDuplicateRows(applySort(to: matching))
+    }
+
+    /// Keep the first (newest under the default sort) row and attach distinct
+    /// source names from the rest of its exact-title-hash group.
+    private func collapseDuplicateRows(_ sorted: [ArticleListItem]) -> [ArticleListItem] {
+        var primaryIndexByHash: [String: Int] = [:]
+        var result: [ArticleListItem] = []
+        result.reserveCapacity(sorted.count)
+        for item in sorted {
+            guard let primaryIndex = primaryIndexByHash[item.titleHash] else {
+                primaryIndexByHash[item.titleHash] = result.count
+                result.append(item)
+                continue
+            }
+            let name = FeedDiscoveryService.conciseTitle(item.feedTitle)
+            if result[primaryIndex].feedTitle != item.feedTitle,
+               !result[primaryIndex].alsoIn.contains(name) {
+                result[primaryIndex].alsoIn.append(name)
+            }
+        }
+        return result
     }
 
     /// Settings → "Default sort order". Stored (not re-read on each access) so
@@ -552,23 +582,8 @@ public final class ArticleListViewModel: ObservableObject {
             try context.save()
         }
 
-        for entry in parsed.entries {
-            let record = ArticleRecord(
-                feed: feed,
-                title: entry.title,
-                author: entry.author,
-                publishedDate: entry.publishedDate,
-                link: entry.link?.absoluteString,
-                rawContent: entry.content,
-                extractedContent: entry.content,
-                contentHTML: entry.contentHTML,
-                isRead: false,
-                isStarred: false,
-                imageURL: entry.imageURL?.absoluteString
-            )
-
-            try articleRepository.saveIfNew(record, context: context)
-        }
+        let processor = ArticleIngestProcessor()
+        try await processor.ingestParsed(parsed.entries, feedID: feed.id, container: context.container)
 
         let records = try articleRepository.fetchAll(context: context)
         rebuildItems(from: records, in: context)
@@ -968,7 +983,7 @@ public final class ArticleListViewModel: ObservableObject {
             // mirror that value directly — the old `!record.isRead` computed
             // the OLD value here, which is why the first click never updated
             // the UI (the "double click to mark read" bug).
-            if let index = items.firstIndex(where: { $0.id == item.id }) {
+            for index in items.indices where items[index].titleHash == item.titleHash {
                 items[index].isRead = record.isRead
             }
         } catch {
@@ -999,8 +1014,10 @@ public final class ArticleListViewModel: ObservableObject {
             if let record = try articleRepository.fetch(id: articleID, context: context), !record.isRead {
                 try articleRepository.markRead(record, read: true, context: context)
             }
-            if let index = items.firstIndex(where: { $0.id == articleID }) {
-                items[index].isRead = true
+            if let target = items.first(where: { $0.id == articleID }) {
+                for index in items.indices where items[index].titleHash == target.titleHash {
+                    items[index].isRead = true
+                }
             }
         } catch {}
     }

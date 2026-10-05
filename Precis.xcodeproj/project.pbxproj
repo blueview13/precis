@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A1A1A1A1A1A1A1A1A1A1A1A1 /* DeduplicationPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2B2B2B2B2B2B2B2B2B2B2B2 /* DeduplicationPipeline.swift */; };
 		09E6E6F52EF0995FE3969732 /* FeedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0E28DB3045FBE05C16FE426 /* FeedStore.swift */; };
 		0AB3804987F95D14362B3E10 /* BrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2799491F3D77B8DBAE4E8B65 /* BrowserView.swift */; };
 		0BB590A62D18FF0B1D2F182B /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3627A15C4B94350D2597305 /* ContentView.swift */; };
@@ -93,6 +94,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		B2B2B2B2B2B2B2B2B2B2B2B2 /* DeduplicationPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeduplicationPipeline.swift; sourceTree = "<group>"; };
 		02ED00F8CC26E91886BEE647 /* SmartCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartCategory.swift; sourceTree = "<group>"; };
 		0AD4C9D55082697AF04F0F33 /* PrecisAppIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrecisAppIntent.swift; sourceTree = "<group>"; };
 		10A1C407E0E3F27668B43A91 /* ContentViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentViewModel.swift; sourceTree = "<group>"; };
@@ -345,6 +347,7 @@
 		C405787DB2034C41157DDB75 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				B2B2B2B2B2B2B2B2B2B2B2B2 /* DeduplicationPipeline.swift */,
 				34D617432F6897886F923D38 /* AlphaFeedPipeline.swift */,
 				63479221A20572C8B131CC94 /* BackgroundRefreshService.swift */,
 				AECD198875476281E0D08607 /* ContentExtractionService.swift */,
@@ -517,6 +520,7 @@
 				EB851919CF785D96E0A93971 /* Feed.swift in Sources */,
 				F6F370BC5965758C032FB054 /* FeedDiscoveryResult.swift in Sources */,
 				1D52482FEB961B1F5E6B956D /* FeedDiscoveryService.swift in Sources */,
+				A1A1A1A1A1A1A1A1A1A1A1A1 /* DeduplicationPipeline.swift in Sources */,
 				818DB03E5B7F8EEA3658334A /* FeedImportService.swift in Sources */,
 				E7D2C9778203C3F02DF737AD /* FeedParserService.swift in Sources */,
 				C0F1606CBB4828887F020B5E /* FeedRefreshPipeline.swift in Sources */,

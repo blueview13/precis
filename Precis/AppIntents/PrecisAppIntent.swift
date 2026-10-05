@@ -233,7 +233,6 @@ struct AddFeedIntent: AppIntent {
         let discoveryService = FeedDiscoveryService()
         let refreshService = FeedRefreshService()
         let feedRepository = FeedRepository()
-        let articleRepository = ArticleRepository()
 
         let discoveryResult = try await discoveryService.discover(from: feedURL.absoluteString)
         if let existing = try feedRepository.existingFeed(
@@ -262,22 +261,11 @@ struct AddFeedIntent: AppIntent {
             try context.save()
         }
 
-        for entry in parsed.entries {
-            let record = ArticleRecord(
-                feed: feed,
-                title: entry.title,
-                author: entry.author,
-                publishedDate: entry.publishedDate,
-                link: entry.link?.absoluteString,
-                rawContent: entry.content,
-                extractedContent: entry.content,
-                contentHTML: entry.contentHTML,
-                isRead: false,
-                isStarred: false,
-                imageURL: entry.imageURL?.absoluteString
-            )
-            try articleRepository.saveIfNew(record, context: context)
-        }
+        try await ArticleIngestProcessor().ingestParsed(
+            parsed.entries,
+            feedID: feed.id,
+            container: context.container
+        )
 
         return .result(dialog: IntentDialog(stringLiteral: "Added \"\(feed.title)\" with \(parsed.entries.count) articles."))
     }

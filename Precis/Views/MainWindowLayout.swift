@@ -1104,24 +1104,12 @@ struct MainWindowLayout: View {
                 feed.title = betterTitle
             }
 
-            for entry in parsed.entries {
-                let article = ArticleRecord(
-                    feed: feed,
-                    title: entry.title,
-                    author: entry.author,
-                    publishedDate: entry.publishedDate,
-                    link: entry.link?.absoluteString,
-                    rawContent: entry.content,
-                    extractedContent: entry.content,
-                    contentHTML: entry.contentHTML,
-                    isRead: false,
-                    isStarred: false,
-                    imageURL: entry.imageURL?.absoluteString
-                )
-                if try ArticleRepository().saveIfNew(article, context: modelContext) {
-                    newArticleCount += 1
-                }
-            }
+            try modelContext.save()
+            newArticleCount = try await ArticleIngestProcessor().ingestParsed(
+                parsed.entries,
+                feedID: feed.id,
+                container: modelContext.container
+            )
 
             try FeedRepository().update(feed, context: modelContext)
             if reload {
@@ -1208,7 +1196,6 @@ struct MainWindowLayout: View {
                 do {
                     let opmlFeeds = try OPMLService.parse(contentsOf: url)
                     let feedRepository = FeedRepository()
-                    let articleRepository = ArticleRepository()
                     let refreshService = FeedRefreshService()
                     var seenFeedURLs = Set(
                         try feedRepository.fetchAll(context: modelContext)
@@ -1266,22 +1253,12 @@ struct MainWindowLayout: View {
                                     feed.title = displayTitle
                                     try modelContext.save()
                                 }
-                                for entry in parsed.entries {
-                                    let record = ArticleRecord(
-                                        feed: feed,
-                                        title: entry.title,
-                                        author: entry.author,
-                                        publishedDate: entry.publishedDate,
-                                        link: entry.link?.absoluteString,
-                                        rawContent: entry.content,
-                                        extractedContent: entry.content,
-                                        contentHTML: entry.contentHTML,
-                                        isRead: false,
-                                        isStarred: false,
-                                        imageURL: entry.imageURL?.absoluteString
-                                    )
-                                    try articleRepository.saveIfNew(record, context: modelContext)
-                                }
+                                try modelContext.save()
+                                try await ArticleIngestProcessor().ingestParsed(
+                                    parsed.entries,
+                                    feedID: feed.id,
+                                    container: modelContext.container
+                                )
                             } catch {
                                 // Skip feed if fetch fails — it's still imported
                             }

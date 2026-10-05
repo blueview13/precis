@@ -381,6 +381,14 @@ private struct ArticleListRow: View, Equatable {
                 }
             }
 
+            if !item.alsoIn.isEmpty {
+                Text("Also in: " + item.alsoIn.joined(separator: ", "))
+                    .font(PrecisTypography.metadata)
+                    .foregroundStyle(PrecisDesignSystem.marginalia)
+                    .lineLimit(1)
+                    .accessibilityLabel("Also available from " + item.alsoIn.joined(separator: ", "))
+            }
+
             // Summary sits under the headline in both layouts.
             Text(item.cleanSnippet)
                 .font(PrecisTypography.body)
