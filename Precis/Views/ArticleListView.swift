@@ -9,7 +9,7 @@ struct ArticleListView: View {
     var isSidebarHidden: Bool = false
     var onRevealSidebar: (() -> Void)? = nil
     /// Header title — mirrors the sidebar's current selection (a feed or
-    /// category name, or All Items / Unread / Starred).
+    /// category name, or All Articles / Unread / Starred).
     var headerTitle: String = "Unread"
     /// True while the reading pane sits beside the headlines (three-column
     /// layout) — drives the header toggle's icon and help text.
