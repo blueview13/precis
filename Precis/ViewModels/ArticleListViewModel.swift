@@ -18,7 +18,12 @@ public final class ArticleListViewModel: ObservableObject {
     }
     @Published public var feedWideSummaryText: String = ""
     @Published public var feedWideSummaryProgress: Double = 0
-    @Published public var isGeneratingFeedWideSummary = true
+    /// Whether a digest run is in flight. Starts from the auto-generate
+    /// setting, not blindly `true`: the pane renders its "Building…" state off
+    /// this flag, and when "Auto-generate summaries on open" is off no launch
+    /// run starts — a hard-coded `true` would leave the card spinning forever.
+    @Published public var isGeneratingFeedWideSummary =
+        (UserDefaults.standard.object(forKey: "summaryAutoGenerate") as? Bool) ?? true
     /// The article whose full web page is currently being downloaded and
     /// extracted — the reading pane shows a progress bar for it.
     @Published public var loadingFullContentID: UUID?
@@ -577,6 +582,19 @@ public final class ArticleListViewModel: ObservableObject {
     private var feedWideSummaryTaskFeedIDs: Set<UUID>?
     private var feedWideSummaryTaskGeneration: Int?
     private var feedWideSummaryGeneration = 0
+
+    /// Drops the digest without starting a new run. Used when the feed or
+    /// sidebar scope changes while auto-generation is off: a digest built for
+    /// the previous scope must not keep showing as if it covered the new one,
+    /// and no automatic run may replace it — the card falls back to its
+    /// generate button. Bumping the generation also stops any in-flight run's
+    /// updates from landing afterwards.
+    public func clearFeedWideSummary() {
+        feedWideSummaryGeneration += 1
+        feedWideSummaryText = ""
+        feedWideSummaryProgress = 0
+        isGeneratingFeedWideSummary = false
+    }
 
     /// Generate a digest of up to 25 articles from the last 24 hours.
     /// If feedIDs is provided, only summarizes articles from those feeds.

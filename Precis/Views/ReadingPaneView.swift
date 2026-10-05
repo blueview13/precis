@@ -12,6 +12,12 @@ struct ReadingPaneView: View {
     let feedWideSummary: String?
     let isGeneratingSummary: Bool
     let summaryProgress: Double
+    /// Shows the "Generate Summary" button in the Today's Precis card. Set
+    /// when Settings' "Auto-generate summaries on open" is off, so the card
+    /// still has a way to start a run that no automatic trigger will.
+    let showsGenerateSummaryButton: Bool
+    /// Starts a digest run for the current feed/sidebar scope.
+    let onGenerateSummary: (() -> Void)?
     let onOpenInBrowser: (() -> Void)?
     /// True while the full article page is being downloaded for the current
     /// selection — shown above the body as "Loading full article…".
@@ -47,6 +53,9 @@ struct ReadingPaneView: View {
     /// judder. Cleared on release, which lets the column flex and wrap again.
     @State private var frozenColumnWidth: CGFloat?
     @State private var isDigestExpanded = true
+    /// Hover state for the card's generate button — the accent wash deepens
+    /// the same way the sidebar's "Add Feeds" pill does.
+    @State private var isHoveringGenerate = false
     /// Cycling dot count (1-4) appended to "Building Today's Precis" while
     /// the digest generates — reset and driven by the pane's `.task` below.
     @State private var digestDotCount = 1
@@ -61,6 +70,8 @@ struct ReadingPaneView: View {
         feedWideSummary: String? = nil,
         isGeneratingSummary: Bool = false,
         summaryProgress: Double = 0,
+        showsGenerateSummaryButton: Bool = false,
+        onGenerateSummary: (() -> Void)? = nil,
         onOpenInBrowser: (() -> Void)? = nil,
         isFetchingContent: Bool = false,
         onPreviousArticle: (() -> Void)? = nil,
@@ -74,6 +85,8 @@ struct ReadingPaneView: View {
         self.feedWideSummary = feedWideSummary
         self.isGeneratingSummary = isGeneratingSummary
         self.summaryProgress = summaryProgress
+        self.showsGenerateSummaryButton = showsGenerateSummaryButton
+        self.onGenerateSummary = onGenerateSummary
         self.onOpenInBrowser = onOpenInBrowser
         self.isFetchingContent = isFetchingContent
         self.onPreviousArticle = onPreviousArticle
@@ -230,8 +243,12 @@ struct ReadingPaneView: View {
                 // to the top instead of inheriting the previous offset.
                 Color.clear.frame(height: 0).id(Self.topAnchorID)
 
-                // Feed-wide digest — shown above the open article.
-                if isGeneratingSummary || !(feedWideSummary?.isEmpty ?? true) {
+                // Feed-wide digest — shown above the open article. With
+                // auto-generation off the card stays up even when empty, so
+                // its generate button is always reachable.
+                if isGeneratingSummary
+                    || showsGenerateSummaryButton
+                    || !(feedWideSummary?.isEmpty ?? true) {
                     VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
                         Button {
                             withAnimation(.easeInOut(duration: 0.2)) {
@@ -303,6 +320,14 @@ struct ReadingPaneView: View {
                                 .font(.system(size: readingFontSize))
                                 .lineSpacing(5)
                                 .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.85))
+                        }
+
+                        // The only way to start a run with auto-generation
+                        // off — sits under an existing digest as its
+                        // regenerate action, or alone when there is none.
+                        if isDigestExpanded, showsGenerateSummaryButton, !isGeneratingSummary,
+                           let onGenerateSummary {
+                            generateSummaryButton(action: onGenerateSummary)
                         }
                     }
                     // Collapsed, the block is just its header row — keep the
@@ -512,6 +537,30 @@ struct ReadingPaneView: View {
         if delta < 3600 { return "\(delta / 60) minutes ago" }
         if delta < 86400 { return "\(delta / 3600) hours ago" }
         return "\(delta / 86400) days ago"
+    }
+
+    /// The card's action when auto-generation is off: an accent capsule with
+    /// an icon and a label, matching the sidebar's "Add Feeds" pill. It
+    /// offers a regenerate once a digest exists.
+    private func generateSummaryButton(action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 13, weight: .medium))
+                Text((feedWideSummary?.isEmpty ?? true) ? "Generate Summary" : "Regenerate Summary")
+                    .font(.system(size: 13, weight: .medium))
+                    .lineLimit(1)
+            }
+            .foregroundStyle(Color.accentColor)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(Capsule().fill(Color.accentColor.opacity(isHoveringGenerate ? 0.24 : 0.12)))
+        }
+        .buttonStyle(.plain)
+        .onHover { isHoveringGenerate = $0 }
+        .animation(.easeOut(duration: 0.15), value: isHoveringGenerate)
+        .help("Generate Today's Precis from the last 24 hours of articles")
+        .accessibilityLabel((feedWideSummary?.isEmpty ?? true) ? "Generate summary" : "Regenerate summary")
     }
 
     /// Leading-edge reveal for the icon's "printing" animation — a rectangle

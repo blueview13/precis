@@ -93,7 +93,8 @@ struct SettingsView: View {
     @AppStorage("readingFontSize") private var readingFontSize: Double = 15
     @AppStorage("readingContentWidth") private var readingContentWidth: Double = 750
     @AppStorage("showSidebarUnreadPills") private var showSidebarUnreadPills: Bool = true
-    @AppStorage("summaryAutoGenerate") private var summaryAutoGenerate: Bool = false
+    // Default On, matching the launch behaviour it gates — users opt out.
+    @AppStorage("summaryAutoGenerate") private var summaryAutoGenerate: Bool = true
     @AppStorage("refreshIntervalMinutes") private var refreshIntervalMinutes: Int = 15
     @AppStorage("defaultSortOrder") private var defaultSortOrder: String = "newest"
     @AppStorage("showReadingTime") private var showReadingTime: Bool = true

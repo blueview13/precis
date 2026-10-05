@@ -15,6 +15,10 @@ struct MainWindowLayout: View {
     /// the reading pane — vs the default stacked layout (headlines above
     /// the pane). Toggled from the list header icon; persisted.
     @AppStorage("threeColumnReadingLayout") private var isColumnLayout = false
+    /// Settings → "Auto-generate summaries on open". When off, no run starts
+    /// automatically (launch, scope change or feed refresh) — the reading
+    /// pane's Today's Precis card offers a generate button instead.
+    @AppStorage("summaryAutoGenerate") private var summaryAutoGenerate = true
     @State private var selectedSidebarItem = "Unread"
     @State private var feedURLInput = ""
     /// Last URL the Add Feed sheet took off the pasteboard, so a fresher copy
@@ -155,6 +159,14 @@ struct MainWindowLayout: View {
             feedWideSummary: viewModel.feedWideSummaryText,
             isGeneratingSummary: viewModel.isGeneratingFeedWideSummary,
             summaryProgress: viewModel.feedWideSummaryProgress,
+            // Auto-generation off → the card offers the button instead of
+            // waiting for a run that will never start.
+            showsGenerateSummaryButton: !summaryAutoGenerate,
+            onGenerateSummary: {
+                Task {
+                    await viewModel.generateFeedWideSummary(context: modelContext, feedIDs: digestFeedIDs)
+                }
+            },
             onOpenInBrowser: {
                 guard let link = viewModel.selectedItem?.link,
                       let url = URL(string: link) else { return }
@@ -196,12 +208,34 @@ struct MainWindowLayout: View {
             refreshSelectedSummaryText()
         }
         .onChange(of: viewModel.selectedFeedID) { _, _ in
-            // Feed selection changed — regenerate digest for the new feed scope
-            Task {
-                await viewModel.generateFeedWideSummary(context: modelContext, feedIDs: digestFeedIDs)
+            // Feed selection changed — regenerate digest for the new feed
+            // scope; with auto-generation off, drop the old scope's digest so
+            // it can't pass itself off as the new one (the card's button
+            // generates for the current scope on demand).
+            if summaryAutoGenerate {
+                Task {
+                    await viewModel.generateFeedWideSummary(context: modelContext, feedIDs: digestFeedIDs)
+                }
+            } else {
+                viewModel.clearFeedWideSummary()
             }
         }
         .onChange(of: viewModel.selectedSidebarFilter) { _, _ in
+            if summaryAutoGenerate {
+                Task {
+                    await viewModel.generateFeedWideSummary(context: modelContext, feedIDs: digestFeedIDs)
+                }
+            } else {
+                viewModel.clearFeedWideSummary()
+            }
+        }
+        .onChange(of: summaryAutoGenerate) { _, enabled in
+            // Turning the setting on mid-session with nothing generated yet
+            // fills the card straight away instead of waiting for the next
+            // scope change.
+            guard enabled,
+                  viewModel.feedWideSummaryText.isEmpty,
+                  !viewModel.isGeneratingFeedWideSummary else { return }
             Task {
                 await viewModel.generateFeedWideSummary(context: modelContext, feedIDs: digestFeedIDs)
             }
@@ -217,9 +251,13 @@ struct MainWindowLayout: View {
             Task { await repairURLTitledFeeds() }
             viewModel.loadFolders(context: modelContext)
             startSpacebarMonitor()
-            // Auto-generate feed-wide 12-hour summary on launch
-            Task {
-                await viewModel.generateFeedWideSummary(context: modelContext, feedIDs: digestFeedIDs)
+            // Auto-generate the feed-wide 12-hour summary on launch — skipped
+            // when Settings has it off, in which case the pane's card offers
+            // the generate button instead.
+            if summaryAutoGenerate {
+                Task {
+                    await viewModel.generateFeedWideSummary(context: modelContext, feedIDs: digestFeedIDs)
+                }
             }
         }
         .onDisappear {
@@ -376,9 +414,12 @@ struct MainWindowLayout: View {
             updateAutomaticSidebarWidth()
             viewModel.loadFolders(context: modelContext)
             viewModel.loadArticles(for: viewModel.selectedFeedID, context: modelContext)
-            // Regenerate feed-wide summary after refresh
-            Task {
-                await viewModel.generateFeedWideSummary(context: modelContext, feedIDs: digestFeedIDs)
+            // Regenerate feed-wide summary after refresh (when enabled — the
+            // refresh itself must not start a run with the setting off).
+            if summaryAutoGenerate {
+                Task {
+                    await viewModel.generateFeedWideSummary(context: modelContext, feedIDs: digestFeedIDs)
+                }
             }
         } catch {
             importedFeeds = []
