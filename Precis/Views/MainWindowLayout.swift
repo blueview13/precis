@@ -2343,8 +2343,6 @@ private struct SidebarSection: View {
                 Menu {
                     Button("New Category", action: onAdd)
                     Button("New Smart Category…", action: onAddSmartCategory)
-                    Divider()
-                    Button("Choose Smart Category Sync Folder…") { SmartCategoryStore.shared.chooseSyncFolder() }
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 10, weight: .bold))

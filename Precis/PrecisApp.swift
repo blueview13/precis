@@ -46,9 +46,6 @@ struct PrecisApp: App {
                 Button("New Smart Category…") {
                     NotificationCenter.default.post(name: .precisNewSmartCategory, object: nil)
                 }
-                Button("Choose Smart Category Sync Folder…") {
-                    SmartCategoryStore.shared.chooseSyncFolder()
-                }
             }
             // Settings… in the Precis app menu (⌘,)
             CommandGroup(replacing: .appSettings) {
