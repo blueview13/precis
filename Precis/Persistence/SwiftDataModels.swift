@@ -33,6 +33,10 @@ public final class FeedRecord {
     public var category: CategoryRecord?
     public var muted: Bool
     public var lastFetched: Date?
+    /// Feedbin identity and flat tag assignments. Nullable for migration of existing stores.
+    public var feedbinSubscriptionID: Int?
+    public var feedbinFeedID: Int?
+    public var feedbinTagNames: [String]?
     @Relationship(deleteRule: .cascade, inverse: \ArticleRecord.feed) public var articles: [ArticleRecord] = []
 
     public init(
@@ -43,7 +47,10 @@ public final class FeedRecord {
         folder: FolderRecord? = nil,
         category: CategoryRecord? = nil,
         muted: Bool = false,
-        lastFetched: Date? = nil
+        lastFetched: Date? = nil,
+        feedbinSubscriptionID: Int? = nil,
+        feedbinFeedID: Int? = nil,
+        feedbinTagNames: [String]? = nil
     ) {
         self.id = id
         self.title = title
@@ -53,6 +60,9 @@ public final class FeedRecord {
         self.category = category
         self.muted = muted
         self.lastFetched = lastFetched
+        self.feedbinSubscriptionID = feedbinSubscriptionID
+        self.feedbinFeedID = feedbinFeedID
+        self.feedbinTagNames = feedbinTagNames
     }
 }
 

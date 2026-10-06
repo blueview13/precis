@@ -124,6 +124,8 @@ public final class ArticleListViewModel: ObservableObject {
             return "You're all caught up — no unread articles"
         case .starred:
             return "No starred articles yet"
+        case .feedbin:
+            return "No Feedbin articles yet — refresh your feeds to load them"
         case .category:
             return "No articles in this category yet"
         case .smartCategory:
@@ -148,6 +150,12 @@ public final class ArticleListViewModel: ObservableObject {
             base = items.filter { $0.isStarred }
         case .feed(let feedID):
             base = items.filter { $0.feedID == feedID }
+        case .feedbin:
+            let feedIDs = Set(allFeeds.filter { $0.feedbinSubscriptionID != nil }.map(\.id))
+            base = items.filter { item in
+                guard let feedID = item.feedID else { return false }
+                return feedIDs.contains(feedID)
+            }
         case .category(let categoryID):
             // Articles from every feed indented under this category, merged
             // into ONE list — `applySort` then orders them across feeds, so
@@ -164,6 +172,12 @@ public final class ArticleListViewModel: ObservableObject {
             base = smartCategoryMatches(for: smartCategoryID)
         case .folder(let folderID):
             let feedIDs = Set(allFeeds.filter { $0.folder?.id == folderID }.map(\.id))
+            base = items.filter { item in
+                guard let feedID = item.feedID else { return false }
+                return feedIDs.contains(feedID)
+            }
+        case .feedbinTag(let name):
+            let feedIDs = Set(allFeeds.filter { $0.feedbinTagNames?.contains(name) == true }.map(\.id))
             base = items.filter { item in
                 guard let feedID = item.feedID else { return false }
                 return feedIDs.contains(feedID)
@@ -294,9 +308,11 @@ public final class ArticleListViewModel: ObservableObject {
     public enum SidebarFilter: Equatable, Hashable {
         case all, unread, starred
         case feed(UUID)
+        case feedbin
         case folder(UUID)
         case category(UUID)
         case smartCategory(UUID)
+        case feedbinTag(String)
     }
 
     @Published public var selectedSidebarFilter: SidebarFilter = .unread {
@@ -407,6 +423,11 @@ public final class ArticleListViewModel: ObservableObject {
     public func unreadCount(forFeed feedID: UUID) -> Int {
         if unreadCountsByFeedCache == nil { rebuildCountCaches() }
         return unreadCountsByFeedCache?[feedID] ?? 0
+    }
+
+    public func unreadCount(forFeedIDs feedIDs: Set<UUID>) -> Int {
+        if unreadCountsByFeedCache == nil { rebuildCountCaches() }
+        return feedIDs.reduce(0) { $0 + (unreadCountsByFeedCache?[$1] ?? 0) }
     }
 
     public var totalUnreadCount: Int {

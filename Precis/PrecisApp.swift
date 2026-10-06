@@ -68,6 +68,8 @@ extension Notification.Name {
     /// Posted after an OPML import completes in the Settings window so the
     /// main window reloads its sidebar feed list.
     static let precisFeedsImported = Notification.Name("PrecisFeedsImported")
+    static let precisFeedbinConnected = Notification.Name("PrecisFeedbinConnected")
+    static let precisFeedbinDisconnected = Notification.Name("PrecisFeedbinDisconnected")
     /// Posted by the headlines panel when an article is opened, so the main
     /// window's list can mirror the read state without re-fetching everything.
     static let precisArticleRead = Notification.Name("PrecisArticleRead")

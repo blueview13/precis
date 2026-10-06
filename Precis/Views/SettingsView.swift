@@ -117,6 +117,12 @@ struct SettingsView: View {
     @State private var opmlProgress: Double? = nil
     /// Locks both OPML buttons while an import/export is in flight.
     @State private var isOPMLBusy = false
+    @State private var feedbinUsername = ""
+    @State private var feedbinPassword = ""
+    @State private var feedbinStatus = ""
+    @State private var feedbinBusy = false
+    @State private var hasFeedbinCredentials = false
+    @AppStorage("feedbinUsername") private var savedFeedbinUsername = ""
     @State private var desktopPanelFeeds: [FeedRecord] = []
     @State private var desktopPanelCategories: [CategoryRecord] = []
     @State private var desktopPanelFolders: [FolderRecord] = []
@@ -285,6 +291,42 @@ struct SettingsView: View {
                                 }
                             }
                             .pickerStyle(.segmented)
+                        }
+                    }
+
+                    settingsSection(title: "Feedbin") {
+                        VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
+                            Text("Connect your Feedbin account to show its subscriptions and tags in the sidebar.")
+                                .font(PrecisTypography.caption)
+                                .foregroundStyle(PrecisDesignSystem.marginalia)
+                            TextField("Feedbin email", text: $feedbinUsername)
+                                .textFieldStyle(.roundedBorder)
+                                .textContentType(.username)
+                            SecureField("Feedbin password", text: $feedbinPassword)
+                                .textFieldStyle(.roundedBorder)
+                                .textContentType(.password)
+                            HStack {
+                                Button(feedbinBusy ? "Syncing…" : "Connect and Sync") { connectFeedbin() }
+                                    .disabled(feedbinBusy || feedbinUsername.isEmpty || feedbinPassword.isEmpty)
+                                if hasFeedbinCredentials {
+                                    Button("Disconnect") {
+                                        Task {
+                                            await FeedbinCredentialStore.delete()
+                                            hasFeedbinCredentials = false
+                                            feedbinPassword = ""
+                                            savedFeedbinUsername = ""
+                                            feedbinStatus = "Feedbin disconnected. Synced feeds remain in Precis."
+                                            NotificationCenter.default.post(name: .precisFeedsImported, object: nil)
+                                            NotificationCenter.default.post(name: .precisFeedbinDisconnected, object: nil)
+                                        }
+                                    }
+                                }
+                            }
+                            if !feedbinStatus.isEmpty {
+                                Text(feedbinStatus)
+                                    .font(PrecisTypography.caption)
+                                    .foregroundStyle(feedbinStatus.lowercased().contains("failed") ? .red : PrecisDesignSystem.marginalia)
+                            }
                         }
                     }
 
@@ -541,7 +583,12 @@ struct SettingsView: View {
         .background(PrecisDesignSystem.background(for: colorScheme))
         .preferredColorScheme(selectedTheme.colorScheme)
         .tint(selectedTheme.accent)
-        .task { loadDesktopPanelSources() }
+        .task {
+            loadDesktopPanelSources()
+            let credentials = await FeedbinCredentialStore.load()
+            feedbinUsername = credentials?.username ?? savedFeedbinUsername
+            hasFeedbinCredentials = credentials != nil
+        }
         .background(WindowWillCloseObserver {
             // The picker is app-shared and would otherwise float on over the
             // desktop after its owner window is gone.
@@ -668,6 +715,29 @@ struct SettingsView: View {
             desktopPanelFeeds = []
             desktopPanelCategories = []
             desktopPanelFolders = []
+        }
+    }
+
+    @MainActor
+    private func connectFeedbin() {
+        feedbinBusy = true
+        feedbinStatus = "Connecting to Feedbin…"
+        Task { @MainActor in
+            defer { feedbinBusy = false }
+            do {
+                let credentials = FeedbinCredentials(username: feedbinUsername, password: feedbinPassword)
+                let service = FeedbinService(credentials: credentials)
+                let added = try await service.sync(context: modelContext)
+                try await FeedbinCredentialStore.save(credentials)
+                hasFeedbinCredentials = true
+                savedFeedbinUsername = credentials.username
+                feedbinPassword = ""
+                feedbinStatus = "Synced Feedbin. Added \(added) new feed\(added == 1 ? "" : "s")."
+                NotificationCenter.default.post(name: .precisFeedsImported, object: nil)
+                NotificationCenter.default.post(name: .precisFeedbinConnected, object: nil)
+            } catch {
+                feedbinStatus = "Feedbin connection failed: \(error.localizedDescription)"
+            }
         }
     }
 

@@ -44,6 +44,7 @@ struct MainWindowLayout: View {
     @State private var importStatusKind: ImportStatusKind = .neutral
     @State private var importedFeeds: [FeedRecord] = []
     @State private var showAddFeedSheet = false
+    @State private var hasFeedbinCredentials = false
     @State private var showSmartCategoryEditor = false
     @State private var editingSmartCategory: SmartCategory?
     @State private var isHoveringAddFeeds = false
@@ -113,6 +114,10 @@ struct MainWindowLayout: View {
             return Set(viewModel.allFeeds.filter { $0.category?.id == categoryID }.map(\.id))
         case .feed(let feedID):
             return [feedID]
+        case .feedbin:
+            return Set(viewModel.allFeeds.filter { $0.feedbinSubscriptionID != nil }.map(\.id))
+        case .feedbinTag(let name):
+            return Set(viewModel.allFeeds.filter { $0.feedbinTagNames?.contains(name) == true }.map(\.id))
         default:
             return nil
         }
@@ -264,6 +269,9 @@ struct MainWindowLayout: View {
                 }
             }
         }
+        .task {
+            hasFeedbinCredentials = await FeedbinCredentialStore.load() != nil
+        }
         .onDisappear {
             stopSpacebarMonitor()
         }
@@ -290,6 +298,27 @@ struct MainWindowLayout: View {
             // OPML import finished in the Settings window — reload the feed
             // list so the sidebar shows the new feeds immediately.
             refreshFeeds()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .precisFeedbinConnected)) { _ in
+            hasFeedbinCredentials = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .precisFeedbinDisconnected)) { _ in
+            hasFeedbinCredentials = false
+            let selectedExternalFeed = viewModel.selectedFeedID.flatMap { id in
+                importedFeeds.first(where: { $0.id == id && $0.feedbinSubscriptionID != nil })
+            } != nil
+            let selectedFeedbinScope: Bool
+            switch viewModel.selectedSidebarFilter {
+            case .feedbin, .feedbinTag:
+                selectedFeedbinScope = true
+            default:
+                selectedFeedbinScope = false
+            }
+            if selectedExternalFeed || selectedFeedbinScope {
+                selectedSidebarItem = "All Articles"
+                viewModel.selectedSidebarFilter = .all
+                viewModel.loadArticles(for: nil, context: modelContext)
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didDeminiaturizeNotification)) { notification in
             // Only for the reader we restored on Settings' behalf. A reader
@@ -756,11 +785,13 @@ struct MainWindowLayout: View {
     // MARK: - Feed ↔ Category
 
     private var uncategorizedFeeds: [FeedRecord] {
-        importedFeeds.filter { $0.category == nil }
+        importedFeeds.filter { $0.category == nil && $0.feedbinSubscriptionID == nil }
     }
 
     private func feeds(in category: CategoryRecord) -> [FeedRecord] {
-        importedFeeds.filter { $0.category?.id == category.id }
+        importedFeeds.filter {
+            $0.category?.id == category.id && ($0.feedbinSubscriptionID == nil || hasFeedbinCredentials)
+        }
     }
 
     private func moveFeed(_ feed: FeedRecord, to category: CategoryRecord?) {
@@ -864,8 +895,8 @@ struct MainWindowLayout: View {
         }
 
         selectionAnchorID = feed.id
-        viewModel.loadArticles(for: feed.id, context: modelContext)
         viewModel.selectedSidebarFilter = .feed(feed.id)
+        viewModel.loadArticles(for: feed.id, context: modelContext)
         selectedSidebarItem = sidebarDisplayTitle(for: feed)
     }
 
@@ -898,21 +929,29 @@ struct MainWindowLayout: View {
     /// Runs after the confirmation alert: deletes every pending feed
     /// (articles cascade) in one pass and clears the selection.
     private func deletePendingFeeds() {
-        let repository = FeedRepository()
-        let count = feedsPendingDeletion.count
-        do {
-            for feed in feedsPendingDeletion {
-                try repository.delete(feed, context: modelContext)
+        let pending = feedsPendingDeletion
+        let count = pending.count
+        Task { @MainActor in
+            do {
+                if hasFeedbinCredentials, let credentials = await FeedbinCredentialStore.load() {
+                    let service = FeedbinService(credentials: credentials)
+                    for feed in pending {
+                        if let id = feed.feedbinSubscriptionID { try await service.removeSubscription(id) }
+                    }
+                }
+                let repository = FeedRepository()
+                for feed in pending { try repository.delete(feed, context: modelContext) }
+                feedsPendingDeletion = []
+                selectedFeedIDs.removeAll()
+                selectionAnchorID = nil
+                refreshFeeds()
+                importStatus = count == 1 ? "Feed removed" : "\(count) feeds removed"
+                importStatusKind = .success
+            } catch {
+                feedsPendingDeletion = []
+                importStatus = "Could not remove feed: \(error.localizedDescription)"
+                importStatusKind = .error
             }
-            feedsPendingDeletion = []
-            selectedFeedIDs.removeAll()
-            selectionAnchorID = nil
-            refreshFeeds()
-            importStatus = count == 1 ? "Feed removed" : "\(count) feeds removed"
-            importStatusKind = .success
-        } catch {
-            importStatus = "Could not remove feed"
-            importStatusKind = .error
         }
     }
 
@@ -1005,6 +1044,26 @@ struct MainWindowLayout: View {
                 )
         )
         .contextMenu {
+            if hasFeedbinCredentials, let subscriptionID = feed.feedbinSubscriptionID, let feedID = feed.feedbinFeedID {
+                Menu("Feedbin Tags") {
+                    let tags = Array(Set(importedFeeds.flatMap { $0.feedbinTagNames ?? [] })).sorted()
+                    if tags.isEmpty { Text("No tags yet") }
+                    ForEach(tags, id: \.self) { tag in
+                        Button {
+                            Task { await toggleFeedbinTag(tag, on: feed, subscriptionID: subscriptionID, feedID: feedID) }
+                        } label: {
+                            Label(tag, systemImage: feed.feedbinTagNames?.contains(tag) == true ? "checkmark.square" : "square")
+                        }
+                    }
+                    Button("Add New Tag…") { promptFeedbinTag(for: feed, feedID: feedID) }
+                }
+                Button(role: .destructive) {
+                    Task { await unsubscribeFeedbin(feed, subscriptionID: subscriptionID) }
+                } label: {
+                    Label("Unsubscribe from Feedbin", systemImage: "minus.circle")
+                }
+                Divider()
+            }
             Button {
                 Task { _ = await refreshSingleFeed(feed) }
             } label: {
@@ -1078,6 +1137,55 @@ struct MainWindowLayout: View {
             .padding(.vertical, 8)
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
         }
+    }
+
+    private func toggleFeedbinTag(_ tag: String, on feed: FeedRecord, subscriptionID: Int, feedID: Int) async {
+        guard let credentials = await FeedbinCredentialStore.load() else { return }
+        do {
+            let service = FeedbinService(credentials: credentials)
+            if feed.feedbinTagNames?.contains(tag) == true {
+                try await service.removeTagging(feedID: feedID, name: tag)
+            } else {
+                try await service.addTag(tag, to: feedID)
+            }
+            _ = try await service.sync(context: modelContext)
+            refreshFeeds()
+        } catch { PrecisLogger.error("Feedbin tag update failed: \(error.localizedDescription)") }
+    }
+
+    private func promptFeedbinTag(for feed: FeedRecord, feedID: Int) {
+        let alert = NSAlert()
+        alert.messageText = "Add Feedbin Tag"
+        alert.informativeText = "Enter a tag for \(feed.title)."
+        alert.addButton(withTitle: "Add Tag")
+        alert.addButton(withTitle: "Cancel")
+        let field = NSTextField(string: "")
+        field.frame = NSRect(x: 0, y: 0, width: 240, height: 24)
+        alert.accessoryView = field
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        let name = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return }
+        Task { @MainActor in
+            do {
+                guard let credentials = await FeedbinCredentialStore.load() else { return }
+                let service = FeedbinService(credentials: credentials)
+                try await service.addTag(name, to: feedID)
+                _ = try await service.sync(context: modelContext)
+                refreshFeeds()
+            } catch { PrecisLogger.error("Feedbin tag creation failed: \(error.localizedDescription)") }
+        }
+    }
+
+    private func unsubscribeFeedbin(_ feed: FeedRecord, subscriptionID: Int) async {
+        guard let credentials = await FeedbinCredentialStore.load() else { return }
+        do {
+            try await FeedbinService(credentials: credentials).removeSubscription(subscriptionID)
+            feed.feedbinSubscriptionID = nil
+            feed.feedbinFeedID = nil
+            feed.feedbinTagNames = []
+            try modelContext.save()
+            refreshFeeds()
+        } catch { PrecisLogger.error("Feedbin unsubscribe failed: \(error.localizedDescription)") }
     }
 
     /// `reload: false` skips the full UI/library reload — refresh-all passes
@@ -1159,6 +1267,14 @@ struct MainWindowLayout: View {
         }
         var totalNewArticles = 0
         var refreshedFeedNames: [String] = []
+        if hasFeedbinCredentials, let credentials = await FeedbinCredentialStore.load() {
+            do {
+                _ = try await FeedbinService(credentials: credentials).sync(context: modelContext)
+                refreshFeeds()
+            } catch {
+                PrecisLogger.error("Feedbin sync failed: \(error.localizedDescription)")
+            }
+        }
         for feed in importedFeeds {
             // No per-feed UI reload — reload once after the whole pass.
             let newArticleCount = await refreshSingleFeed(feed, reload: false, sendNotification: false)
@@ -1600,6 +1716,30 @@ struct MainWindowLayout: View {
 
                 smartCategorySidebarSection
 
+                let feedbinFeeds = importedFeeds.filter { hasFeedbinCredentials && $0.feedbinSubscriptionID != nil }
+                if !feedbinFeeds.isEmpty {
+                    SidebarItem(title: "All Feedbin Feeds", icon: "tray.full", badge: sidebarCount(viewModel.unreadCount(forFeedIDs: Set(feedbinFeeds.map(\.id)))), active: viewModel.selectedSidebarFilter == .feedbin) {
+                        selectedSidebarItem = "All Feedbin Feeds"
+                        viewModel.selectedSidebarFilter = .feedbin
+                    }
+                    let tags = Array(Set(feedbinFeeds.flatMap { $0.feedbinTagNames ?? [] })).sorted()
+                    ForEach(tags, id: \.self) { tag in
+                        SidebarItem(title: tag, icon: "tag", badge: sidebarCount(viewModel.unreadCount(forFeedIDs: Set(feedbinFeeds.filter { $0.feedbinTagNames?.contains(tag) == true }.map(\.id)))), active: viewModel.selectedSidebarFilter == .feedbinTag(tag)) {
+                            selectedSidebarItem = tag
+                            viewModel.selectedSidebarFilter = .feedbinTag(tag)
+                        }
+                        ForEach(feedbinFeeds.filter { $0.feedbinTagNames?.contains(tag) == true }) { feed in
+                            sidebarFeedRow(feed, indent: 32, compact: true, group: feedbinFeeds)
+                                .id("feedbin-\(tag)-\(feed.id)")
+                        }
+                    }
+                    let untagged = feedbinFeeds.filter { ($0.feedbinTagNames ?? []).isEmpty }
+                    if !untagged.isEmpty {
+                        SidebarSection(title: "Untagged")
+                        ForEach(untagged) { feed in sidebarFeedRow(feed, group: untagged).id("feedbin-untagged-\(feed.id)") }
+                    }
+                }
+
                 // Feeds not assigned to a category
                 if !uncategorizedFeeds.isEmpty {
                     SidebarSection(title: "Feeds")
@@ -1657,14 +1797,36 @@ struct MainWindowLayout: View {
                 isImporting: $isImporting,
                 importStatus: $importStatus,
                 importStatusKind: $importStatusKind,
-                onAdd: { feedURL in
+                canAddToFeedbin: hasFeedbinCredentials,
+                onAdd: { feedURL, target in
                     Task {
                         isImporting = true
                         importStatus = ""
                         importStatusKind = .neutral
                         do {
                             let before = (try? ArticleRepository().fetchAll(context: modelContext).count) ?? 0
-                            try await viewModel.importFeed(from: feedURL, in: modelContext)
+                            if target == .feedbin {
+                                guard let credentials = await FeedbinCredentialStore.load() else {
+                                    throw FeedbinError.invalidResponse
+                                }
+                                let discovered = try await FeedDiscoveryService().discover(from: feedURL)
+                                let feedbin = FeedbinService(credentials: credentials)
+                                _ = try await feedbin.addSubscription(url: discovered.normalizedURL)
+                                _ = try await feedbin.sync(context: modelContext)
+                            } else {
+                                try await viewModel.importFeed(from: feedURL, in: modelContext)
+                                let normalizedURL = try FeedDiscoveryService().normalizeURL(feedURL).absoluteString
+                                if target == .both, let credentials = await FeedbinCredentialStore.load(),
+                                   let addedFeed = try? FeedRepository().existingFeed(forURL: normalizedURL, context: modelContext),
+                                   let url = URL(string: addedFeed.url) {
+                                    let feedbin = FeedbinService(credentials: credentials)
+                                    let identity = try await feedbin.addSubscription(url: url)
+                                    addedFeed.feedbinSubscriptionID = identity.subscriptionID
+                                    addedFeed.feedbinFeedID = identity.feedID
+                                    try modelContext.save()
+                                    _ = try await feedbin.sync(context: modelContext)
+                                }
+                            }
                             refreshFeeds()
                             viewModel.selectedSidebarFilter = .all
                             selectedSidebarItem = "All Articles"
@@ -1673,7 +1835,9 @@ struct MainWindowLayout: View {
                             let added = max(0, after - before)
                             // Stay open so several feeds can be added back-to-
                             // back; "Done" (or the ✕) closes the sheet.
-                            importStatus = added > 0
+                            importStatus = target == .feedbin
+                                ? "Added to Feedbin"
+                                : added > 0
                                 ? "Added \(added) new article\(added == 1 ? "" : "s") — add another feed to continue"
                                 : "Feed added — no new articles yet; add another feed to continue"
                             importStatusKind = .success
@@ -1682,7 +1846,7 @@ struct MainWindowLayout: View {
                             importStatus = "Already subscribed as \"\(existingTitle)\""
                             importStatusKind = .neutral
                         } catch {
-                            importStatus = "Could not import feed: \(error.localizedDescription)"
+                            importStatus = "Could not add feed: \(error.localizedDescription)"
                             importStatusKind = .error
                         }
                         isImporting = false
@@ -1728,6 +1892,13 @@ struct MainWindowLayout: View {
 
 // MARK: - Add Feed Sheet
 
+private enum FeedAddTarget: String, CaseIterable, Identifiable {
+    case precis = "Precis"
+    case feedbin = "Feedbin"
+    case both = "Both"
+    var id: String { rawValue }
+}
+
 private struct AddFeedSheet: View {
     @Binding var feedURLInput: String
     /// Tracks the URL this sheet took off the pasteboard, so a newer copy may
@@ -1736,9 +1907,11 @@ private struct AddFeedSheet: View {
     @Binding var isImporting: Bool
     @Binding var importStatus: String
     @Binding var importStatusKind: ImportStatusKind
-    let onAdd: (String) -> Void
+    let canAddToFeedbin: Bool
+    let onAdd: (String, FeedAddTarget) -> Void
     @State private var didImport = false
     @State private var selectedFeedURL = ""
+    @State private var addTarget: FeedAddTarget = .precis
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @FocusState private var isURLEntryFocused: Bool
@@ -1771,16 +1944,29 @@ private struct AddFeedSheet: View {
                 .textFieldStyle(.roundedBorder)
                 .font(PrecisTypography.body)
                 .focused($isURLEntryFocused)
-                .onSubmit { onAdd(feedURLInput) }
+                .onSubmit { onAdd(feedURLInput, addTarget) }
+
+            if canAddToFeedbin {
+                Picker("Add to", selection: $addTarget) {
+                    ForEach(FeedAddTarget.allCases) { target in
+                        Text(target.rawValue).tag(target)
+                    }
+                }
+                .pickerStyle(.segmented)
+            } else {
+                Text("Add to Precis")
+                    .font(PrecisTypography.caption)
+                    .foregroundStyle(PrecisDesignSystem.marginalia)
+            }
 
             HStack(spacing: 12) {
-                Button(action: { onAdd(feedURLInput) }) {
+                Button(action: { onAdd(feedURLInput, addTarget) }) {
                     HStack {
                         if isImporting {
                             ProgressView()
                                 .frame(width: 12, height: 12)
                         }
-                        Text(isImporting ? "Importing..." : "Add Feed")
+                        Text(isImporting ? "Adding..." : addTarget == .feedbin ? "Add to Feedbin" : addTarget == .both ? "Add to Both" : "Add to Precis")
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -1841,6 +2027,7 @@ private struct AddFeedSheet: View {
             importStatus = ""
             importStatusKind = .neutral
             didImport = false
+            addTarget = .precis
             prefillFromPasteboard()
         }
         .onChange(of: importStatusKind) { _, kind in

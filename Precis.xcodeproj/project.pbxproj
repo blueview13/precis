@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		FEEB1A000000000000000001 /* FeedbinService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEEB1A000000000000000002 /* FeedbinService.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1A1 /* DeduplicationPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2B2B2B2B2B2B2B2B2B2B2B2 /* DeduplicationPipeline.swift */; };
 		09E6E6F52EF0995FE3969732 /* FeedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0E28DB3045FBE05C16FE426 /* FeedStore.swift */; };
 		0AB3804987F95D14362B3E10 /* BrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2799491F3D77B8DBAE4E8B65 /* BrowserView.swift */; };
@@ -98,6 +99,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		FEEB1A000000000000000002 /* FeedbinService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbinService.swift; sourceTree = "<group>"; };
 		B2B2B2B2B2B2B2B2B2B2B2B2 /* DeduplicationPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeduplicationPipeline.swift; sourceTree = "<group>"; };
 		02ED00F8CC26E91886BEE647 /* SmartCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartCategory.swift; sourceTree = "<group>"; };
 		0AD4C9D55082697AF04F0F33 /* PrecisAppIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrecisAppIntent.swift; sourceTree = "<group>"; };
@@ -358,6 +360,7 @@
 		C405787DB2034C41157DDB75 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				FEEB1A000000000000000002 /* FeedbinService.swift */,
 				B2B2B2B2B2B2B2B2B2B2B2B2 /* DeduplicationPipeline.swift */,
 				34D617432F6897886F923D38 /* AlphaFeedPipeline.swift */,
 				63479221A20572C8B131CC94 /* BackgroundRefreshService.swift */,
@@ -543,6 +546,7 @@
 				44AA4838D6D4B0422621884E /* FeedRepository.swift in Sources */,
 				4875B528E262839BB70B1A37 /* FeedService.swift in Sources */,
 				09E6E6F52EF0995FE3969732 /* FeedStore.swift in Sources */,
+				FEEB1A000000000000000001 /* FeedbinService.swift in Sources */,
 				B01C33CEF93372E99A3837D1 /* Folder.swift in Sources */,
 				62643C4361662657E3967ABC /* FolderRepository.swift in Sources */,
 				40A99782BEFD9BE73A0E91F3 /* FullTextSearchService.swift in Sources */,

@@ -82,7 +82,13 @@ public final class FeedDiscoveryService: FeedDiscoveryServiceProtocol {
     }
 
     public func normalizeURL(_ rawInput: String) throws -> URL {
-        let trimmed = rawInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        var trimmed = rawInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Copied feed links sometimes include their title/description after the URL.
+        // Keep the leading URL token instead of encoding that prose into the path.
+        if trimmed.contains(where: \.isWhitespace),
+           let range = trimmed.range(of: #"(?i)^https?://[^\s<>]+"#, options: .regularExpression) {
+            trimmed = String(trimmed[range]).trimmingCharacters(in: CharacterSet(charactersIn: ",.;)]}"))
+        }
         guard !trimmed.isEmpty else { throw FeedDiscoveryError.invalidURL }
 
         let maybeURL: URL
