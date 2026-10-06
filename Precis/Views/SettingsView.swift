@@ -103,11 +103,12 @@ struct SettingsView: View {
     @AppStorage("notifyOnNewArticles") private var notifyOnNewArticles = false
     @AppStorage("desktopPanelEnabled") private var desktopPanelEnabled = false
     @AppStorage("desktopPanelEdge") private var desktopPanelEdge = "right"
-    @AppStorage("desktopPanelBackground") private var desktopPanelBackground = "#FFBE24"
-    @AppStorage("desktopPanelTextColor") private var desktopPanelTextColor = ""
-    @AppStorage("desktopPanelOpacity") private var desktopPanelOpacity = 0.35
+    @AppStorage("desktopPanelBackground") private var desktopPanelBackground = "#FFFFFF"
+    @AppStorage("desktopPanelTextColor") private var desktopPanelTextColor = "#000000"
+    @AppStorage("desktopPanelOpacity") private var desktopPanelOpacity = 0.7
     @AppStorage("desktopPanelSources") private var desktopPanelSources = "*"
     @AppStorage("desktopPanelArticleLimit") private var desktopPanelArticleLimit = 50
+    @AppStorage("desktopPanelSmartCategories") private var desktopPanelSmartCategories = ""
     @State private var opmlStatus = ""
     @State private var opmlStatusIsError = false
     @State private var notificationPermissionMessage = ""
@@ -119,6 +120,11 @@ struct SettingsView: View {
     @State private var desktopPanelFeeds: [FeedRecord] = []
     @State private var desktopPanelCategories: [CategoryRecord] = []
     @State private var desktopPanelFolders: [FolderRecord] = []
+    @State private var isDesktopPanelCategoriesExpanded = false
+    @State private var isDesktopPanelFoldersExpanded = false
+    @State private var isDesktopPanelFeedsExpanded = false
+    @State private var isDesktopPanelSmartCategoriesExpanded = false
+    @ObservedObject private var smartCategoryStore = SmartCategoryStore.shared
     @State private var desktopPanelColorPanel = DesktopPanelColorPanelController()
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
@@ -411,7 +417,10 @@ struct SettingsView: View {
                             }
 
                             if !desktopPanelCategories.isEmpty {
-                                DisclosureGroup("Categories") {
+                                sourceDisclosure(
+                                    "Categories",
+                                    isExpanded: $isDesktopPanelCategoriesExpanded
+                                ) {
                                     VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
                                         ForEach(desktopPanelCategories) { category in
                                             sourceToggle(category.name, feedIDs: category.feeds.map(\.id))
@@ -420,8 +429,24 @@ struct SettingsView: View {
                                 }
                             }
 
+                            if !smartCategoryStore.categories.filter({ !$0.isDeleted }).isEmpty {
+                                sourceDisclosure(
+                                    "Smart Categories",
+                                    isExpanded: $isDesktopPanelSmartCategoriesExpanded
+                                ) {
+                                    VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
+                                        ForEach(smartCategoryStore.categories.filter { !$0.isDeleted }) { category in
+                                            smartCategoryToggle(category)
+                                        }
+                                    }
+                                }
+                            }
+
                             if !desktopPanelFolders.isEmpty {
-                                DisclosureGroup("Folders") {
+                                sourceDisclosure(
+                                    "Folders",
+                                    isExpanded: $isDesktopPanelFoldersExpanded
+                                ) {
                                     VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
                                         ForEach(desktopPanelFolders) { folder in
                                             sourceToggle(folder.name, feedIDs: folder.feeds.map(\.id))
@@ -430,7 +455,10 @@ struct SettingsView: View {
                                 }
                             }
 
-                            DisclosureGroup("Feeds") {
+                            sourceDisclosure(
+                                "Feeds",
+                                isExpanded: $isDesktopPanelFeedsExpanded
+                            ) {
                                 VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
                                     ForEach(desktopPanelFeeds) { feed in
                                         sourceToggle(feed.title, feedIDs: [feed.id])
@@ -523,14 +551,14 @@ struct SettingsView: View {
 
     private var desktopPanelColor: Binding<Color> {
         Binding(
-            get: { PrecisDesignSystem.color(hex: desktopPanelBackground) ?? selectedTheme.background },
+            get: { PrecisDesignSystem.color(hex: desktopPanelBackground) ?? .white },
             set: { desktopPanelBackground = PrecisDesignSystem.hexString(from: $0) }
         )
     }
 
     private var desktopPanelText: Binding<Color> {
         Binding(
-            get: { PrecisDesignSystem.color(hex: desktopPanelTextColor) ?? PrecisDesignSystem.foreground(for: colorScheme) },
+            get: { PrecisDesignSystem.color(hex: desktopPanelTextColor) ?? .black },
             set: { desktopPanelTextColor = PrecisDesignSystem.hexString(from: $0) }
         )
     }
@@ -575,6 +603,60 @@ struct SettingsView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func smartCategoryToggle(_ category: SmartCategory) -> some View {
+        let selectedIDs = Set(desktopPanelSmartCategories.split(separator: ",").compactMap {
+            UUID(uuidString: String($0))
+        })
+        return HStack(spacing: PrecisSpacing.xs) {
+            Toggle("", isOn: Binding(
+                get: { selectedIDs.contains(category.id) },
+                set: { isSelected in
+                    var updated = selectedIDs
+                    if isSelected { updated.insert(category.id) }
+                    else { updated.remove(category.id) }
+                    desktopPanelSmartCategories = updated.map(\.uuidString).sorted().joined(separator: ",")
+                }
+            ))
+            .labelsHidden()
+            .toggleStyle(.checkbox)
+            .accessibilityLabel(category.name)
+
+            Text(category.name)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func sourceDisclosure<Content: View>(
+        _ title: String,
+        isExpanded: Binding<Bool>,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
+            Button {
+                isExpanded.wrappedValue.toggle()
+            } label: {
+                HStack(spacing: PrecisSpacing.xs) {
+                    Image(systemName: isExpanded.wrappedValue ? "chevron.down" : "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(PrecisDesignSystem.marginalia)
+                        .frame(width: 12)
+                    Text(title)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(title)
+            .accessibilityHint(isExpanded.wrappedValue ? "Collapse" : "Expand")
+
+            if isExpanded.wrappedValue {
+                content()
+                    .padding(.leading, 20)
+            }
+        }
     }
 
     private func loadDesktopPanelSources() {

@@ -87,7 +87,7 @@ struct MainWindowLayout: View {
 
     /// A sidebar count pill's value — zero when the reader has switched
     /// sidebar counts off, which is how the pills hide. Covers both the feed
-    /// rows and the All Items / Unread / Starred rows.
+    /// rows and the All Articles / Unread / Starred rows.
     private func sidebarCount(_ count: Int) -> Int {
         showSidebarUnreadPills ? count : 0
     }
@@ -615,7 +615,7 @@ struct MainWindowLayout: View {
                     Button("New Smart Category…") { editingSmartCategory = nil; showSmartCategoryEditor = true }
                     Button("Delete Smart Category", role: .destructive) {
                         smartCategoryStore.remove(id: smartCategory.id); viewModel.invalidateSmartCategoryCaches()
-                        if viewModel.selectedSidebarFilter == .smartCategory(smartCategory.id) { viewModel.selectedSidebarFilter = .all; selectedSidebarItem = "All Items" }
+                        if viewModel.selectedSidebarFilter == .smartCategory(smartCategory.id) { viewModel.selectedSidebarFilter = .all; selectedSidebarItem = "All Articles" }
                     }
                 }
                 .popover(isPresented: smartCategoryColorPopoverIsPresented(for: smartCategory.id)) {
@@ -1383,15 +1383,15 @@ struct MainWindowLayout: View {
             VStack(alignment: .leading, spacing: 9) {
                 // Library section
                 SidebarSection(title: "Library")
-                SidebarItem(title: "All Items", icon: "tray.full", badge: sidebarCount(viewModel.totalUnreadCount), active: selectedSidebarItem == "All Items") {
-                    selectedSidebarItem = "All Items"
+                SidebarItem(title: "All Articles", icon: "tray.full", badge: sidebarCount(viewModel.totalUnreadCount), badgeNextToTitle: true, active: selectedSidebarItem == "All Articles") {
+                    selectedSidebarItem = "All Articles"
                     viewModel.selectedSidebarFilter = .all
                 }
-                SidebarItem(title: "Unread", icon: "envelope.badge", badge: sidebarCount(viewModel.totalUnreadCount), active: selectedSidebarItem == "Unread") {
+                SidebarItem(title: "Unread", icon: "envelope.badge", badge: sidebarCount(viewModel.totalUnreadCount), badgeNextToTitle: true, active: selectedSidebarItem == "Unread") {
                     selectedSidebarItem = "Unread"
                     viewModel.selectedSidebarFilter = .unread
                 }
-                SidebarItem(title: "Starred", icon: "star", badge: sidebarCount(viewModel.totalStarredCount), active: selectedSidebarItem == "Starred") {
+                SidebarItem(title: "Starred", icon: "star", badge: sidebarCount(viewModel.totalStarredCount), badgeNextToTitle: true, active: selectedSidebarItem == "Starred") {
                     selectedSidebarItem = "Starred"
                     viewModel.selectedSidebarFilter = .starred
                 }
@@ -1671,7 +1671,7 @@ struct MainWindowLayout: View {
                             try await viewModel.importFeed(from: feedURL, in: modelContext)
                             refreshFeeds()
                             viewModel.selectedSidebarFilter = .all
-                            selectedSidebarItem = "All Items"
+                            selectedSidebarItem = "All Articles"
                             viewModel.loadArticles(for: nil, context: modelContext)
                             let after = (try? ArticleRepository().fetchAll(context: modelContext).count) ?? 0
                             let added = max(0, after - before)
@@ -2118,11 +2118,24 @@ private struct SidebarItem: View {
     let title: String
     var icon: String? = nil
     var badge: Int = 0
+    /// True to sit the count pill against the title's right edge — the feed
+    /// rows' placement — instead of pushing it to the row's trailing edge.
+    var badgeNextToTitle: Bool = false
     var tint: Color? = nil
     let active: Bool
     let action: () -> Void
 
     @Environment(\.colorScheme) private var colorScheme
+
+    private var badgePill: some View {
+        Text("\(badge)")
+            .font(PrecisTypography.caption)
+            .foregroundStyle(.white)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color.accentColor)
+            .clipShape(Capsule())
+    }
 
     var body: some View {
         Button(action: action) {
@@ -2148,16 +2161,14 @@ private struct SidebarItem: View {
                     .font(PrecisTypography.body)
                     .foregroundStyle(tint ?? (active ? PrecisDesignSystem.foreground(for: colorScheme) : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.75)))
 
+                if badgeNextToTitle, badge > 0 {
+                    badgePill
+                }
+
                 Spacer()
 
-                if badge > 0 {
-                    Text("\(badge)")
-                        .font(PrecisTypography.caption)
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.accentColor)
-                        .clipShape(Capsule())
+                if !badgeNextToTitle, badge > 0 {
+                    badgePill
                 }
             }
             .padding(.vertical, 6)
