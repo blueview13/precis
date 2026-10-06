@@ -35,6 +35,10 @@
 		4875B528E262839BB70B1A37 /* FeedService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F61A4AF13EAF1574520CAD /* FeedService.swift */; };
 		4CDDF6B877CD6EA5BABEC737 /* RefreshSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB1BE3528BBA25BBF86FA5DB /* RefreshSchedule.swift */; };
 		58E0C604A6F47B8B9F2FB70C /* ContentExtractionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AECD198875476281E0D08607 /* ContentExtractionService.swift */; };
+		6F99BA1A422C4CB3B98C43DD /* MercuryArticleParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A40773123D146679168CBFE /* MercuryArticleParser.swift */; };
+		6F99BA1A422C4CB3B98C43DE /* JavaScriptCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3A40773123D146679168CBFF /* JavaScriptCore.framework */; };
+		6F99BA1A422C4CB3B98C43DF /* mercury.web.js in Resources */ = {isa = PBXBuildFile; fileRef = 3A40773123D146679168CC00 /* mercury.web.js */; };
+		6F99BA1A422C4CB3B98C43E0 /* MercuryParser-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 3A40773123D146679168CC01 /* MercuryParser-LICENSE.txt */; };
 		602614A62A9A3E449E8BA323 /* OPMLService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E74083885811654A7B71AB6A /* OPMLService.swift */; };
 		62643C4361662657E3967ABC /* FolderRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBD9DA67958797ACD8FE5326 /* FolderRepository.swift */; };
 		677078F801C7699A23A9406B /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D827B461D187C59163E5803 /* Logger.swift */; };
@@ -145,6 +149,10 @@
 		ACFE1ACFD7574320B2DBAF7A /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		ADA8B70578FF6127D26EBA59 /* TopChromeRevealTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopChromeRevealTests.swift; sourceTree = "<group>"; };
 		AECD198875476281E0D08607 /* ContentExtractionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentExtractionService.swift; sourceTree = "<group>"; };
+		3A40773123D146679168CBFE /* MercuryArticleParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MercuryArticleParser.swift; sourceTree = "<group>"; };
+		3A40773123D146679168CBFF /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
+		3A40773123D146679168CC00 /* mercury.web.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = Resources/mercury.web.js; sourceTree = "<group>"; };
+		3A40773123D146679168CC01 /* MercuryParser-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = Resources/MercuryParser-LICENSE.txt; sourceTree = "<group>"; };
 		AF518FE4ADF640B12EA35A9B /* SummarizationProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummarizationProvider.swift; sourceTree = "<group>"; };
 		B19D281BA82A58F79EF93FA0 /* Precis.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Precis.entitlements; sourceTree = "<group>"; };
 		BB1BE3528BBA25BBF86FA5DB /* RefreshSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RefreshSchedule.swift; sourceTree = "<group>"; };
@@ -178,6 +186,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6F99BA1A422C4CB3B98C43DE /* JavaScriptCore.framework in Frameworks */,
 				E3DA620B787E3CF3F4DBAD1E /* FeedKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -225,6 +234,8 @@
 			isa = PBXGroup;
 			children = (
 				7879467182D9B853FA61E89C /* Assets.xcassets */,
+				3A40773123D146679168CC00 /* mercury.web.js */,
+				3A40773123D146679168CC01 /* MercuryParser-LICENSE.txt */,
 				F3627A15C4B94350D2597305 /* ContentView.swift */,
 				571BA157782E317361A4FC10 /* gen_icon_transparent.png */,
 				16089681870BBF9A6388D3CD /* gen_icon.png */,
@@ -351,6 +362,7 @@
 				34D617432F6897886F923D38 /* AlphaFeedPipeline.swift */,
 				63479221A20572C8B131CC94 /* BackgroundRefreshService.swift */,
 				AECD198875476281E0D08607 /* ContentExtractionService.swift */,
+				3A40773123D146679168CBFE /* MercuryArticleParser.swift */,
 				FB6C8A40AC2E8923DABA5499 /* FaviconService.swift */,
 				872EFAD58C7D6F26E32E7E69 /* FeedDiscoveryService.swift */,
 				2D4763C848017EA801B958A1 /* FeedImportService.swift */,
@@ -468,6 +480,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6F99BA1A422C4CB3B98C43DF /* mercury.web.js in Resources */,
+				6F99BA1A422C4CB3B98C43E0 /* MercuryParser-LICENSE.txt in Resources */,
 				F2063ABFCD5F3415774767ED /* Assets.xcassets in Resources */,
 				B164D3A7B5AA9B27D4051749 /* gen_icon.png in Resources */,
 				10DA0B22C6D5A6AE515FF053 /* gen_icon_transparent.png in Resources */,
@@ -512,6 +526,7 @@
 				0AB3804987F95D14362B3E10 /* BrowserView.swift in Sources */,
 				77F10C7D044891A8E994A1F5 /* CloudKitSyncService.swift in Sources */,
 				58E0C604A6F47B8B9F2FB70C /* ContentExtractionService.swift in Sources */,
+				6F99BA1A422C4CB3B98C43DD /* MercuryArticleParser.swift in Sources */,
 				0BB590A62D18FF0B1D2F182B /* ContentView.swift in Sources */,
 				2C8557ED6E6A034DF8C6E0B1 /* ContentViewModel.swift in Sources */,
 				1CAC44F074E0AE4D6DB9A8A0 /* DesignReviewBaseline.swift in Sources */,

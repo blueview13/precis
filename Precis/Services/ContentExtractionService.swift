@@ -76,7 +76,20 @@ public enum ArticleContentLoader {
             ?? ""
         guard !html.isEmpty else { throw LoaderError.emptyPage }
 
-        let fragment = extractReadableHTML(from: html, base: url)
+        let fragment: String
+        if let mercury = await MercuryArticleParser.parse(html: html, url: url),
+           visibleTextLength(in: mercury.contentHTML) >= minimumArticleText {
+            var readable = mercury.contentHTML
+            if readable.range(of: #"<img\b"#, options: .regularExpression.union(.caseInsensitive)) == nil,
+               let leadImageURL = mercury.leadImageURL {
+                readable = addingLeadImage(leadImageURL, to: readable, base: url)
+            }
+            fragment = resolveURLs(in: readable, base: url)
+        } else {
+            // Keep Precis's existing heuristic as a compatibility fallback
+            // for pages Mercury cannot parse or that return too little text.
+            fragment = extractReadableHTML(from: html, base: url)
+        }
         // Pages that render via JavaScript (Reddit, some paywalls) answer with
         // a near-empty shell — accepting it would overwrite the feed's own
         // content with nothing and leave the reading pane blank permanently.
@@ -84,6 +97,22 @@ public enum ArticleContentLoader {
             throw LoaderError.emptyPage
         }
         return fragment
+    }
+
+    /// Mercury sometimes identifies a lead image without including it in the
+    /// extracted body. Include that image when the body has no inline images
+    /// so feeds that rely on the page's hero image keep their current display.
+    private static func addingLeadImage(_ rawURL: String, to html: String, base: URL) -> String {
+        guard let imageURL = URL(string: rawURL, relativeTo: base)?.absoluteURL,
+              let scheme = imageURL.scheme?.lowercased(),
+              scheme == "http" || scheme == "https" else { return html }
+
+        let escapedURL = imageURL.absoluteString
+            .replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "\"", with: "&quot;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
+        return "<figure><img src=\"\(escapedURL)\" alt=\"\"></figure>\(html)"
     }
 
     /// Extracted fragments shorter than this many visible characters count as
