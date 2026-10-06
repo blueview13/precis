@@ -728,10 +728,6 @@ struct MainWindowLayout: View {
                 .contextMenu {
                     Button("Edit Smart Category…") { editingSmartCategory = smartCategory; showSmartCategoryEditor = true }
                     Button("Rename…") { editingSmartCategory = smartCategory; showSmartCategoryEditor = true }
-                    Button("Duplicate") {
-                        let duplicate = SmartCategory(name: "\(smartCategory.name) Copy", colorHex: smartCategory.colorHex, matchMode: smartCategory.matchMode, rootGroup: smartCategory.rootGroup, sortOrder: smartCategoryStore.categories.filter({ !$0.isDeleted }).count)
-                        smartCategoryStore.upsert(duplicate); viewModel.invalidateSmartCategoryCaches()
-                    }
                     Button("Change Color…") { colorEditingSmartCategoryID = smartCategory.id }
                     Divider()
                     Button("New Smart Category…") { editingSmartCategory = nil; showSmartCategoryEditor = true }
@@ -2505,7 +2501,7 @@ private struct ArticleRow: View {
 /// view) being rebuilt on every frame — which is what made resizing judder.
 final class ReaderSplitState: ObservableObject {
     @Published var sidebarWidth: CGFloat = 260
-    @Published var articleListWidth: CGFloat = 250
+    @Published var articleListWidth: CGFloat = 290
     @Published var articleListHeight: CGFloat = 350
     /// True while a divider drag is in flight. The reading pane uses it to hold
     /// its article column at the width it already had (no web-view reflow) and
