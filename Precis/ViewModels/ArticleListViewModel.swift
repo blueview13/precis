@@ -794,6 +794,8 @@ public final class ArticleListViewModel: ObservableObject {
             let allRecords = try articleRepository.fetchAll(context: context)
             let twentyFourHoursAgo = Calendar.current.date(byAdding: .hour, value: -24, to: Date()) ?? Date()
 
+            // Newest first, so the digest covers the freshest articles of the
+            // last 24 hours rather than whichever ones the store returns first.
             let recentRecords = allRecords.filter { record in
                 guard let pubDate = record.publishedDate else { return false }
                 let withinTimeframe = pubDate >= twentyFourHoursAgo
@@ -801,7 +803,7 @@ public final class ArticleListViewModel: ObservableObject {
                     return withinTimeframe && record.feed.map { feedIDs.contains($0.id) } == true
                 }
                 return withinTimeframe
-            }
+            }.sorted { ($0.publishedDate ?? .distantPast) > ($1.publishedDate ?? .distantPast) }
             updateFeedWideSummaryProgress(0.18, generation: generation)
 
             guard !recentRecords.isEmpty else {
@@ -811,7 +813,7 @@ public final class ArticleListViewModel: ObservableObject {
 
             let digestRecords = Array(recentRecords.prefix(25))
             var articleSummaries: [String] = []
-            let provider = LocalHeuristicSummarizationProvider()
+            let provider = SummarizationProviderFactory.makeDefault()
 
             for (index, record) in digestRecords.enumerated() {
                 let articleValue = Article(record: record)
@@ -821,7 +823,9 @@ public final class ArticleListViewModel: ObservableObject {
                 let cleaned = ArticleHTMLSanitizer.plainText(fromHTML: text)
 
                 if !cleaned.isEmpty {
-                    articleSummaries.append("• \(record.title): \(cleaned.prefix(200))")
+                    // No bullet marker here: the card adds its own, and markers
+                    // in the prompt came back doubled in the digest.
+                    articleSummaries.append("\(record.title): \(cleaned.prefix(200))")
                 }
                 updateFeedWideSummaryProgress(0.18 + 0.30 * Double(index + 1) / Double(digestRecords.count), generation: generation)
             }
@@ -831,21 +835,21 @@ public final class ArticleListViewModel: ObservableObject {
                 return
             }
 
-            // Build a quick local digest from the collected article summaries.
+            // One paragraph of themes plus the day's distinct takeaways.
             let combinedText = articleSummaries.joined(separator: "\n\n")
             updateFeedWideSummaryProgress(0.52, generation: generation)
             let summary = try await provider.summarizeDigest(combinedText) { progress in
                 self.updateFeedWideSummaryProgress(0.52 + progress * 0.46, generation: generation)
             }
 
-            let header = "**\(articleSummaries.count) articles from the last 24 hours:**\n\n"
-            var summaryText = header + summary.shortText
-
-            // Also add bullet points if available
-            if !summary.bulletPoints.isEmpty {
-                summaryText += "\n\n" + summary.bulletPoints.map { "• \($0)" }.joined(separator: "\n")
-            }
-            updateFeedWideSummaryText(summaryText, generation: generation)
+            updateFeedWideSummaryText(
+                PrecisDigest.cardText(
+                    articleCount: articleSummaries.count,
+                    paragraph: summary.shortText,
+                    bullets: summary.bulletPoints
+                ),
+                generation: generation
+            )
         } catch {
             guard generation == feedWideSummaryGeneration else { return }
             // Fallback: just list the article titles
@@ -859,13 +863,19 @@ public final class ArticleListViewModel: ObservableObject {
                         return record.feed.map { feedIDs.contains($0.id) } == true
                     }
                     return true
-                }
+                }.sorted { ($0.publishedDate ?? .distantPast) > ($1.publishedDate ?? .distantPast) }
                 if recentRecords.isEmpty {
                     updateFeedWideSummaryText("No articles in the last 24 hours.", generation: generation)
                 } else {
                     let digestRecords = Array(recentRecords.prefix(25))
-                    let titles = digestRecords.map { "• \($0.title)" }
-                    updateFeedWideSummaryText("**\(digestRecords.count) articles from the last 24 hours:**\n\n" + titles.joined(separator: "\n"), generation: generation)
+                    updateFeedWideSummaryText(
+                        PrecisDigest.cardText(
+                            articleCount: digestRecords.count,
+                            paragraph: "",
+                            bullets: digestRecords.map(\.title)
+                        ),
+                        generation: generation
+                    )
                 }
             } catch {
                 updateFeedWideSummaryText("Could not load articles.", generation: generation)
