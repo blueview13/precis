@@ -668,7 +668,7 @@ public final class ArticleListViewModel: ObservableObject {
             imageURL: articleRecord.imageURL.flatMap { URL(string: $0) }
         )
 
-        let summary = try await AppleIntelligenceSummarizationProvider().summarize(article: articleValue)
+        let summary = try await LocalHeuristicSummarizationProvider().summarize(article: articleValue)
 
         // Don't save error messages or empty summaries
         guard !summary.shortText.isEmpty,
@@ -790,7 +790,7 @@ public final class ArticleListViewModel: ObservableObject {
 
             let digestRecords = Array(recentRecords.prefix(25))
             var articleSummaries: [String] = []
-            let provider = AppleIntelligenceSummarizationProvider()
+            let provider = LocalHeuristicSummarizationProvider()
 
             for (index, record) in digestRecords.enumerated() {
                 let articleValue = Article(record: record)
@@ -810,7 +810,7 @@ public final class ArticleListViewModel: ObservableObject {
                 return
             }
 
-            // Use FoundationModels to create a digest from the collected articles
+            // Build a quick local digest from the collected article summaries.
             let combinedText = articleSummaries.joined(separator: "\n\n")
             updateFeedWideSummaryProgress(0.52, generation: generation)
             let summary = try await provider.summarizeDigest(combinedText) { progress in

@@ -378,6 +378,7 @@ private struct DesktopFeedPanelView: View {
     @AppStorage("desktopPanelBackground") private var backgroundHex = "#FFBE24"
     @AppStorage("desktopPanelTextColor") private var textHex = ""
     @AppStorage("desktopPanelOpacity") private var backgroundOpacity = 0.35
+    @AppStorage("desktopPanelArticleLimit") private var articleLimit = 50
     @Environment(\.modelContext) private var modelContext
 
     let onClose: () -> Void
@@ -397,10 +398,11 @@ private struct DesktopFeedPanelView: View {
             availableFeedIDs: availableFeedIDs
         )
 
+        let limit = min(max(articleLimit, 1), 50)
         return Array(articles.lazy.filter { article in
             guard let feed = article.feed, !feed.muted else { return false }
             return selection.contains(feed.id)
-        }.prefix(80))
+        }.prefix(limit))
     }
 
     private var panelBackground: Color {

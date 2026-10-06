@@ -140,7 +140,7 @@ struct SummarizeCurrentArticleIntent: AppIntent {
         }
 
         let articleValue = Article(record: record)
-        let summary = try await AppleIntelligenceSummarizationProvider().summarize(article: articleValue)
+        let summary = try await LocalHeuristicSummarizationProvider().summarize(article: articleValue)
 
         let summaryRecord = SummaryRecord(
             article: record,
@@ -185,7 +185,7 @@ struct SummarizeUnreadFeedIntent: AppIntent {
         }
 
         var summaries: [String] = []
-        let provider = AppleIntelligenceSummarizationProvider()
+        let provider = LocalHeuristicSummarizationProvider()
 
         for record in unreadRecords.prefix(5) {
             let articleValue = Article(record: record)
@@ -333,7 +333,7 @@ struct SummarizeRecentIntent: AppIntent {
         }
 
         var summaries: [String] = []
-        let provider = AppleIntelligenceSummarizationProvider()
+        let provider = LocalHeuristicSummarizationProvider()
 
         for record in recentRecords.prefix(10) {
             // Check if summary already exists

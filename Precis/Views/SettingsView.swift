@@ -107,6 +107,7 @@ struct SettingsView: View {
     @AppStorage("desktopPanelTextColor") private var desktopPanelTextColor = ""
     @AppStorage("desktopPanelOpacity") private var desktopPanelOpacity = 0.35
     @AppStorage("desktopPanelSources") private var desktopPanelSources = "*"
+    @AppStorage("desktopPanelArticleLimit") private var desktopPanelArticleLimit = 50
     @State private var opmlStatus = ""
     @State private var opmlStatusIsError = false
     @State private var notificationPermissionMessage = ""
@@ -254,7 +255,7 @@ struct SettingsView: View {
                         }
                     }
 
-                    settingsSection(title: "Sidebar") {
+                    settingsSection(title: "Left Sidebar") {
                         Toggle("Show unread count on feeds", isOn: $showSidebarUnreadPills)
                             .font(PrecisTypography.body)
                             .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
@@ -321,7 +322,7 @@ struct SettingsView: View {
                         }
                     }
 
-                    settingsSection(title: "Right Hand Desktop Panel") {
+                    settingsSection(title: "Desktop Edge Panel") {
                         VStack(alignment: .leading, spacing: PrecisSpacing.md) {
                             Toggle("Show menu bar headlines", isOn: $desktopPanelEnabled)
                                 .font(PrecisTypography.body)
@@ -331,6 +332,25 @@ struct SettingsView: View {
                                 Text("Right").tag("right")
                             }
                             .pickerStyle(.segmented)
+
+                            VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
+                                HStack {
+                                    Text("Articles to show")
+                                    Spacer()
+                                    Text("\(min(max(desktopPanelArticleLimit, 1), 50))")
+                                        .foregroundStyle(PrecisDesignSystem.marginalia)
+                                        .monospacedDigit()
+                                }
+                                Slider(
+                                    value: Binding(
+                                        get: { Double(min(max(desktopPanelArticleLimit, 1), 50)) },
+                                        set: { desktopPanelArticleLimit = Int($0.rounded()) }
+                                    ),
+                                    in: 1...50,
+                                    step: 1
+                                )
+                                .accessibilityLabel("Number of articles in desktop edge panel")
+                            }
 
                             HStack {
                                 Text("Background")
