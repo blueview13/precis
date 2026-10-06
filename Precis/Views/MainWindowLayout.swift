@@ -628,7 +628,7 @@ struct MainWindowLayout: View {
         if !smartCategoryStore.categories.filter({ !$0.isDeleted }).isEmpty {
             SidebarSection(title: "Smart Categories")
             ForEach(smartCategoryStore.categories.filter({ !$0.isDeleted })) { smartCategory in
-                SidebarItem(title: smartCategory.name, icon: "gearshape", badge: sidebarCount(viewModel.unreadCount(inSmartCategory: smartCategory.id)), tint: smartCategory.colorHex.flatMap { PrecisDesignSystem.color(hex: $0) }, active: viewModel.selectedSidebarFilter == .smartCategory(smartCategory.id)) {
+                SidebarItem(title: smartCategory.name, icon: "gearshape", badge: sidebarCount(viewModel.unreadCount(inSmartCategory: smartCategory.id)), badgeNextToTitle: true, tint: smartCategory.colorHex.flatMap { PrecisDesignSystem.color(hex: $0) }, active: viewModel.selectedSidebarFilter == .smartCategory(smartCategory.id)) {
                     selectedSidebarItem = smartCategory.name
                     viewModel.selectedSidebarFilter = .smartCategory(smartCategory.id)
                 }
@@ -1778,7 +1778,7 @@ struct MainWindowLayout: View {
                 .padding(.vertical, 8)
             }
         }
-        .background(colorScheme == .dark ? PrecisDesignSystem.surface(for: colorScheme) : Color.white)
+        .background(PrecisDesignSystem.sidebar(for: colorScheme))
         // Key focus for the Delete-key shortcut; focus follows the checks
         // (armed in toggleFeedChecked / the Shift-range branch) and the
         // focus ring stays suppressed.

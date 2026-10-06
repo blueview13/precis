@@ -4,6 +4,7 @@ import AppKit
 enum PrecisTheme: String, CaseIterable, Identifiable {
     case standard
     case modernLight
+    case neoLight
     case dark
 
     static let storageKey = "colorTheme"
@@ -19,6 +20,7 @@ enum PrecisTheme: String, CaseIterable, Identifiable {
         switch self {
         case .standard: "Standard Light"
         case .modernLight: "Modern Light"
+        case .neoLight: "Neo Light"
         case .dark: "Dark"
         }
     }
@@ -27,6 +29,7 @@ enum PrecisTheme: String, CaseIterable, Identifiable {
         switch self {
         case .standard: "Paper, ink, and forest green"
         case .modernLight: "Cool surfaces and clear blue accents"
+        case .neoLight: "True neutral grays and vivid indigo"
         case .dark: "Charcoal surfaces with soft teal accents"
         }
     }
@@ -39,6 +42,7 @@ enum PrecisTheme: String, CaseIterable, Identifiable {
         switch self {
         case .standard: Color(hex: "#F3F0E8")
         case .modernLight: Color(hex: "#F4F7FA")
+        case .neoLight: Color(hex: "#F5F5F7")
         case .dark: Color(hex: "#222930")
         }
     }
@@ -47,6 +51,7 @@ enum PrecisTheme: String, CaseIterable, Identifiable {
         switch self {
         case .standard: Color(hex: "#FFFFFF")
         case .modernLight: Color(hex: "#F4F7FA")
+        case .neoLight: Color(hex: "#FAFAFA")
         case .dark: Color(hex: "#171C21")
         }
     }
@@ -55,6 +60,7 @@ enum PrecisTheme: String, CaseIterable, Identifiable {
         switch self {
         case .standard: Color(hex: "#211F1A")
         case .modernLight: Color(hex: "#1C2732")
+        case .neoLight: Color(hex: "#17181C")
         case .dark: Color(hex: "#E8EDF1")
         }
     }
@@ -63,6 +69,19 @@ enum PrecisTheme: String, CaseIterable, Identifiable {
         switch self {
         case .standard: Color(hex: "#EAE6DA")
         case .modernLight: Color(hex: "#FFFFFF")
+        case .neoLight: Color(hex: "#FFFFFF")
+        case .dark: Color(hex: "#222930")
+        }
+    }
+
+    /// Left-sidebar backdrop. Light gray in the light themes so the sidebar
+    /// reads as a column of its own beside the white reading panes; the dark
+    /// theme keeps the surface tone it always had.
+    var sidebar: Color {
+        switch self {
+        case .standard: Color(hex: "#EFEDE7")
+        case .modernLight: Color(hex: "#E9EDF2")
+        case .neoLight: Color(hex: "#EFEFF1")
         case .dark: Color(hex: "#222930")
         }
     }
@@ -71,6 +90,7 @@ enum PrecisTheme: String, CaseIterable, Identifiable {
         switch self {
         case .standard: Color(hex: "#D8D2C2")
         case .modernLight: Color(hex: "#D9E1E8")
+        case .neoLight: Color(hex: "#E2E2E7")
         case .dark: Color(hex: "#38434D")
         }
     }
@@ -79,6 +99,7 @@ enum PrecisTheme: String, CaseIterable, Identifiable {
         switch self {
         case .standard: Color(hex: "#3C5A45")
         case .modernLight: Color(hex: "#176B87")
+        case .neoLight: Color(hex: "#4F46E5")
         case .dark: Color(hex: "#67B6A5")
         }
     }
@@ -87,6 +108,7 @@ enum PrecisTheme: String, CaseIterable, Identifiable {
         switch self {
         case .standard: Color(hex: "#A8672B")
         case .modernLight: Color(hex: "#B45B37")
+        case .neoLight: Color(hex: "#E11D48")
         case .dark: Color(hex: "#E7AB65")
         }
     }
@@ -110,6 +132,10 @@ public enum PrecisDesignSystem {
 
     public static func surface(for _: ColorScheme) -> Color {
         PrecisTheme.current.surface
+    }
+
+    public static func sidebar(for _: ColorScheme) -> Color {
+        PrecisTheme.current.sidebar
     }
 
     public static func rule(for _: ColorScheme) -> Color {
