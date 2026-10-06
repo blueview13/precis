@@ -76,11 +76,16 @@ struct MainWindowLayout: View {
     @State private var spaceKeyMonitor: Any?
     /// Auto-hidden top chrome handling: the window's content is laid out to
     /// reach the top of the window (see `configureWindowChrome`) and the whole
-    /// layout is inset by the fixed `TopChromeReveal.topContentInset`, so the
-    /// menu bar and the full-screen titlebar have a strip of their own to
-    /// appear in. Nothing here reacts to the chrome showing — the header rows
-    /// keep their position instead of sliding down with it.
+    /// layout is inset by `topContentInset`, so the menu bar and the window's
+    /// titlebar have a strip of their own to appear in. That strip grows while
+    /// the chrome is down over the window and drops back when it leaves, which
+    /// is what keeps the chrome off the header rows without leaving a band of
+    /// empty space above them the rest of the time.
     @State private var hostingWindow: NSWindow?
+    /// True while the auto-hidden chrome is revealed over the window's content —
+    /// set from the pointer reaching the window's top edge, which is where the
+    /// menu bar reveals when the window is flush with the display's top.
+    @State private var chromeRevealed = false
     /// True between `presentSettings` un-minimizing the reader and that
     /// window reporting the restore finished.
     @State private var wasRestoringReader = false
@@ -350,21 +355,109 @@ struct MainWindowLayout: View {
                 if let window { configureWindowChrome(window) }
             }
         )
-        // The fixed strip the auto-hidden chrome appears in. It never changes,
-        // so the top bar (and every header under it) holds still while the menu
-        // bar slides in — see `TopChromeReveal.topContentInset` for why the
-        // strip is as tall as it is. `ignoresSafeArea` first, so the titlebar's
-        // own inset can't add to it (which is what made the header move).
+        // Let the window content extend beneath its transparent titlebar, then
+        // apply the chrome clearance outside that ignored safe area. Applying
+        // padding first lets SwiftUI include the padding in the ignored region,
+        // leaving the sidebar controls underneath the revealed menu bar and
+        // traffic lights.
         .ignoresSafeArea(.container, edges: .top)
-        .padding(.top, TopChromeReveal.topContentInset)
+        .padding(.top, topContentInset)
+        .onContinuousHover(coordinateSpace: .global, perform: handleHover)
         .background(PrecisDesignSystem.background(for: colorScheme))
+    }
+
+    /// Tracks the pointer over the window's top edge, which is where the
+    /// auto-hidden menu bar reveals once the window is flush with the display's
+    /// top — see `TopChromeReveal`.
+    private func handleHover(_ phase: HoverPhase) {
+        switch phase {
+        case .active:
+            // SwiftUI's `.global` hover coordinates are rooted in the view
+            // hierarchy, not the display. In full screen that meant the
+            // pointer never compared as being within a few points of the
+            // display's top edge, so the menu bar and traffic lights covered
+            // the sidebar controls. AppKit's mouse location and screen frame
+            // are both in screen coordinates (origin at the lower left).
+            let pointerDistanceFromTop: CGFloat
+            if let screen = hostingWindow?.screen {
+                pointerDistanceFromTop = screen.frame.maxY - NSEvent.mouseLocation.y
+            } else {
+                pointerDistanceFromTop = .greatestFiniteMagnitude
+            }
+            setChromeRevealed(
+                TopChromeReveal.isChromeRevealed(
+                    pointerDistanceFromTop: pointerDistanceFromTop,
+                    windowIsFlushWithTopOfDisplay: chromeCanCoverContent
+                )
+            )
+        case .ended:
+            // The pointer has left the window. Hold the strip only when it went
+            // *up* onto the chrome — the menu bar takes the top of the display,
+            // so the header rows have to stay put while the menu is up. Leaving
+            // sideways or downwards means the chrome is on its way out too, so
+            // the strip drops back.
+            let pointerTop = NSEvent.mouseLocation.y
+            let windowTop = hostingWindow?.frame.maxY ?? .greatestFiniteMagnitude
+            if pointerTop < windowTop - 1 {
+                setChromeRevealed(false)
+            }
+        }
+    }
+
+    /// Strip to lay the window's content out with: the resting margin normally,
+    /// the revealed chrome's height while the menu bar is down over it.
+    private var topContentInset: CGFloat {
+        guard chromeRevealed, let metrics = chromeMetrics else {
+            return TopChromeReveal.restingInset
+        }
+        return TopChromeReveal.revealedInset(
+            menuBarHeight: metrics.menuBar,
+            titlebarHeight: metrics.titlebar
+        )
+    }
+
+    /// The heights the revealed chrome is made of, read from the window rather
+    /// than assumed: the titlebar is AppKit's metric, and the menu bar's height
+    /// differs on a notched display.
+    private var chromeMetrics: (menuBar: CGFloat, titlebar: CGFloat)? {
+        guard let window = hostingWindow, let screen = window.screen else { return nil }
+        // In auto-hidden full screen, AppKit can report a visible frame that
+        // includes the menu bar and a content layout rect that includes the
+        // titlebar. Those measurements become zero even while the chrome is
+        // sliding over this window, so keep system-sized minimums and use the
+        // larger measurements when AppKit reports them (including notches).
+        let measuredMenuBar = max(0, screen.frame.maxY - screen.visibleFrame.maxY)
+        let measuredTitlebar = max(0, window.frame.height - window.contentLayoutRect.height)
+        return (
+            menuBar: max(measuredMenuBar, max(screen.safeAreaInsets.top, NSStatusBar.system.thickness)),
+            titlebar: max(measuredTitlebar, 32)
+        )
+    }
+
+    /// Whether the auto-hidden chrome can be drawn over this window's content at
+    /// all: only when the window is flush with the top of its display. A window
+    /// sitting lower has the menu bar above it, never on it, so hovering its top
+    /// edge must not move anything.
+    private var chromeCanCoverContent: Bool {
+        guard let window = hostingWindow, let screen = window.screen else { return false }
+        return window.frame.maxY >= screen.frame.maxY - 1
+    }
+
+    /// Grows or drops the strip as the chrome slides over the window. The change
+    /// is animated so the header rows travel with the menu bar instead of
+    /// jumping out from under it.
+    private func setChromeRevealed(_ revealed: Bool) {
+        guard revealed != chromeRevealed else { return }
+        withAnimation(.easeOut(duration: 0.2)) {
+            chromeRevealed = revealed
+        }
     }
 
     /// Lets the window's content run under its titlebar, so the strip the
     /// traffic lights sit in belongs to the app's own background instead of a
     /// system bar, and hides the title text. The lights themselves stay where
-    /// the system puts them — the layout reserves room for them rather than
-    /// moving out of the way (see `TopChromeReveal.topContentInset`).
+    /// the system puts them, and `topContentInset` grows to clear them whenever
+    /// the chrome slides over the window (see `TopChromeReveal`).
     private func configureWindowChrome(_ window: NSWindow) {
         window.styleMask.insert(.fullSizeContentView)
         window.titlebarAppearsTransparent = true

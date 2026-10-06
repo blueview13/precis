@@ -6,11 +6,6 @@ import XCTest
 final class TopChromeRevealTests: XCTestCase {
     private let windowedMask: NSWindow.StyleMask = [.titled, .closable, .miniaturizable, .resizable]
 
-    /// A standard (non-notched) menu bar. The inset has to fit this plus the
-    /// titlebar, because in full screen the menu bar slides the titlebar — and
-    /// the traffic lights in it — down by its own height.
-    private let standardMenuBarHeight: CGFloat = 24
-
     /// The system's titlebar metric, measured the way AppKit reports it.
     private func systemTitlebarHeight() -> CGFloat {
         let window = NSWindow(
@@ -24,16 +19,65 @@ final class TopChromeRevealTests: XCTestCase {
         return height
     }
 
-    /// The strip is content-free in every mode, so it must be at least as tall
-    /// as the chrome that can be drawn inside it: the titlebar the traffic
-    /// lights sit in, plus the menu bar that pushes it down in full screen.
-    /// Lowering the inset below that puts the lights on the header row when a
-    /// full-screen titlebar is revealed.
-    func testInsetFitsTheTitlebarAndTheMenuBarAboveIt() {
-        XCTAssertGreaterThanOrEqual(TopChromeReveal.topContentInset, systemTitlebarHeight())
-        XCTAssertGreaterThanOrEqual(
-            TopChromeReveal.topContentInset,
-            systemTitlebarHeight() + standardMenuBarHeight
+    /// With the chrome away the strip only carries the first header row clear
+    /// of the traffic lights: enough that they don't sit on it, and no more —
+    /// sizing it for the revealed chrome here is what opened the band of empty
+    /// space above the row while the menu bar was hidden.
+    func testRestingInsetLeavesATightGapUnderTheLights() {
+        let gap = TopChromeReveal.restingInset + PrecisSpacing.md - TopChromeReveal.trafficLightsBottomInset
+        XCTAssertGreaterThan(gap, 0)
+        XCTAssertLessThanOrEqual(gap, 20)
+    }
+
+    /// Revealed, the menu bar slides the window's titlebar — and the lights in
+    /// it — down by its own height, so the chrome's bottom edge is the menu bar
+    /// plus the titlebar, and the first header row has to stay below that with
+    /// the clearance. Checked against the menu bars the app has to cope with,
+    /// including a notched display's taller one.
+    func testRevealedInsetClearsTheRevealedChrome() {
+        let titlebar = systemTitlebarHeight()
+        for menuBar in [CGFloat(24), 30, 37] {
+            let inset = TopChromeReveal.revealedInset(
+                menuBarHeight: menuBar,
+                titlebarHeight: titlebar
+            )
+            XCTAssertGreaterThanOrEqual(
+                inset + PrecisSpacing.md,
+                menuBar + titlebar + TopChromeReveal.revealedClearance
+            )
+            XCTAssertGreaterThanOrEqual(inset, TopChromeReveal.restingInset)
+        }
+    }
+
+    /// The lights sit inside the titlebar, so their bottom edge can't be below
+    /// it — a constant that says otherwise describes a window AppKit doesn't
+    /// build, and would overstate the clearance the header rows need.
+    func testTrafficLightBottomSitsInsideTheTitlebar() {
+        XCTAssertLessThanOrEqual(TopChromeReveal.trafficLightsBottomInset, systemTitlebarHeight())
+    }
+
+    /// The chrome is only treated as revealed when the pointer is at the top of
+    /// the display *and* the window is flush with it — otherwise the menu bar is
+    /// above the window, never on it, and hovering the window's top edge must
+    /// not move the header rows.
+    func testChromeCountsAsRevealedOnlyAtTheTopOfAFlushWindow() {
+        XCTAssertTrue(
+            TopChromeReveal.isChromeRevealed(pointerDistanceFromTop: 0, windowIsFlushWithTopOfDisplay: true)
+        )
+        XCTAssertTrue(
+            TopChromeReveal.isChromeRevealed(
+                pointerDistanceFromTop: TopChromeReveal.revealTriggerDepth,
+                windowIsFlushWithTopOfDisplay: true
+            )
+        )
+        XCTAssertFalse(
+            TopChromeReveal.isChromeRevealed(
+                pointerDistanceFromTop: TopChromeReveal.revealTriggerDepth + 1,
+                windowIsFlushWithTopOfDisplay: true
+            )
+        )
+        XCTAssertFalse(
+            TopChromeReveal.isChromeRevealed(pointerDistanceFromTop: 0, windowIsFlushWithTopOfDisplay: false)
         )
     }
 }
