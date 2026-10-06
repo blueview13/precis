@@ -82,6 +82,7 @@ final class DesktopFeedPanelController: NSObject {
     private var modelContainer: ModelContainer?
     private var statusItem: NSStatusItem?
     private var panel: NSPanel?
+    private var contentHeight: CGFloat?
     /// Last `desktopPanelEnabled` value seen by `preferencesChanged`, so an
     /// off→on change (the user ticking the box) can open the panel while the
     /// initial call from `install` leaves it closed behind its menu bar icon.
@@ -175,7 +176,8 @@ final class DesktopFeedPanelController: NSObject {
             panel.contentView = PanelHostingView(
                 rootView: DesktopFeedPanelView(
                     onClose: { [weak self] in self?.hidePanel() },
-                    onResize: { [weak self] width in self?.resizePanel(to: width) }
+                    onResize: { [weak self] width in self?.resizePanel(to: width) },
+                    onContentHeightChange: { [weak self] height in self?.resizePanel(toContentHeight: height) }
                 )
                 .modelContainer(modelContainer)
             )
@@ -206,7 +208,18 @@ final class DesktopFeedPanelController: NSObject {
     private func panelFrame(on screen: NSScreen) -> NSRect {
         let width = UserDefaults.standard.double(forKey: "desktopPanelWidth")
         let edge = UserDefaults.standard.string(forKey: "desktopPanelEdge") ?? "right"
-        return DesktopPanelPlacement.frame(in: screen.visibleFrame, edge: edge, width: CGFloat(width))
+        var frame = DesktopPanelPlacement.frame(in: screen.visibleFrame, edge: edge, width: CGFloat(width))
+        if let contentHeight {
+            frame.size.height = min(contentHeight, screen.visibleFrame.height)
+            frame.origin.y = screen.visibleFrame.maxY - frame.height
+        }
+        return frame
+    }
+
+    private func resizePanel(toContentHeight height: CGFloat) {
+        guard height.isFinite, height > 0 else { return }
+        contentHeight = height
+        positionPanel()
     }
 
     private func hidePanel() {
@@ -385,6 +398,7 @@ private struct DesktopFeedPanelView: View {
 
     let onClose: () -> Void
     let onResize: (CGFloat) -> Void
+    let onContentHeightChange: (CGFloat) -> Void
 
     /// Width the drag started at, so each change is measured from the original
     /// size instead of compounding against the width it just wrote.
@@ -470,18 +484,34 @@ private struct DesktopFeedPanelView: View {
                 .overlay(PrecisDesignSystem.rule(for: .light))
 
             ScrollView {
-                LazyVStack(spacing: 0) {
+                VStack(spacing: 0) {
                     if visibleArticles.isEmpty {
                         Text("No articles to show")
                             .font(PrecisTypography.body)
                             .foregroundStyle(PrecisDesignSystem.foreground(for: .light).opacity(0.65))
                             .frame(maxWidth: .infinity, minHeight: 100)
+                            .background {
+                                GeometryReader { geometry in
+                                    Color.clear.preference(
+                                        key: DesktopPanelContentHeightKey.self,
+                                        value: geometry.size.height
+                                    )
+                                }
+                            }
                     } else {
                         ForEach(visibleArticles) { article in
                             Button {
                                 openArticle(article)
                             } label: {
                                 articleRow(article)
+                                    .background {
+                                        GeometryReader { geometry in
+                                            Color.clear.preference(
+                                                key: DesktopPanelContentHeightKey.self,
+                                                value: geometry.size.height + 1
+                                            )
+                                        }
+                                    }
                             }
                             .buttonStyle(.plain)
                             .accessibilityLabel("Open \(article.title) from \(article.feed?.title ?? "feed") in browser")
@@ -492,6 +522,11 @@ private struct DesktopFeedPanelView: View {
                     }
                 }
                 .padding(.horizontal, PrecisSpacing.md)
+            }
+            .onPreferenceChange(DesktopPanelContentHeightKey.self) { contentHeight in
+                // The header and divider sit outside the scroll view. Include
+                // their measured height so short lists leave no unused panel area.
+                onContentHeightChange(contentHeight + 51)
             }
         }
         .frame(width: DesktopPanelPlacement.width(fromStoredWidth: CGFloat(panelWidth)))
@@ -614,5 +649,12 @@ private struct DesktopFeedPanelView: View {
             .replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression)
             .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}
+
+private struct DesktopPanelContentHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value += nextValue()
     }
 }

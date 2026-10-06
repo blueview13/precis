@@ -9,7 +9,7 @@ struct MainWindowLayout: View {
     @StateObject private var viewModel: ArticleListViewModel
     @ObservedObject private var smartCategoryStore = SmartCategoryStore.shared
     @AppStorage("notifyOnNewArticles") private var notifyOnNewArticles = false
-    /// Hides the unread-count pills in the sidebar (feeds and Library items)
+    /// Hides unread counts in the sidebar (feeds and Library items)
     /// when off.
     @AppStorage("showSidebarUnreadPills") private var showSidebarUnreadPills: Bool = true
     /// Three-column reading layout — headlines in their own column beside
@@ -982,13 +982,9 @@ struct MainWindowLayout: View {
 
             let feedUnread = sidebarCount(viewModel.unreadCount(forFeed: feed.id))
             if feedUnread > 0 {
-                Text("\(feedUnread)")
+                Text("(\(feedUnread))")
                     .font(PrecisTypography.caption)
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.accentColor)
-                    .clipShape(Capsule())
+                    .foregroundStyle(PrecisDesignSystem.marginalia)
             }
 
             Spacer()
@@ -2118,7 +2114,7 @@ private struct SidebarItem: View {
     let title: String
     var icon: String? = nil
     var badge: Int = 0
-    /// True to sit the count pill against the title's right edge — the feed
+    /// True to sit the count beside the title — the feed
     /// rows' placement — instead of pushing it to the row's trailing edge.
     var badgeNextToTitle: Bool = false
     var tint: Color? = nil
@@ -2128,13 +2124,9 @@ private struct SidebarItem: View {
     @Environment(\.colorScheme) private var colorScheme
 
     private var badgePill: some View {
-        Text("\(badge)")
+        Text("(\(badge))")
             .font(PrecisTypography.caption)
-            .foregroundStyle(.white)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(Color.accentColor)
-            .clipShape(Capsule())
+            .foregroundStyle(PrecisDesignSystem.marginalia)
     }
 
     var body: some View {
