@@ -87,6 +87,14 @@ public final class FeedRepository: FeedRepositoryProtocol {
         try context.save()
     }
 
+    public func delete(_ feeds: [FeedRecord], context: ModelContext) throws {
+        guard !feeds.isEmpty else { return }
+        for feed in feeds {
+            context.delete(feed)
+        }
+        try context.save()
+    }
+
     public func update(_ feed: FeedRecord, context: ModelContext) throws {
         feed.lastFetched = Date()
         try context.save()

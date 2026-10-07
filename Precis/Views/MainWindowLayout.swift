@@ -28,18 +28,13 @@ struct MainWindowLayout: View {
     @State private var isImporting = false
     @State private var isRefreshing = false
     @State private var isRefreshingAll = false
-    /// One or more feeds awaiting the delete confirmation — a single row's
-    /// trash icon, a multi-selection, or every feed in a category.
+    /// One or more feeds awaiting delete confirmation — a row context menu,
+    /// a multi-selection, or every feed in a category.
     @State private var feedsPendingDeletion: [FeedRecord] = []
-    /// Feeds checked for bulk actions via the row checkboxes (⌘/Shift still
-    /// accelerate this, but nothing requires them — see the sidebar's
-    /// "N selected" action bar).
-    @State private var selectedFeedIDs: Set<UUID> = []
-    /// Range anchor for Shift-click — the last feed clicked directly.
+    /// Feeds selected for multi-feed actions with ⌘-click or Shift-click.
+    @StateObject private var feedSelection = SidebarFeedSelection()
+    /// Range anchor for Shift-click.
     @State private var selectionAnchorID: UUID?
-    /// The sidebar takes key focus when a multi-selection exists so the
-    /// Delete key lands on it (focus effect suppressed — no ring).
-    @FocusState private var sidebarFocused: Bool
     @State private var importStatus = ""
     @State private var importStatusKind: ImportStatusKind = .neutral
     @State private var importedFeeds: [FeedRecord] = []
@@ -92,6 +87,14 @@ struct MainWindowLayout: View {
     /// window reporting the restore finished.
     @State private var wasRestoringReader = false
     @Environment(\.openWindow) private var openWindow
+
+    private var selectedFeedIDs: Set<UUID> {
+        feedSelection.ids
+    }
+
+    private var selectedFeedsForBulkAction: [FeedRecord] {
+        importedFeeds.filter { feedSelection.ids.contains($0.id) }
+    }
 
     /// A sidebar count pill's value — zero when the reader has switched
     /// sidebar counts off, which is how the pills hide. Covers both the feed
@@ -885,10 +888,9 @@ struct MainWindowLayout: View {
         let widestFeedName = importedFeeds
             .map { ceil((sidebarDisplayTitle(for: $0) as NSString).size(withAttributes: [.font: font]).width) }
             .max() ?? 0
-        // Slack covers checkbox + favicon + title→badge spacing + unread
-        // capsule + row insets. The last-fetched time is gone, so this
-        // dropped from 180 — names and badges still fit on one line.
-        return max(260, widestFeedName + 130)
+        // Slack covers the favicon + title→badge spacing + unread capsule +
+        // row insets; the last-fetched time no longer needs space.
+        return max(260, widestFeedName + 110)
     }
 
     private func updateAutomaticSidebarWidth() {
@@ -958,11 +960,10 @@ struct MainWindowLayout: View {
         refreshFeeds()
     }
 
-    /// Moves every checked feed in one save, then clears the selection so
-    /// the action bar retires — the move is visibly "done".
-    private func moveCheckedFeeds(to category: FolderRecord?) {
-        let checked = importedFeeds.filter { selectedFeedIDs.contains($0.id) }
-        for feed in checked where feed.folder?.id != category?.id {
+    /// Moves every selected feed in one save, then clears the selection.
+    private func moveSelectedFeeds(to category: FolderRecord?) {
+        let selected = importedFeeds.filter { selectedFeedIDs.contains($0.id) }
+        for feed in selected where feed.folder?.id != category?.id {
             feed.folder = category
         }
         do {
@@ -970,7 +971,7 @@ struct MainWindowLayout: View {
         } catch {
             PrecisLogger.error("Failed to move feeds to category: \(error.localizedDescription)")
         }
-        selectedFeedIDs.removeAll()
+        feedSelection.ids = []
         selectionAnchorID = nil
         refreshFeeds()
     }
@@ -981,8 +982,8 @@ struct MainWindowLayout: View {
     /// category reorder (both travel as plain `String`s).
     private static let feedDragPrefix = "precis-feeds:"
 
-    /// Dragging a checked row carries the whole selection; dragging an
-    /// unchecked row carries just that feed — either way it can be dropped
+    /// Dragging a selected row carries the whole selection; dragging an
+    /// unselected row carries just that feed — either way it can be dropped
     /// on a category header.
     private func feedDragPayload(_ feed: FeedRecord) -> String {
         let ids = selectedFeedIDs.contains(feed.id) ? Array(selectedFeedIDs) : [feed.id]
@@ -1003,24 +1004,22 @@ struct MainWindowLayout: View {
     }
 
     /// True when this row is part of a multi-selection — the context menu's
-    /// Move item then targets every checked feed, not just the row clicked.
+    /// Move item then targets every selected feed, not just the row clicked.
     private func movesWholeSelection(_ feed: FeedRecord) -> Bool {
         selectedFeedIDs.count >= 2 && selectedFeedIDs.contains(feed.id)
     }
 
     // MARK: - Feed multi-select & bulk delete
 
-    /// Feed-row click (the checkbox toggles separately via
-    /// `toggleFeedChecked`): a plain click just navigates to the feed and
-    /// moves the Shift-range anchor, ⌘-click checks/unchecks, Shift-click
-    /// checks the range between the anchor and this row *within its section*
+    /// A plain click selects and navigates to the feed, ⌘-click toggles the
+    /// feed in the selection, and Shift-click selects the
+    /// range between the anchor and this row *within its section*
     /// (a category's children and the ungrouped list are separate ranges —
     /// cross-section ranges would be ambiguous to read visually).
     private func handleFeedClick(_ feed: FeedRecord, group: [FeedRecord]) {
         let flags = NSEvent.modifierFlags
         let isCommand = flags.contains(.command)
         let isShift = flags.contains(.shift)
-
         if isShift,
            let anchorID = selectionAnchorID,
            let anchorIndex = group.firstIndex(where: { $0.id == anchorID }),
@@ -1029,20 +1028,19 @@ struct MainWindowLayout: View {
             let upper = max(anchorIndex, clickedIndex)
             let rangeIDs = Set(group[lower...upper].map(\.id))
             if isCommand {
-                selectedFeedIDs.formUnion(rangeIDs)
+                feedSelection.ids = feedSelection.ids.union(rangeIDs)
             } else {
-                selectedFeedIDs = rangeIDs
-            }
-            if !selectedFeedIDs.isEmpty {
-                // Arm the Delete-key shortcut, same as ticking a checkbox —
-                // deferred so it can't disturb the click that set it.
-                Task { @MainActor in
-                    sidebarFocused = true
-                }
+                feedSelection.ids = rangeIDs
             }
         } else if isCommand {
-            toggleFeedChecked(feed)
+            toggleFeedSelection(feed)
             return
+        } else {
+            // Keep the ordinary click as the first item in a selection so
+            // the following ⌘-click adds to it. Otherwise the active feed is
+            // only visually highlighted by the reader, and bulk actions see
+            // just the row added by ⌘-click.
+            feedSelection.ids = [feed.id]
         }
 
         selectionAnchorID = feed.id
@@ -1051,30 +1049,23 @@ struct MainWindowLayout: View {
         selectedSidebarItem = sidebarDisplayTitle(for: feed)
     }
 
-    /// Checks/unchecks a feed's row checkbox. Checking arms the Delete-key
-    /// shortcut — deferred to the next run-loop turn so the focus change
-    /// can't interfere with the very tap that triggered it (a synchronous
-    /// focus write inside the tap was suspect when checks didn't stick).
-    private func toggleFeedChecked(_ feed: FeedRecord) {
+    /// Adds or removes a feed from the ⌘-click multi-selection.
+    private func toggleFeedSelection(_ feed: FeedRecord) {
         if selectedFeedIDs.contains(feed.id) {
-            selectedFeedIDs.remove(feed.id)
+            feedSelection.ids = feedSelection.ids.subtracting([feed.id])
         } else {
-            selectedFeedIDs.insert(feed.id)
+            feedSelection.ids = feedSelection.ids.union([feed.id])
             selectionAnchorID = feed.id
-        }
-        // Diagnostic trail (Console.app): proves whether the tap reached
-        // this point if checkbox behavior regresses again.
-        PrecisLogger.info("Checkbox: \(feed.title) → checked=\(selectedFeedIDs.contains(feed.id)) total=\(selectedFeedIDs.count)")
-        if !selectedFeedIDs.isEmpty {
-            Task { @MainActor in
-                sidebarFocused = true
-            }
         }
     }
 
-    /// Arms the shared delete confirmation for the current multi-selection.
-    private func beginBulkDelete() {
-        feedsPendingDeletion = importedFeeds.filter { selectedFeedIDs.contains($0.id) }
+    private func beginContextMenuDeletion(for feed: FeedRecord) {
+        let selectedFeeds = selectedFeedsForBulkAction
+        if selectedFeeds.count > 1 {
+            feedsPendingDeletion = selectedFeeds
+        } else {
+            feedsPendingDeletion = [feed]
+        }
     }
 
     /// Runs after the confirmation alert: deletes every pending feed
@@ -1091,9 +1082,9 @@ struct MainWindowLayout: View {
                     }
                 }
                 let repository = FeedRepository()
-                for feed in pending { try repository.delete(feed, context: modelContext) }
+                try repository.delete(pending, context: modelContext)
                 feedsPendingDeletion = []
-                selectedFeedIDs.removeAll()
+                feedSelection.ids = []
                 selectionAnchorID = nil
                 refreshFeeds()
                 importStatus = count == 1 ? "Feed removed" : "\(count) feeds removed"
@@ -1121,27 +1112,6 @@ struct MainWindowLayout: View {
 
     private func sidebarFeedRow(_ feed: FeedRecord, indent: CGFloat = 0, compact: Bool = false, group: [FeedRecord] = []) -> some View {
         HStack {
-            // Visible selection affordance — tick boxes make multi-select
-            // discoverable without any keyboard combinations.
-            //
-            // Deliberately a tap gesture, not a Button: the category row
-            // proves plain taps fire reliably in this sidebar, and the hit
-            // area is padded past the 12pt circle so the size reduction
-            // didn't leave a fussy target.
-            Image(systemName: selectedFeedIDs.contains(feed.id) ? "checkmark.circle.fill" : "circle")
-                // caption (10pt, down from body's 13pt) + 12pt box —
-                // the checkbox shrunk ~25% to give titles more room.
-                .font(.caption)
-                .foregroundStyle(
-                    selectedFeedIDs.contains(feed.id)
-                        ? Color.accentColor
-                        : PrecisDesignSystem.marginalia.opacity(0.35)
-                )
-                .frame(width: 12, height: 12)
-                .contentShape(Rectangle().inset(by: -5))
-                .onTapGesture { toggleFeedChecked(feed) }
-                .help("Check to select for bulk actions")
-
             if editingFeedID == feed.id {
                 TextField("Feed name", text: $editingFeedName)
                     .textFieldStyle(.roundedBorder)
@@ -1155,19 +1125,14 @@ struct MainWindowLayout: View {
                         }
                     }
             } else {
-                Button(action: {
-                    handleFeedClick(feed, group: group)
-                }) {
-                    HStack(spacing: 8) {
-                        FeedFaviconView(url: feed.url)
-                            .frame(width: 16, height: 16)
-                        Text(sidebarDisplayTitle(for: feed))
-                            .font(PrecisTypography.body)
-                            .lineLimit(1)
-                            .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.8))
-                    }
+                HStack(spacing: 8) {
+                    FeedFaviconView(url: feed.url)
+                        .frame(width: 16, height: 16)
+                    Text(sidebarDisplayTitle(for: feed))
+                        .font(PrecisTypography.body)
+                        .lineLimit(1)
+                        .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.8))
                 }
-                .buttonStyle(.plain)
             }
 
             let feedUnread = sidebarCount(viewModel.unreadCount(forFeed: feed.id))
@@ -1181,19 +1146,30 @@ struct MainWindowLayout: View {
 
             // Per-row last-fetched time ("1h ago") removed — the trailing
             // slack in `automaticSidebarWidth` shrank to match.
-            // Refresh and delete no longer have per-row icons — refresh lives
-            // in the context menu; delete is the checkbox action bar (and
-            // also in the context menu).
+            // Refresh and delete live in the context menu.
         }
         .padding(.leading, indent)
         .background(
             RoundedRectangle(cornerRadius: 8)
                 .fill(
-                    viewModel.selectedFeedID == feed.id || selectedFeedIDs.contains(feed.id)
-                        ? Color.accentColor.opacity(0.12)
-                        : Color.clear
+                    selectedFeedIDs.contains(feed.id)
+                        ? Color.accentColor.opacity(0.18)
+                        : viewModel.selectedFeedID == feed.id
+                            ? PrecisDesignSystem.foreground(for: colorScheme).opacity(0.07)
+                            : Color.clear
                 )
         )
+        .overlay {
+            if selectedFeedIDs.contains(feed.id) {
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.accentColor.opacity(0.65), lineWidth: 1)
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard editingFeedID != feed.id else { return }
+            handleFeedClick(feed, group: group)
+        }
         .contextMenu {
             if hasFeedbinCredentials, let subscriptionID = feed.feedbinSubscriptionID, let feedID = feed.feedbinFeedID {
                 Menu("Feedbin Tags") {
@@ -1226,27 +1202,27 @@ struct MainWindowLayout: View {
                 Label("Rename Feed…", systemImage: "pencil")
             }
             Divider()
-            if selectedFeedIDs.count >= 2 && selectedFeedIDs.contains(feed.id) {
+            if selectedFeedsForBulkAction.count > 1 {
                 Button(role: .destructive) {
-                    beginBulkDelete()
+                    beginContextMenuDeletion(for: feed)
                 } label: {
-                    Label("Delete \(selectedFeedIDs.count) Feeds…", systemImage: "trash")
+                    Label("Delete \(selectedFeedsForBulkAction.count) feeds…", systemImage: "trash")
                 }
             } else {
                 Button(role: .destructive) {
                     // Deletion happens only after the confirmation alert.
-                    feedsPendingDeletion = [feed]
+                    beginContextMenuDeletion(for: feed)
                 } label: {
                     Label("Delete Feed…", systemImage: "trash")
                 }
             }
             Divider()
             Menu {
-                // Right-clicking a checked row moves the whole selection —
+                // Right-clicking a selected row moves the whole selection —
                 // same payload as the drag gesture; single rows behave as
                 // before.
                 Button {
-                    if movesWholeSelection(feed) { moveCheckedFeeds(to: nil) } else { moveFeed(feed, to: nil) }
+                    if movesWholeSelection(feed) { moveSelectedFeeds(to: nil) } else { moveFeed(feed, to: nil) }
                 } label: {
                     Label("No Category", systemImage: !movesWholeSelection(feed) && feed.folder == nil ? "checkmark" : "square")
                 }
@@ -1256,7 +1232,7 @@ struct MainWindowLayout: View {
                 } else {
                     ForEach(categories) { category in
                         Button {
-                            if movesWholeSelection(feed) { moveCheckedFeeds(to: category) } else { moveFeed(feed, to: category) }
+                            if movesWholeSelection(feed) { moveSelectedFeeds(to: category) } else { moveFeed(feed, to: category) }
                         } label: {
                             Label(category.name, systemImage: !movesWholeSelection(feed) && feed.folder?.id == category.id ? "checkmark" : "square")
                         }
@@ -1272,7 +1248,7 @@ struct MainWindowLayout: View {
             PrecisLogger.info("Row appeared: \(feed.title) indent=\(indent) compact=\(compact)")
         }
         // Drag the row onto a category header to move it (or the whole
-        // checked selection, if this row is part of one). Visual payload is
+        // whole selection, if this row is part of one). Visual payload is
         // a simple label — the ID list rides in the payload string.
         .draggable(feedDragPayload(feed)) {
             HStack(spacing: 8) {
@@ -1821,7 +1797,7 @@ struct MainWindowLayout: View {
                         .dropDestination(for: String.self) { items, location in
                             guard let first = items.first else { return false }
 
-                            // Feed payload: drop checked rows (or a single
+                            // Feed payload: drop selected rows (or a single
                             // dragged feed) into this category.
                             if first.hasPrefix(Self.feedDragPrefix) {
                                 let ids = first
@@ -1908,7 +1884,7 @@ struct MainWindowLayout: View {
                     // row instance at its new position — frozen with the
                     // previous section's parameters (no indent, timestamp
                     // visible) and ignoring selection-state repaints. Keying
-                    // on section + feed + checked forces a fresh row whenever
+                    // on section + feed + selection forces a fresh row whenever
                     // any of those change.
                     let categoryFeeds = feeds(in: category)
                     ForEach(categoryFeeds) { feed in
@@ -1934,43 +1910,8 @@ struct MainWindowLayout: View {
             .padding(.horizontal, PrecisSpacing.md)
             }
 
-            // Action bar — appears as soon as any feed is checked, so the
-            // flow (tick boxes → Delete) is visible with zero chrome when
-            // nothing is selected and no keyboard knowledge required.
-            if !selectedFeedIDs.isEmpty {
-                HStack(spacing: 8) {
-                    Spacer()
-
-                    Button {
-                        beginBulkDelete()
-                    } label: {
-                        Text(selectedFeedIDs.count == 1 ? "Delete" : "Delete \(selectedFeedIDs.count)")
-                            .font(PrecisTypography.caption)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(Color.red, in: Capsule())
-                    }
-                    .buttonStyle(.plain)
-                    .help("Delete the checked feeds after confirmation")
-                }
-                .padding(.horizontal, PrecisSpacing.md)
-                .padding(.vertical, 8)
-            }
         }
         .background(PrecisDesignSystem.sidebar(for: colorScheme))
-        // Key focus for the Delete-key shortcut; focus follows the checks
-        // (armed in toggleFeedChecked / the Shift-range branch) and the
-        // focus ring stays suppressed.
-        .focusable()
-        .focused($sidebarFocused)
-        .focusEffectDisabled(true)
-        .onKeyPress(.delete) {
-            guard !selectedFeedIDs.isEmpty else { return .ignored }
-            beginBulkDelete()
-            return .handled
-        }
         .sheet(isPresented: $showAddFeedSheet) {
             AddFeedSheet(
                 feedURLInput: $feedURLInput,
@@ -2645,6 +2586,11 @@ private struct ArticleRow: View {
 
 #Preview {
     MainWindowLayout()
+}
+
+@MainActor
+private final class SidebarFeedSelection: ObservableObject {
+    @Published var ids: Set<UUID> = []
 }
 
 // MARK: - Resizable split layout

@@ -41,6 +41,22 @@ struct FeedDiscoveryServiceTests {
         #expect(try repository.fetchAll(context: context).count == 1)
     }
 
+    @Test("Bulk feed deletion removes every selected feed")
+    func deletesMultipleFeeds() throws {
+        let schema = ModelContainerProvider.schema
+        let configuration = ModelConfiguration("FeedRepositoryBulkDeleteTests", schema: schema, isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: schema, configurations: configuration)
+        let context = ModelContext(container)
+        let repository = FeedRepository()
+        let first = try repository.create(title: "First", url: "https://first.example/feed", folder: nil, context: context)
+        let second = try repository.create(title: "Second", url: "https://second.example/feed", folder: nil, context: context)
+        let keep = try repository.create(title: "Keep", url: "https://keep.example/feed", folder: nil, context: context)
+
+        try repository.delete([first, second], context: context)
+
+        #expect(try repository.fetchAll(context: context).map(\.id) == [keep.id])
+    }
+
     @Test("Surrounding whitespace is trimmed")
     func trimsSurroundingWhitespace() throws {
         let url = try FeedDiscoveryService().normalizeURL("  https://example.com/rss.xml\n")
