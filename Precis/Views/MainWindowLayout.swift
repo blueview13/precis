@@ -909,6 +909,7 @@ struct MainWindowLayout: View {
             PrecisLogger.error("Failed to delete category: \(error.localizedDescription)")
         }
         refreshCategories()
+        refreshFeeds()
     }
 
     private func moveCategory(sourceID: UUID, targetID: UUID, insertAfter: Bool) {

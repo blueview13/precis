@@ -28,7 +28,11 @@ public final class FolderRepository: FolderRepositoryProtocol {
     public func delete(_ folder: FolderRecord, context: ModelContext) throws {
         // Detach the feeds first so they survive even if the relationship's
         // delete rule ever regresses to .cascade.
-        for feed in folder.feeds {
+        // Fetch a stable list before changing the inverse relationship; walking
+        // `folder.feeds` while clearing `feed.folder` mutates that collection.
+        let feedsInFolder = try context.fetch(FetchDescriptor<FeedRecord>())
+            .filter { $0.folder?.id == folder.id }
+        for feed in feedsInFolder {
             feed.folder = nil
         }
         context.delete(folder)
