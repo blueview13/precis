@@ -1,6 +1,8 @@
 import SwiftUI
+import AppKit
 import ImageIO
 import SwiftData
+import UniformTypeIdentifiers
 
 struct ArticleListView: View {
     @ObservedObject var viewModel: ArticleListViewModel
@@ -14,12 +16,19 @@ struct ArticleListView: View {
     /// True while the reading pane sits beside the headlines (three-column
     /// layout) — drives the header toggle's icon and help text.
     var isColumnLayout: Bool = false
+    /// Available only when the sidebar is scoped to a feed, regular category,
+    /// or a resolved Smart Category.
+    var newspaperScope: NewspaperPDFScope? = nil
     /// Flips between the stacked and three-column reading layouts.
     var onToggleLayout: (() -> Void)? = nil
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage("showThumbnails") private var showThumbnails: Bool = true
     @FocusState private var isSearchFieldFocused: Bool
+    @State private var isCreatingNewspaper = false
+    @State private var newspaperProgress = (completed: 0, total: 0)
+    @State private var newspaperAlertMessage = ""
+    @State private var isShowingNewspaperAlert = false
     // Backup invalidation: the view model also observes this key directly and
     // republishes `sortPreference`, so the list re-sorts the moment Settings
     // changes it.
@@ -60,6 +69,33 @@ struct ArticleListView: View {
                     .lineLimit(1)
 
                 Spacer()
+
+                if newspaperScope != nil {
+                    Button(action: chooseNewspaperDestination) {
+                        Group {
+                            if isCreatingNewspaper {
+                                ProgressView()
+                                    .controlSize(.small)
+                            } else {
+                                Image(systemName: "newspaper")
+                                    .font(.system(size: 15, weight: .medium))
+                            }
+                        }
+                        .foregroundStyle(PrecisDesignSystem.marginalia)
+                        .frame(width: 28, height: 28)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isCreatingNewspaper)
+                    .accessibilityLabel("Create 24-hour newspaper PDF")
+                    .help("Create a newspaper PDF for \(headerTitle), covering the last 24 hours")
+                    if isCreatingNewspaper {
+                        Text("\(newspaperProgress.completed)/\(newspaperProgress.total)")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(PrecisDesignSystem.marginalia)
+                            .accessibilityLabel("Preparing article \(newspaperProgress.completed) of \(newspaperProgress.total)")
+                    }
+                }
 
                 // Bulk read-state actions on the visible list. Kept INBOARD of
                 // the search field rather than flush against the column's
@@ -257,6 +293,68 @@ struct ArticleListView: View {
             }
             return .handled
         }
+        .alert("Newspaper PDF", isPresented: $isShowingNewspaperAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(newspaperAlertMessage)
+        }
+    }
+
+    private func chooseNewspaperDestination() {
+        guard let newspaperScope else { return }
+        let panel = NSSavePanel()
+        panel.title = "Create Newspaper PDF"
+        panel.nameFieldStringValue = newspaperFilename()
+        panel.allowedContentTypes = [.pdf]
+        panel.canCreateDirectories = true
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            Task { @MainActor in
+                await exportNewspaper(to: url, scope: newspaperScope)
+            }
+        }
+    }
+
+    @MainActor
+    private func exportNewspaper(to url: URL, scope: NewspaperPDFScope) async {
+        isCreatingNewspaper = true
+        newspaperProgress = (0, 0)
+        defer { isCreatingNewspaper = false }
+
+        do {
+            let edition = try await NewspaperPDFService().createEdition(
+                context: modelContext,
+                scope: scope,
+                scopeTitle: headerTitle,
+                onProgress: { completed, total in
+                    newspaperProgress = (completed, total)
+                }
+            )
+            try edition.pdfData.write(to: url, options: .atomic)
+            let skippedCount = edition.excludedForFullText + edition.excludedForImage
+            newspaperAlertMessage = skippedCount == 0
+                ? "Created a PDF with \(edition.includedCount) articles."
+                : """
+                  Created a PDF with \(edition.includedCount) articles.
+                  Skipped \(edition.excludedForFullText) because full text was unavailable and \(edition.excludedForImage) because a usable image was unavailable.
+                  """
+            isShowingNewspaperAlert = true
+            NSWorkspace.shared.open(url)
+        } catch {
+            newspaperAlertMessage = error.localizedDescription
+            isShowingNewspaperAlert = true
+        }
+    }
+
+    private func newspaperFilename() -> String {
+        let safeTitle = headerTitle
+            .replacingOccurrences(of: #"[^\p{L}\p{N}-]+"#, with: "-", options: .regularExpression)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        let date = formatter.string(from: .now)
+        return "Precis-\(safeTitle.isEmpty ? "Edition" : safeTitle)-\(date).pdf"
     }
 }
 

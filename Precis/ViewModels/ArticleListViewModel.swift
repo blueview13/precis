@@ -365,6 +365,14 @@ public final class ArticleListViewModel: ObservableObject {
         return []
     }
 
+    public func smartCategoryArticleIDs(for id: UUID) -> Set<UUID>? {
+        guard let matches = smartCategoryMatchesCache[id] else {
+            _ = smartCategoryMatches(for: id)
+            return nil
+        }
+        return Set(matches.map(\.id))
+    }
+
     public func unreadCount(inSmartCategory id: UUID) -> Int {
         if unreadCountsBySmartCategory[id] == nil { _ = smartCategoryMatches(for: id) }
         return unreadCountsBySmartCategory[id] ?? 0

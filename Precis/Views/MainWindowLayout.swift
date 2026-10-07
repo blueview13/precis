@@ -135,6 +135,27 @@ struct MainWindowLayout: View {
         }
     }
 
+    private var newspaperScope: NewspaperPDFScope? {
+        switch viewModel.selectedSidebarFilter {
+        case .feed(let feedID):
+            return NewspaperPDFScope(feedIDs: [feedID])
+        case .folder(let folderID):
+            return NewspaperPDFScope(
+                feedIDs: Set(viewModel.allFeeds.filter { $0.folder?.id == folderID }.map(\.id))
+            )
+        case .smartCategory(let smartCategoryID):
+            guard let articleIDs = viewModel.smartCategoryArticleIDs(for: smartCategoryID) else {
+                return nil
+            }
+            return NewspaperPDFScope(
+                feedIDs: Set(viewModel.allFeeds.map(\.id)),
+                articleIDs: articleIDs
+            )
+        default:
+            return nil
+        }
+    }
+
     /// True when the current sidebar filter has no rows to show.
     private var listIsEmpty: Bool {
         viewModel.filteredItems.isEmpty
@@ -155,6 +176,7 @@ struct MainWindowLayout: View {
             onRevealSidebar: { isSidebarHidden = false },
             headerTitle: selectedSidebarItem,
             isColumnLayout: isColumnLayout,
+            newspaperScope: newspaperScope,
             onToggleLayout: {
                 withAnimation(.easeInOut(duration: 0.25)) {
                     isColumnLayout.toggle()

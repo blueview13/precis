@@ -55,6 +55,8 @@
 		A35A743654E39BAAA4F8AB90 /* RefreshScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1853DF5D99D4EF2EB973F7EC /* RefreshScheduler.swift */; };
 		A6A09579B208B60ACF920963 /* Summary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19997E120C8B861F88198AD2 /* Summary.swift */; };
 		AE611FA41D42FC519D862A86 /* SummarizationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF518FE4ADF640B12EA35A9B /* SummarizationProvider.swift */; };
+		AABBCCDDEEFF001122334455 /* NewspaperPDFService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABBCCDDEEFF001122334466 /* NewspaperPDFService.swift */; };
+		AABBCCDDEEFF001122334477 /* NewspaperPDFServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABBCCDDEEFF001122334488 /* NewspaperPDFServiceTests.swift */; };
 		AFF63B31DB54C45675EB188E /* ArticleHTMLSanitizerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3086E369F2E64A3B02921654 /* ArticleHTMLSanitizerTests.swift */; };
 		B01C33CEF93372E99A3837D1 /* Folder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DA9EE87E4BC8FC7BEB14160 /* Folder.swift */; };
 		B164D3A7B5AA9B27D4051749 /* gen_icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 16089681870BBF9A6388D3CD /* gen_icon.png */; };
@@ -167,6 +169,8 @@
 		CF91E74599DAC751DEEEBD09 /* ArticleHTMLSanitizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleHTMLSanitizer.swift; sourceTree = "<group>"; };
 		D52848B0C6FF1044C279CA51 /* SmartCategoryEvaluator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartCategoryEvaluator.swift; sourceTree = "<group>"; };
 		D5A2196FEDB9001461275B19 /* FeedParserService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedParserService.swift; sourceTree = "<group>"; };
+		AABBCCDDEEFF001122334466 /* NewspaperPDFService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewspaperPDFService.swift; sourceTree = "<group>"; };
+		AABBCCDDEEFF001122334488 /* NewspaperPDFServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewspaperPDFServiceTests.swift; sourceTree = "<group>"; };
 		D77DA7D913C6EB9FA7CD8959 /* MercuryParser-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "MercuryParser-LICENSE.txt"; sourceTree = "<group>"; };
 		D9D378749E6F7F88C1513102 /* PasteboardFeedSuggestionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasteboardFeedSuggestionTests.swift; sourceTree = "<group>"; };
 		DBC773C2146407A65A512DFD /* AlphaFeedInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlphaFeedInputView.swift; sourceTree = "<group>"; };
@@ -313,6 +317,7 @@
 				15D5D1F40C12D445E4433C46 /* CategoryToFolderMigrationTests.swift */,
 				FB6ECC711E8AE2EDE52BD5A6 /* DesktopFeedPanelTests.swift */,
 				259C209F5B47CF3CC97D17A0 /* FeedDiscoveryServiceTests.swift */,
+				AABBCCDDEEFF001122334488 /* NewspaperPDFServiceTests.swift */,
 				D9D378749E6F7F88C1513102 /* PasteboardFeedSuggestionTests.swift */,
 				08C69A9C7257C227CE9BF09B /* PrecisDigestTests.swift */,
 				3600F849497B2DC44F77CA8C /* ReadingPaneImageLayoutTests.swift */,
@@ -391,6 +396,7 @@
 				FD13EF6706119A60C71A0691 /* MercuryArticleParser.swift */,
 				E74083885811654A7B71AB6A /* OPMLService.swift */,
 				1853DF5D99D4EF2EB973F7EC /* RefreshScheduler.swift */,
+				AABBCCDDEEFF001122334466 /* NewspaperPDFService.swift */,
 				D52848B0C6FF1044C279CA51 /* SmartCategoryEvaluator.swift */,
 				9CA6D5B9276EF6302D41C8DD /* SmartCategoryStore.swift */,
 				A859F9B3BECCF37CE2088333 /* SmartFolderService.swift */,
@@ -516,6 +522,7 @@
 				628AE00DDF250843F9D34C6C /* CategoryToFolderMigrationTests.swift in Sources */,
 				CAAD6820BFAD5E2D0A7130A2 /* DesktopFeedPanelTests.swift in Sources */,
 				410F87DB3C80BDC419864230 /* FeedDiscoveryServiceTests.swift in Sources */,
+				AABBCCDDEEFF001122334477 /* NewspaperPDFServiceTests.swift in Sources */,
 				CBDACAB8857700DF05540842 /* PasteboardFeedSuggestionTests.swift in Sources */,
 				65CA92DDD5887F64C53003F4 /* PrecisDigestTests.swift in Sources */,
 				1ADC581B469CF92D706B29E8 /* ReadingPaneImageLayoutTests.swift in Sources */,
@@ -569,6 +576,7 @@
 				760A3F6A0FC9BDBEF0F92E50 /* HTMLAttributedStringRenderer.swift in Sources */,
 				677078F801C7699A23A9406B /* Logger.swift in Sources */,
 				7F729304DD4AE7A4523B7EA7 /* MainWindowLayout.swift in Sources */,
+				AABBCCDDEEFF001122334455 /* NewspaperPDFService.swift in Sources */,
 				7E1D586977823BBD3157786E /* MercuryArticleParser.swift in Sources */,
 				870CECEF8E89EAE443ADF28C /* ModelContainerProvider.swift in Sources */,
 				448371B24D14B394F9DD9E66 /* NotificationSettings.swift in Sources */,
