@@ -114,6 +114,57 @@ enum PrecisTheme: String, CaseIterable, Identifiable {
     }
 }
 
+enum ReadingTypeface: String, CaseIterable, Identifiable {
+    case system
+    case georgia
+    case palatino
+    case baskerville
+    case avenirNext
+    case helveticaNeue
+
+    var id: String { rawValue }
+
+    var name: String {
+        switch self {
+        case .system: "System (San Francisco)"
+        case .georgia: "Georgia"
+        case .palatino: "Palatino"
+        case .baskerville: "Baskerville"
+        case .avenirNext: "Avenir Next"
+        case .helveticaNeue: "Helvetica Neue"
+        }
+    }
+
+    var cssFamily: String {
+        switch self {
+        case .system: "-apple-system, BlinkMacSystemFont, sans-serif"
+        case .georgia: "Georgia, serif"
+        case .palatino: "Palatino, serif"
+        case .baskerville: "Baskerville, serif"
+        case .avenirNext: "Avenir Next, sans-serif"
+        case .helveticaNeue: "Helvetica Neue, sans-serif"
+        }
+    }
+
+    var previewFontName: String? {
+        switch self {
+        case .system: nil
+        case .georgia: "Georgia"
+        case .palatino: "Palatino"
+        case .baskerville: "Baskerville"
+        case .avenirNext: "Avenir Next"
+        case .helveticaNeue: "Helvetica Neue"
+        }
+    }
+
+    func swiftUIFont(size: CGFloat, weight: Font.Weight = .regular) -> Font {
+        guard let previewFontName else {
+            return .system(size: size, weight: weight)
+        }
+        return .custom(previewFontName, size: size).weight(weight)
+    }
+}
+
 public enum PrecisDesignSystem {
     public static var paper: Color { PrecisTheme.current.paper }
     public static var ink: Color { PrecisTheme.current.foreground }

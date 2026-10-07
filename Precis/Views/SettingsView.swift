@@ -89,8 +89,26 @@ private struct WindowWillCloseObserver: NSViewRepresentable {
 }
 
 struct SettingsView: View {
+    private enum SettingsTab: String, CaseIterable, Identifiable {
+        case appearance = "Appearance"
+        case reading = "Reading"
+        case feeds = "Feeds"
+        case sidePanel = "Side Panel"
+
+        var id: String { rawValue }
+        var symbol: String {
+            switch self {
+            case .appearance: "circle.lefthalf.filled"
+            case .reading: "text.book.closed"
+            case .feeds: "dot.radiowaves.left.and.right"
+            case .sidePanel: "rectangle.rightthird.inset.filled"
+            }
+        }
+    }
+    @State private var selectedSettingsTab: SettingsTab = .appearance
     @AppStorage(PrecisTheme.storageKey) private var selectedThemeRawValue = PrecisTheme.standard.rawValue
     @AppStorage("readingFontSize") private var readingFontSize: Double = 15
+    @AppStorage("readingTypeface") private var readingTypefaceRawValue = ReadingTypeface.system.rawValue
     @AppStorage("readingContentWidth") private var readingContentWidth: Double = 750
     @AppStorage("showSidebarUnreadPills") private var showSidebarUnreadPills: Bool = true
     // Default On, matching the launch behaviour it gates — users opt out.
@@ -165,6 +183,35 @@ struct SettingsView: View {
             .padding(.top, PrecisSpacing.md)
             .padding(.bottom, PrecisSpacing.sm)
 
+            HStack(spacing: PrecisSpacing.xs) {
+                ForEach(SettingsTab.allCases) { tab in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.18)) { selectedSettingsTab = tab }
+                    } label: {
+                        VStack(spacing: 7) {
+                            Image(systemName: tab.symbol)
+                                .font(.system(size: 14.25, weight: .medium))
+                            Text(tab.rawValue)
+                                .font(PrecisTypography.metadata)
+                        }
+                        .foregroundStyle(selectedSettingsTab == tab ? PrecisDesignSystem.marginalia : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.68))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 11)
+                        .background(selectedSettingsTab == tab ? PrecisDesignSystem.marginalia.opacity(0.09) : Color.clear, in: RoundedRectangle(cornerRadius: 10))
+                        .overlay(alignment: .bottom) {
+                            if selectedSettingsTab == tab {
+                                Capsule().fill(PrecisDesignSystem.marginalia).frame(height: 2).padding(.horizontal, 16)
+                            }
+                        }
+                        .contentShape(RoundedRectangle(cornerRadius: 10))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(selectedSettingsTab == tab ? .isSelected : [])
+                }
+            }
+            .padding(.horizontal, PrecisSpacing.lg)
+            .padding(.bottom, PrecisSpacing.sm)
+
             Divider()
                 .background(PrecisDesignSystem.rule(for: colorScheme))
 
@@ -214,6 +261,15 @@ struct SettingsView: View {
 
                     settingsSection(title: "Reading") {
                         VStack(alignment: .leading, spacing: PrecisSpacing.md) {
+                            Picker("Article font", selection: $readingTypefaceRawValue) {
+                                ForEach(ReadingTypeface.allCases) { typeface in
+                                    Text(typeface.name)
+                                        .font(typeface.previewFontName.map { .custom($0, size: 13) } ?? .system(size: 13))
+                                        .tag(typeface.rawValue)
+                                }
+                            }
+                            .pickerStyle(.menu)
+
                             HStack {
                                 Text("Reading pane font size")
                                     .font(PrecisTypography.body)
@@ -907,7 +963,9 @@ struct SettingsView: View {
         }
     }
 
+    @ViewBuilder
     private func settingsSection<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+        if selectedSettingsTab == settingsTab(for: title) {
         VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
             Text(title.uppercased())
                 .font(PrecisTypography.caption)
@@ -919,6 +977,16 @@ struct SettingsView: View {
 
             content()
                 .padding(.top, PrecisSpacing.xs)
+        }
+        }
+    }
+
+    private func settingsTab(for title: String) -> SettingsTab {
+        switch title {
+        case "Appearance", "Article List", "Left Sidebar": .appearance
+        case "Reading", "AI Summaries": .reading
+        case "Refresh", "Feedbin", "OPML": .feeds
+        default: .sidePanel
         }
     }
 }

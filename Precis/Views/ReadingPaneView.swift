@@ -36,6 +36,10 @@ struct ReadingPaneView: View {
     /// The article's height updates are held back while it is set.
     @Environment(\.layoutIsResizing) private var isResizing
     @AppStorage("readingFontSize") private var readingFontSize: Double = 15
+    @AppStorage("readingTypeface") private var readingTypefaceRawValue = ReadingTypeface.system.rawValue
+    private var selectedReadingTypeface: ReadingTypeface {
+        ReadingTypeface(rawValue: readingTypefaceRawValue) ?? .system
+    }
     /// Width of the centred article column, in points — set from Settings.
     @AppStorage("readingContentWidth") private var readingContentWidth: Double = 750
     @AppStorage("showReadingTime") private var showReadingTime: Bool = true
@@ -149,6 +153,7 @@ struct ReadingPaneView: View {
             return Self.document(
                 body: "<p>\(message)</p>",
                 fontSize: readingFontSize,
+                typeface: ReadingTypeface(rawValue: readingTypefaceRawValue) ?? .system,
                 scheme: colorScheme,
                 showImages: showArticleImages,
                 contentWidth: readingContentWidth
@@ -212,7 +217,7 @@ struct ReadingPaneView: View {
             Self.bodyCacheLock.unlock()
         }
 
-        let documentKey = "\(cacheKey)|\(readingFontSize)|\(colorScheme == .dark)|\(showArticleImages)|\(readingContentWidth)"
+        let documentKey = "\(cacheKey)|\(readingFontSize)|\(readingTypefaceRawValue)|\(colorScheme == .dark)|\(showArticleImages)|\(readingContentWidth)"
         Self.bodyCacheLock.lock()
         if let cachedDocument = Self.documentCache[documentKey] {
             Self.bodyCacheLock.unlock()
@@ -223,6 +228,7 @@ struct ReadingPaneView: View {
         let document = Self.document(
             body: bodyHTML,
             fontSize: readingFontSize,
+            typeface: ReadingTypeface(rawValue: readingTypefaceRawValue) ?? .system,
             scheme: colorScheme,
             showImages: showArticleImages,
             contentWidth: readingContentWidth
@@ -320,17 +326,17 @@ struct ReadingPaneView: View {
                                         .accessibilityHidden(true)
                                 }
                                 Text("Today's Precis")
-                                    .font(PrecisTypography.headline)
+                                    .font(selectedReadingTypeface.swiftUIFont(size: 18, weight: .semibold))
                                     .foregroundStyle(PrecisDesignSystem.marginalia)
                                 if isGeneratingSummary {
                                     Text("Building Today's Precis" + String(repeating: ".", count: digestDotCount))
-                                        .font(PrecisTypography.metadata)
+                                        .font(selectedReadingTypeface.swiftUIFont(size: 12, weight: .medium))
                                         .foregroundStyle(PrecisDesignSystem.marginalia.opacity(0.8))
                                 }
                                 Spacer()
                                 HStack(spacing: PrecisSpacing.xs) {
                                     Text(isDigestExpanded ? "Collapse" : "Expand")
-                                        .font(PrecisTypography.metadata)
+                                        .font(selectedReadingTypeface.swiftUIFont(size: 12, weight: .medium))
                                         .foregroundStyle(PrecisDesignSystem.marginalia.opacity(0.8))
                                     Image(systemName: isDigestExpanded ? "chevron.down" : "chevron.right")
                                         .font(.system(size: 16, weight: .bold))
@@ -350,7 +356,7 @@ struct ReadingPaneView: View {
 
                         if isDigestExpanded, let feedWideSummary, !feedWideSummary.isEmpty {
                             Text(feedWideSummary)
-                                .font(.system(size: readingFontSize))
+                                .font(selectedReadingTypeface.swiftUIFont(size: readingFontSize))
                                 .lineSpacing(5)
                                 .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.85))
                         }
@@ -395,7 +401,7 @@ struct ReadingPaneView: View {
                     Text(item?.title ?? emptyMessage ?? "Select an article")
                         // A touch larger than the article-list headlines so the
                         // open article reads as the focus of the pane.
-                        .font(.system(size: 22, weight: .semibold))
+                        .font(selectedReadingTypeface.swiftUIFont(size: 22, weight: .semibold))
                         .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
                         .padding(.bottom, PrecisSpacing.sm)
 
@@ -420,7 +426,7 @@ struct ReadingPaneView: View {
                 if item != nil {
                     HStack(spacing: PrecisSpacing.sm) {
                         Text(item.map { FeedDiscoveryService.conciseTitle($0.feedTitle) } ?? "Inbox")
-                            .font(PrecisTypography.metadata)
+                            .font(selectedReadingTypeface.swiftUIFont(size: 12, weight: .medium))
                             .foregroundStyle(PrecisDesignSystem.marginalia)
 
                         if let item, showReadingTime {
@@ -428,7 +434,7 @@ struct ReadingPaneView: View {
                                 .foregroundStyle(Color.accentColor)
 
                             Text("\(item.readingTimeMinutes) min read")
-                                .font(PrecisTypography.metadata)
+                                .font(selectedReadingTypeface.swiftUIFont(size: 12, weight: .medium))
                                 .foregroundStyle(PrecisDesignSystem.marginalia)
 
                             Text("•")
@@ -436,7 +442,7 @@ struct ReadingPaneView: View {
                         }
 
                         Text(item?.publishedDate.map { relativeDateString(from: $0) } ?? "No date")
-                            .font(PrecisTypography.metadata)
+                            .font(selectedReadingTypeface.swiftUIFont(size: 12, weight: .medium))
                             .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.7))
                     }
                     .padding(.bottom, PrecisSpacing.md)
@@ -446,13 +452,13 @@ struct ReadingPaneView: View {
                     if item != nil, let summaryOverride, !summaryOverride.isEmpty {
                         VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
                             Text("Summary")
-                                .font(PrecisTypography.caption)
+                                .font(selectedReadingTypeface.swiftUIFont(size: 11, weight: .medium))
                                 .foregroundStyle(PrecisDesignSystem.marginalia)
                                 .textCase(.uppercase)
                                 .tracking(1.2)
 
                             Text(summaryOverride)
-                                .font(.system(size: readingFontSize))
+                                .font(selectedReadingTypeface.swiftUIFont(size: readingFontSize))
                                 .lineSpacing(7)
                                 .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.85))
                         }
@@ -463,7 +469,7 @@ struct ReadingPaneView: View {
                             ProgressView()
                                 .controlSize(.small)
                             Text("Loading full article…")
-                                .font(PrecisTypography.metadata)
+                                .font(selectedReadingTypeface.swiftUIFont(size: 12, weight: .medium))
                                 .foregroundStyle(PrecisDesignSystem.marginalia)
                         }
                         .padding(.bottom, PrecisSpacing.xs)
@@ -581,7 +587,7 @@ struct ReadingPaneView: View {
                 Image(systemName: "sparkles")
                     .font(.system(size: 13, weight: .medium))
                 Text((feedWideSummary?.isEmpty ?? true) ? "Generate Summary" : "Regenerate Summary")
-                    .font(.system(size: 13, weight: .medium))
+                    .font(selectedReadingTypeface.swiftUIFont(size: 13, weight: .medium))
                     .lineLimit(1)
             }
             .foregroundStyle(Color.accentColor)
@@ -717,6 +723,7 @@ struct ReadingPaneView: View {
     static func document(
         body: String,
         fontSize: Double,
+        typeface: ReadingTypeface = .system,
         scheme: ColorScheme,
         showImages: Bool = true,
         contentWidth: Double = 750
@@ -740,7 +747,7 @@ struct ReadingPaneView: View {
         body {
             color: \(foreground);
             background: \(background);
-            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+            font-family: \(typeface.cssFamily);
             font-size: \(Int(fontSize))px;
             line-height: 1.65;
             word-wrap: break-word;
@@ -860,12 +867,17 @@ struct ReadingPaneView: View {
 
 private struct SummaryColumn: View {
     let text: String
+    @AppStorage("readingTypeface") private var readingTypefaceRawValue = ReadingTypeface.system.rawValue
     @Environment(\.colorScheme) private var colorScheme
+
+    private var selectedReadingTypeface: ReadingTypeface {
+        ReadingTypeface(rawValue: readingTypefaceRawValue) ?? .system
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
             Text("MARGINALIA")
-                .font(PrecisTypography.caption)
+                .font(selectedReadingTypeface.swiftUIFont(size: 11, weight: .medium))
                 .foregroundStyle(PrecisDesignSystem.marginalia)
                 .tracking(1.2)
 
@@ -873,12 +885,12 @@ private struct SummaryColumn: View {
                 .background(PrecisDesignSystem.rule(for: colorScheme))
 
             Text(text)
-                .font(PrecisTypography.body)
+                .font(selectedReadingTypeface.swiftUIFont(size: 15))
                 .foregroundStyle(PrecisDesignSystem.marginalia)
                 .lineSpacing(5)
 
             Text("- calmer reading\n- less clutter\n- more attention")
-                .font(PrecisTypography.metadata)
+                .font(selectedReadingTypeface.swiftUIFont(size: 12, weight: .medium))
                 .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.8))
                 .lineSpacing(4)
         }
