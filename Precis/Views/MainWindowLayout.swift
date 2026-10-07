@@ -747,7 +747,11 @@ struct MainWindowLayout: View {
 
     @ViewBuilder
     private var feedbinSidebarSection: some View {
-        let feeds = importedFeeds.filter { hasFeedbinCredentials && $0.feedbinSubscriptionID != nil }
+        let feeds = importedFeeds.filter {
+            hasFeedbinCredentials
+                && $0.feedbinSubscriptionID != nil
+                && $0.title.trimmingCharacters(in: .whitespacesAndNewlines).localizedCaseInsensitiveCompare("Feedbin") != .orderedSame
+        }
         if !feeds.isEmpty {
             SidebarItem(
                 title: "All Feedbin Feeds",
