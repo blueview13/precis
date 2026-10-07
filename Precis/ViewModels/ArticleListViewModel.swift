@@ -128,7 +128,7 @@ public final class ArticleListViewModel: ObservableObject {
             return "No Feedbin articles yet — refresh your feeds to load them"
         case .feedbinUntagged:
             return "No untagged Feedbin articles yet"
-        case .category:
+        case .folder:
             return "No articles in this category yet"
         case .smartCategory:
             return "No articles match this Smart Category yet"
@@ -163,18 +163,6 @@ public final class ArticleListViewModel: ObservableObject {
             base = items.filter { item in
                 guard let feedID = item.feedID else { return false }
                 return feedIDs.contains(feedID)
-            }
-        case .category(let categoryID):
-            // Articles from every feed indented under this category, merged
-            // into ONE list — `applySort` then orders them across feeds, so
-            // rows are never grouped by their source feed. Resolve the feed
-            // set ONCE: scanning `allFeeds` per item was O(articles × feeds).
-            let categoryFeedIDs = Set(
-                allFeeds.filter { $0.category?.id == categoryID }.map(\.id)
-            )
-            base = items.filter { item in
-                guard let feedID = item.feedID else { return false }
-                return categoryFeedIDs.contains(feedID)
             }
         case .smartCategory(let smartCategoryID):
             base = smartCategoryMatches(for: smartCategoryID)
@@ -319,7 +307,6 @@ public final class ArticleListViewModel: ObservableObject {
         case feedbin
         case feedbinUntagged
         case folder(UUID)
-        case category(UUID)
         case smartCategory(UUID)
         case feedbinTag(String)
     }
@@ -356,7 +343,7 @@ public final class ArticleListViewModel: ObservableObject {
         guard !smartCategoryEvaluationsInFlight.contains(id) else { return [] }
         smartCategoryEvaluationsInFlight.insert(id)
         let snapshot = items
-        let feedByID = Dictionary(uniqueKeysWithValues: allFeeds.map { ($0.id, ($0.title, $0.category?.name)) })
+        let feedByID = Dictionary(uniqueKeysWithValues: allFeeds.map { ($0.id, ($0.title, $0.folder?.name)) })
         let generation = smartCategoryEvaluationGeneration
         Task.detached(priority: .userInitiated) { [weak self] in
             let evaluator = SmartCategoryEvaluator()

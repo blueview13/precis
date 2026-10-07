@@ -26,6 +26,11 @@ public final class FolderRepository: FolderRepositoryProtocol {
     }
 
     public func delete(_ folder: FolderRecord, context: ModelContext) throws {
+        // Detach the feeds first so they survive even if the relationship's
+        // delete rule ever regresses to .cascade.
+        for feed in folder.feeds {
+            feed.folder = nil
+        }
         context.delete(folder)
         try context.save()
     }

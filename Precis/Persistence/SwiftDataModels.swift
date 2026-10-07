@@ -7,18 +7,29 @@ public final class FolderRecord {
     public var name: String
     public var parentFolderID: UUID?
     public var smartFolderQuery: String?
-    @Relationship(deleteRule: .cascade, inverse: \FeedRecord.folder) public var feeds: [FeedRecord] = []
+    /// Sidebar tint, carried over from `CategoryRecord` by the category→folder
+    /// migration. Optional so existing stores migrate in place.
+    public var colorHex: String?
+    /// Explicit sidebar position, carried over from `CategoryRecord`; nil for
+    /// OPML-imported folders until the sidebar normalizes the order.
+    public var sortOrder: Int?
+    /// `.nullify`, not `.cascade`: deleting a folder must never delete its feeds.
+    @Relationship(deleteRule: .nullify, inverse: \FeedRecord.folder) public var feeds: [FeedRecord] = []
 
     public init(
         id: UUID = UUID(),
         name: String,
         parentFolderID: UUID? = nil,
-        smartFolderQuery: String? = nil
+        smartFolderQuery: String? = nil,
+        colorHex: String? = nil,
+        sortOrder: Int? = nil
     ) {
         self.id = id
         self.name = name
         self.parentFolderID = parentFolderID
         self.smartFolderQuery = smartFolderQuery
+        self.colorHex = colorHex
+        self.sortOrder = sortOrder
     }
 }
 
@@ -29,7 +40,8 @@ public final class FeedRecord {
     public var sidebarTitle: String?
     public var url: String
     public var folder: FolderRecord?
-    // Optional to-one relationship so existing stores migrate in-place (nullable column)
+    // Legacy sidebar grouping — superseded by `folder`. Left populated by the
+    // category→folder migration so a rollback build reads it unchanged.
     public var category: CategoryRecord?
     public var muted: Bool
     public var lastFetched: Date?
@@ -144,6 +156,9 @@ public final class ArticleRecord {
     }
 }
 
+/// Legacy sidebar grouping, superseded by `FolderRecord`. Retained — and left
+/// populated — so rolling back to a pre-migration build still sees the
+/// original category organization.
 @Model
 public final class CategoryRecord {
     @Attribute(.unique) public var id: UUID

@@ -427,7 +427,7 @@ private struct DesktopFeedPanelView: View {
             guard !smartCategories.isEmpty else { return false }
             let articleValue = Article(record: article)
             return smartCategories.contains { category in
-                evaluator.matches(articleValue, category: category, feedName: feed.title, categoryName: feed.category?.name)
+                evaluator.matches(articleValue, category: category, feedName: feed.title, categoryName: feed.folder?.name)
             }
         }.prefix(limit))
     }

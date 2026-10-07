@@ -7,8 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		FEEB1A000000000000000001 /* FeedbinService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEEB1A000000000000000002 /* FeedbinService.swift */; };
-		A1A1A1A1A1A1A1A1A1A1A1A1 /* DeduplicationPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2B2B2B2B2B2B2B2B2B2B2B2 /* DeduplicationPipeline.swift */; };
 		09E6E6F52EF0995FE3969732 /* FeedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0E28DB3045FBE05C16FE426 /* FeedStore.swift */; };
 		0AB3804987F95D14362B3E10 /* BrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2799491F3D77B8DBAE4E8B65 /* BrowserView.swift */; };
 		0BB590A62D18FF0B1D2F182B /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3627A15C4B94350D2597305 /* ContentView.swift */; };
@@ -26,6 +24,8 @@
 		24FE142F5FEC2DD937ACD896 /* SmartFolder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96D5804671D65CDC9BA3B84F /* SmartFolder.swift */; };
 		2C8557ED6E6A034DF8C6E0B1 /* ContentViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10A1C407E0E3F27668B43A91 /* ContentViewModel.swift */; };
 		2D8D7F95D8A32017088AC9A9 /* AIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20DB1B86F5A1D7DA208EB6A3 /* AIProvider.swift */; };
+		3A584D48E15C16ED3FFD625A /* DeduplicationPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 506D324460328AB470FF9F8D /* DeduplicationPipeline.swift */; };
+		3A650989B546BEA64E35F661 /* mercury.web.js in Resources */ = {isa = PBXBuildFile; fileRef = E1F5043DA1E386CA42962643 /* mercury.web.js */; };
 		3E0294DF6D933B35840657F5 /* ReadingPaneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE536FC7D285179CEFB9A6B6 /* ReadingPaneView.swift */; };
 		3FB94E0DE0F6BBF532BBEC50 /* ArticleListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F57AC84D880AEE5AEB32BB6 /* ArticleListView.swift */; };
 		401351C75919FDC9DB7F18C6 /* AlphaFeedPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34D617432F6897886F923D38 /* AlphaFeedPipeline.swift */; };
@@ -36,17 +36,16 @@
 		4875B528E262839BB70B1A37 /* FeedService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F61A4AF13EAF1574520CAD /* FeedService.swift */; };
 		4CDDF6B877CD6EA5BABEC737 /* RefreshSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB1BE3528BBA25BBF86FA5DB /* RefreshSchedule.swift */; };
 		58E0C604A6F47B8B9F2FB70C /* ContentExtractionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AECD198875476281E0D08607 /* ContentExtractionService.swift */; };
-		6F99BA1A422C4CB3B98C43DD /* MercuryArticleParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A40773123D146679168CBFE /* MercuryArticleParser.swift */; };
-		6F99BA1A422C4CB3B98C43DE /* JavaScriptCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3A40773123D146679168CBFF /* JavaScriptCore.framework */; };
-		6F99BA1A422C4CB3B98C43DF /* mercury.web.js in Resources */ = {isa = PBXBuildFile; fileRef = 3A40773123D146679168CC00 /* mercury.web.js */; };
-		6F99BA1A422C4CB3B98C43E0 /* MercuryParser-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 3A40773123D146679168CC01 /* MercuryParser-LICENSE.txt */; };
 		602614A62A9A3E449E8BA323 /* OPMLService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E74083885811654A7B71AB6A /* OPMLService.swift */; };
 		62643C4361662657E3967ABC /* FolderRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBD9DA67958797ACD8FE5326 /* FolderRepository.swift */; };
+		628AE00DDF250843F9D34C6C /* CategoryToFolderMigrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15D5D1F40C12D445E4433C46 /* CategoryToFolderMigrationTests.swift */; };
+		65CA92DDD5887F64C53003F4 /* PrecisDigestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08C69A9C7257C227CE9BF09B /* PrecisDigestTests.swift */; };
 		677078F801C7699A23A9406B /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D827B461D187C59163E5803 /* Logger.swift */; };
 		760A3F6A0FC9BDBEF0F92E50 /* HTMLAttributedStringRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60C716C998BF6283C613CA85 /* HTMLAttributedStringRenderer.swift */; };
 		77F10C7D044891A8E994A1F5 /* CloudKitSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 549FCF1D61FDCAC3802A7339 /* CloudKitSyncService.swift */; };
 		7BFAFE1D9CBFF59934E7CDA6 /* SmartCategoryEvaluatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBAE7419D786CEB133582A33 /* SmartCategoryEvaluatorTests.swift */; };
 		7C87264B422FA46CF922FB85 /* AlphaConsoleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 732FA7D6895E5E5BC6593A4D /* AlphaConsoleView.swift */; };
+		7E1D586977823BBD3157786E /* MercuryArticleParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD13EF6706119A60C71A0691 /* MercuryArticleParser.swift */; };
 		7F729304DD4AE7A4523B7EA7 /* MainWindowLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3351B93914DB35818903B24D /* MainWindowLayout.swift */; };
 		818DB03E5B7F8EEA3658334A /* FeedImportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D4763C848017EA801B958A1 /* FeedImportService.swift */; };
 		870CECEF8E89EAE443ADF28C /* ModelContainerProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C79457B2DC238DB0B8C2D07 /* ModelContainerProvider.swift */; };
@@ -61,6 +60,8 @@
 		B164D3A7B5AA9B27D4051749 /* gen_icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 16089681870BBF9A6388D3CD /* gen_icon.png */; };
 		B16F8E8CB05F38F25D012DBE /* SmartFolderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A859F9B3BECCF37CE2088333 /* SmartFolderService.swift */; };
 		B462BFB4E65F58AE7858B570 /* ArticleListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AA33E50F4C5469B48F96F1F /* ArticleListViewModel.swift */; };
+		B9C5A5C8065AD4ADA04483EC /* MercuryParser-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = D77DA7D913C6EB9FA7CD8959 /* MercuryParser-LICENSE.txt */; };
+		BA0EE4178B596F789D032216 /* FeedbinService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8488966E1231C546CF3FC75 /* FeedbinService.swift */; };
 		BF785B61A7C14CDD585393BD /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6731FF397F5AE2EA2D598627 /* SettingsView.swift */; };
 		C0F1606CBB4828887F020B5E /* FeedRefreshPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50A54227F3A6C09BF3EBF4E9 /* FeedRefreshPipeline.swift */; };
 		C602955BF50B85F1DDECFD57 /* SmartCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02ED00F8CC26E91886BEE647 /* SmartCategory.swift */; };
@@ -71,11 +72,11 @@
 		CB07C3DFE5753B3FAAB632E6 /* AppRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1254875E2D14EAD4651CFA6A /* AppRootView.swift */; };
 		CBDACAB8857700DF05540842 /* PasteboardFeedSuggestionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9D378749E6F7F88C1513102 /* PasteboardFeedSuggestionTests.swift */; };
 		D60ED8ADFCAAFAEE996AD017 /* TopChromeRevealTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADA8B70578FF6127D26EBA59 /* TopChromeRevealTests.swift */; };
-		A1B2C3D4E5F60718293A4B5C /* PrecisDigestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F60718293A4B5C6D /* PrecisDigestTests.swift */; };
 		DA597B7A17A76B4FC8F7F7A1 /* AlphaFeedInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBC773C2146407A65A512DFD /* AlphaFeedInputView.swift */; };
 		E2609D131D1A3D22F0DC998B /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACFE1ACFD7574320B2DBAF7A /* DesignSystem.swift */; };
 		E3DA620B787E3CF3F4DBAD1E /* FeedKit in Frameworks */ = {isa = PBXBuildFile; productRef = E866CBD8782989BEE12DFA8A /* FeedKit */; };
 		E6FC1896A54B3AA4C953CBEE /* SmartCategoryEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10A5ED14CE2C5C9D0717141 /* SmartCategoryEditorView.swift */; };
+		E7498ECBEFC9DBD11315AC66 /* CategoryToFolderMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 103F8D375F7F2682E0C6E5A7 /* CategoryToFolderMigration.swift */; };
 		E7D2C9778203C3F02DF737AD /* FeedParserService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5A2196FEDB9001461275B19 /* FeedParserService.swift */; };
 		EB851919CF785D96E0A93971 /* Feed.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB8F6E3D7FB84A08BB702EB1 /* Feed.swift */; };
 		EE18A9BF953C3E51DC2431DA /* SwiftDataModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0ABCCC48E5433848F66FCDE /* SwiftDataModels.swift */; };
@@ -100,12 +101,13 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		FEEB1A000000000000000002 /* FeedbinService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbinService.swift; sourceTree = "<group>"; };
-		B2B2B2B2B2B2B2B2B2B2B2B2 /* DeduplicationPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeduplicationPipeline.swift; sourceTree = "<group>"; };
 		02ED00F8CC26E91886BEE647 /* SmartCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartCategory.swift; sourceTree = "<group>"; };
+		08C69A9C7257C227CE9BF09B /* PrecisDigestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrecisDigestTests.swift; sourceTree = "<group>"; };
 		0AD4C9D55082697AF04F0F33 /* PrecisAppIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrecisAppIntent.swift; sourceTree = "<group>"; };
+		103F8D375F7F2682E0C6E5A7 /* CategoryToFolderMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryToFolderMigration.swift; sourceTree = "<group>"; };
 		10A1C407E0E3F27668B43A91 /* ContentViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentViewModel.swift; sourceTree = "<group>"; };
 		1254875E2D14EAD4651CFA6A /* AppRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRootView.swift; sourceTree = "<group>"; };
+		15D5D1F40C12D445E4433C46 /* CategoryToFolderMigrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryToFolderMigrationTests.swift; sourceTree = "<group>"; };
 		16089681870BBF9A6388D3CD /* gen_icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = gen_icon.png; sourceTree = "<group>"; };
 		17F61A4AF13EAF1574520CAD /* FeedService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedService.swift; sourceTree = "<group>"; };
 		1853DF5D99D4EF2EB973F7EC /* RefreshScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RefreshScheduler.swift; sourceTree = "<group>"; };
@@ -127,6 +129,7 @@
 		401D81C218045A16008FDE86 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		43BC7944427CBFB71C9C0FCD /* Precis.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Precis.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4C79457B2DC238DB0B8C2D07 /* ModelContainerProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelContainerProvider.swift; sourceTree = "<group>"; };
+		506D324460328AB470FF9F8D /* DeduplicationPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeduplicationPipeline.swift; sourceTree = "<group>"; };
 		50A54227F3A6C09BF3EBF4E9 /* FeedRefreshPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedRefreshPipeline.swift; sourceTree = "<group>"; };
 		50AAA03477C9D6D102BEC50C /* PrecisApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrecisApp.swift; sourceTree = "<group>"; };
 		52A3A41D1C37F1560D794876 /* PasteboardFeedSuggestion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasteboardFeedSuggestion.swift; sourceTree = "<group>"; };
@@ -151,12 +154,7 @@
 		AB4FB48B25FB25AB546825EB /* FullTextSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullTextSearchService.swift; sourceTree = "<group>"; };
 		ACFE1ACFD7574320B2DBAF7A /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		ADA8B70578FF6127D26EBA59 /* TopChromeRevealTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopChromeRevealTests.swift; sourceTree = "<group>"; };
-		B2C3D4E5F60718293A4B5C6D /* PrecisDigestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrecisDigestTests.swift; sourceTree = "<group>"; };
 		AECD198875476281E0D08607 /* ContentExtractionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentExtractionService.swift; sourceTree = "<group>"; };
-		3A40773123D146679168CBFE /* MercuryArticleParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MercuryArticleParser.swift; sourceTree = "<group>"; };
-		3A40773123D146679168CBFF /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		3A40773123D146679168CC00 /* mercury.web.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = Resources/mercury.web.js; sourceTree = "<group>"; };
-		3A40773123D146679168CC01 /* MercuryParser-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = Resources/MercuryParser-LICENSE.txt; sourceTree = "<group>"; };
 		AF518FE4ADF640B12EA35A9B /* SummarizationProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummarizationProvider.swift; sourceTree = "<group>"; };
 		B19D281BA82A58F79EF93FA0 /* Precis.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Precis.entitlements; sourceTree = "<group>"; };
 		BB1BE3528BBA25BBF86FA5DB /* RefreshSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RefreshSchedule.swift; sourceTree = "<group>"; };
@@ -169,20 +167,24 @@
 		CF91E74599DAC751DEEEBD09 /* ArticleHTMLSanitizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleHTMLSanitizer.swift; sourceTree = "<group>"; };
 		D52848B0C6FF1044C279CA51 /* SmartCategoryEvaluator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartCategoryEvaluator.swift; sourceTree = "<group>"; };
 		D5A2196FEDB9001461275B19 /* FeedParserService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedParserService.swift; sourceTree = "<group>"; };
+		D77DA7D913C6EB9FA7CD8959 /* MercuryParser-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "MercuryParser-LICENSE.txt"; sourceTree = "<group>"; };
 		D9D378749E6F7F88C1513102 /* PasteboardFeedSuggestionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasteboardFeedSuggestionTests.swift; sourceTree = "<group>"; };
 		DBC773C2146407A65A512DFD /* AlphaFeedInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlphaFeedInputView.swift; sourceTree = "<group>"; };
 		DBD9DA67958797ACD8FE5326 /* FolderRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderRepository.swift; sourceTree = "<group>"; };
 		E10A5ED14CE2C5C9D0717141 /* SmartCategoryEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartCategoryEditorView.swift; sourceTree = "<group>"; };
 		E12D733C78C930DBB1FA0FDB /* DesignReviewBaseline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignReviewBaseline.swift; sourceTree = "<group>"; };
+		E1F5043DA1E386CA42962643 /* mercury.web.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = mercury.web.js; sourceTree = "<group>"; };
 		E4930E47A8BD942ACE3B9865 /* TextToSpeechService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextToSpeechService.swift; sourceTree = "<group>"; };
 		E74083885811654A7B71AB6A /* OPMLService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OPMLService.swift; sourceTree = "<group>"; };
 		EE536FC7D285179CEFB9A6B6 /* ReadingPaneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingPaneView.swift; sourceTree = "<group>"; };
 		EF30D7165BEF9EF7B18CEB81 /* FeedRefreshService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedRefreshService.swift; sourceTree = "<group>"; };
 		F0E28DB3045FBE05C16FE426 /* FeedStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedStore.swift; sourceTree = "<group>"; };
 		F3627A15C4B94350D2597305 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		F8488966E1231C546CF3FC75 /* FeedbinService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbinService.swift; sourceTree = "<group>"; };
 		FB6C8A40AC2E8923DABA5499 /* FaviconService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaviconService.swift; sourceTree = "<group>"; };
 		FB6ECC711E8AE2EDE52BD5A6 /* DesktopFeedPanelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesktopFeedPanelTests.swift; sourceTree = "<group>"; };
 		FB8F6E3D7FB84A08BB702EB1 /* Feed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Feed.swift; sourceTree = "<group>"; };
+		FD13EF6706119A60C71A0691 /* MercuryArticleParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MercuryArticleParser.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -190,7 +192,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6F99BA1A422C4CB3B98C43DE /* JavaScriptCore.framework in Frameworks */,
 				E3DA620B787E3CF3F4DBAD1E /* FeedKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -238,8 +239,6 @@
 			isa = PBXGroup;
 			children = (
 				7879467182D9B853FA61E89C /* Assets.xcassets */,
-				3A40773123D146679168CC00 /* mercury.web.js */,
-				3A40773123D146679168CC01 /* MercuryParser-LICENSE.txt */,
 				F3627A15C4B94350D2597305 /* ContentView.swift */,
 				571BA157782E317361A4FC10 /* gen_icon_transparent.png */,
 				16089681870BBF9A6388D3CD /* gen_icon.png */,
@@ -251,6 +250,7 @@
 				0D7BCD14C420940F42D5C41E /* Design */,
 				6DFE14B7F242FEEBCCC1131D /* Models */,
 				66CBC216E649C20971D4D1B9 /* Persistence */,
+				8107472236A3C221862BA0F0 /* Resources */,
 				C405787DB2034C41157DDB75 /* Services */,
 				48184CDE6E3B593FDDC2BFFB /* Sync */,
 				9D43F268FC62BA33A552D079 /* Utilities */,
@@ -310,14 +310,15 @@
 			isa = PBXGroup;
 			children = (
 				3086E369F2E64A3B02921654 /* ArticleHTMLSanitizerTests.swift */,
+				15D5D1F40C12D445E4433C46 /* CategoryToFolderMigrationTests.swift */,
 				FB6ECC711E8AE2EDE52BD5A6 /* DesktopFeedPanelTests.swift */,
 				259C209F5B47CF3CC97D17A0 /* FeedDiscoveryServiceTests.swift */,
 				D9D378749E6F7F88C1513102 /* PasteboardFeedSuggestionTests.swift */,
+				08C69A9C7257C227CE9BF09B /* PrecisDigestTests.swift */,
 				3600F849497B2DC44F77CA8C /* ReadingPaneImageLayoutTests.swift */,
 				537442E46F1B24A94DBE428A /* RefreshSchedulerTests.swift */,
 				CBAE7419D786CEB133582A33 /* SmartCategoryEvaluatorTests.swift */,
 				ADA8B70578FF6127D26EBA59 /* TopChromeRevealTests.swift */,
-				B2C3D4E5F60718293A4B5C6D /* PrecisDigestTests.swift */,
 			);
 			path = Tests;
 			sourceTree = "<group>";
@@ -337,6 +338,15 @@
 				E10A5ED14CE2C5C9D0717141 /* SmartCategoryEditorView.swift */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		8107472236A3C221862BA0F0 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				E1F5043DA1E386CA42962643 /* mercury.web.js */,
+				D77DA7D913C6EB9FA7CD8959 /* MercuryParser-LICENSE.txt */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 		8E87C366046264D89329DEBA /* Products */ = {
@@ -363,13 +373,13 @@
 		C405787DB2034C41157DDB75 /* Services */ = {
 			isa = PBXGroup;
 			children = (
-				FEEB1A000000000000000002 /* FeedbinService.swift */,
-				B2B2B2B2B2B2B2B2B2B2B2B2 /* DeduplicationPipeline.swift */,
 				34D617432F6897886F923D38 /* AlphaFeedPipeline.swift */,
 				63479221A20572C8B131CC94 /* BackgroundRefreshService.swift */,
+				103F8D375F7F2682E0C6E5A7 /* CategoryToFolderMigration.swift */,
 				AECD198875476281E0D08607 /* ContentExtractionService.swift */,
-				3A40773123D146679168CBFE /* MercuryArticleParser.swift */,
+				506D324460328AB470FF9F8D /* DeduplicationPipeline.swift */,
 				FB6C8A40AC2E8923DABA5499 /* FaviconService.swift */,
+				F8488966E1231C546CF3FC75 /* FeedbinService.swift */,
 				872EFAD58C7D6F26E32E7E69 /* FeedDiscoveryService.swift */,
 				2D4763C848017EA801B958A1 /* FeedImportService.swift */,
 				D5A2196FEDB9001461275B19 /* FeedParserService.swift */,
@@ -378,6 +388,7 @@
 				17F61A4AF13EAF1574520CAD /* FeedService.swift */,
 				F0E28DB3045FBE05C16FE426 /* FeedStore.swift */,
 				AB4FB48B25FB25AB546825EB /* FullTextSearchService.swift */,
+				FD13EF6706119A60C71A0691 /* MercuryArticleParser.swift */,
 				E74083885811654A7B71AB6A /* OPMLService.swift */,
 				1853DF5D99D4EF2EB973F7EC /* RefreshScheduler.swift */,
 				D52848B0C6FF1044C279CA51 /* SmartCategoryEvaluator.swift */,
@@ -486,11 +497,11 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6F99BA1A422C4CB3B98C43DF /* mercury.web.js in Resources */,
-				6F99BA1A422C4CB3B98C43E0 /* MercuryParser-LICENSE.txt in Resources */,
 				F2063ABFCD5F3415774767ED /* Assets.xcassets in Resources */,
+				B9C5A5C8065AD4ADA04483EC /* MercuryParser-LICENSE.txt in Resources */,
 				B164D3A7B5AA9B27D4051749 /* gen_icon.png in Resources */,
 				10DA0B22C6D5A6AE515FF053 /* gen_icon_transparent.png in Resources */,
+				3A650989B546BEA64E35F661 /* mercury.web.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -502,14 +513,15 @@
 			buildActionMask = 2147483647;
 			files = (
 				AFF63B31DB54C45675EB188E /* ArticleHTMLSanitizerTests.swift in Sources */,
+				628AE00DDF250843F9D34C6C /* CategoryToFolderMigrationTests.swift in Sources */,
 				CAAD6820BFAD5E2D0A7130A2 /* DesktopFeedPanelTests.swift in Sources */,
 				410F87DB3C80BDC419864230 /* FeedDiscoveryServiceTests.swift in Sources */,
 				CBDACAB8857700DF05540842 /* PasteboardFeedSuggestionTests.swift in Sources */,
+				65CA92DDD5887F64C53003F4 /* PrecisDigestTests.swift in Sources */,
 				1ADC581B469CF92D706B29E8 /* ReadingPaneImageLayoutTests.swift in Sources */,
 				1876375C8DAEA1D5A1C395EC /* RefreshSchedulerTests.swift in Sources */,
 				7BFAFE1D9CBFF59934E7CDA6 /* SmartCategoryEvaluatorTests.swift in Sources */,
 				D60ED8ADFCAAFAEE996AD017 /* TopChromeRevealTests.swift in Sources */,
-				A1B2C3D4E5F60718293A4B5C /* PrecisDigestTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -531,18 +543,18 @@
 				EF6F5BBC4C212CCBF3549F7E /* ArticleRepository.swift in Sources */,
 				12AAF13E8D19D5AFAE1A9B22 /* BackgroundRefreshService.swift in Sources */,
 				0AB3804987F95D14362B3E10 /* BrowserView.swift in Sources */,
+				E7498ECBEFC9DBD11315AC66 /* CategoryToFolderMigration.swift in Sources */,
 				77F10C7D044891A8E994A1F5 /* CloudKitSyncService.swift in Sources */,
 				58E0C604A6F47B8B9F2FB70C /* ContentExtractionService.swift in Sources */,
-				6F99BA1A422C4CB3B98C43DD /* MercuryArticleParser.swift in Sources */,
 				0BB590A62D18FF0B1D2F182B /* ContentView.swift in Sources */,
 				2C8557ED6E6A034DF8C6E0B1 /* ContentViewModel.swift in Sources */,
+				3A584D48E15C16ED3FFD625A /* DeduplicationPipeline.swift in Sources */,
 				1CAC44F074E0AE4D6DB9A8A0 /* DesignReviewBaseline.swift in Sources */,
 				E2609D131D1A3D22F0DC998B /* DesignSystem.swift in Sources */,
 				1A224463CE8C1E49AF57A707 /* FaviconService.swift in Sources */,
 				EB851919CF785D96E0A93971 /* Feed.swift in Sources */,
 				F6F370BC5965758C032FB054 /* FeedDiscoveryResult.swift in Sources */,
 				1D52482FEB961B1F5E6B956D /* FeedDiscoveryService.swift in Sources */,
-				A1A1A1A1A1A1A1A1A1A1A1A1 /* DeduplicationPipeline.swift in Sources */,
 				818DB03E5B7F8EEA3658334A /* FeedImportService.swift in Sources */,
 				E7D2C9778203C3F02DF737AD /* FeedParserService.swift in Sources */,
 				C0F1606CBB4828887F020B5E /* FeedRefreshPipeline.swift in Sources */,
@@ -550,13 +562,14 @@
 				44AA4838D6D4B0422621884E /* FeedRepository.swift in Sources */,
 				4875B528E262839BB70B1A37 /* FeedService.swift in Sources */,
 				09E6E6F52EF0995FE3969732 /* FeedStore.swift in Sources */,
-				FEEB1A000000000000000001 /* FeedbinService.swift in Sources */,
+				BA0EE4178B596F789D032216 /* FeedbinService.swift in Sources */,
 				B01C33CEF93372E99A3837D1 /* Folder.swift in Sources */,
 				62643C4361662657E3967ABC /* FolderRepository.swift in Sources */,
 				40A99782BEFD9BE73A0E91F3 /* FullTextSearchService.swift in Sources */,
 				760A3F6A0FC9BDBEF0F92E50 /* HTMLAttributedStringRenderer.swift in Sources */,
 				677078F801C7699A23A9406B /* Logger.swift in Sources */,
 				7F729304DD4AE7A4523B7EA7 /* MainWindowLayout.swift in Sources */,
+				7E1D586977823BBD3157786E /* MercuryArticleParser.swift in Sources */,
 				870CECEF8E89EAE443ADF28C /* ModelContainerProvider.swift in Sources */,
 				448371B24D14B394F9DD9E66 /* NotificationSettings.swift in Sources */,
 				602614A62A9A3E449E8BA323 /* OPMLService.swift in Sources */,

@@ -48,7 +48,9 @@ struct MainWindowLayout: View {
     @State private var showSmartCategoryEditor = false
     @State private var editingSmartCategory: SmartCategory?
     @State private var isHoveringAddFeeds = false
-    @State private var categories: [CategoryRecord] = []
+    /// Sidebar "categories" — `FolderRecord`s since the category→folder
+    /// migration (kept under the old name to match the sidebar section).
+    @State private var categories: [FolderRecord] = []
     @State private var isAddingCategory = false
     @State private var newCategoryName = ""
     @State private var editingCategoryID: UUID?
@@ -115,8 +117,8 @@ struct MainWindowLayout: View {
 
     private var digestFeedIDs: Set<UUID>? {
         switch viewModel.selectedSidebarFilter {
-        case .category(let categoryID):
-            return Set(viewModel.allFeeds.filter { $0.category?.id == categoryID }.map(\.id))
+        case .folder(let folderID):
+            return Set(viewModel.allFeeds.filter { $0.folder?.id == folderID }.map(\.id))
         case .feed(let feedID):
             return [feedID]
         case .feedbin:
@@ -565,7 +567,7 @@ struct MainWindowLayout: View {
     // MARK: - Categories
     private func refreshCategories() {
         do {
-            let fetched = try modelContext.fetch(FetchDescriptor<CategoryRecord>())
+            let fetched = try modelContext.fetch(FetchDescriptor<FolderRecord>())
             // Legacy rows (sortOrder == nil) sort first by name, matching the
             // original alphabetical order; positioned rows keep their order.
             categories = fetched.sorted { lhs, rhs in
@@ -608,7 +610,7 @@ struct MainWindowLayout: View {
         guard !name.isEmpty else { return }
 
         let nextOrder = (categories.compactMap(\.sortOrder).max() ?? -1) + 1
-        modelContext.insert(CategoryRecord(name: name, sortOrder: nextOrder))
+        modelContext.insert(FolderRecord(name: name, sortOrder: nextOrder))
         do {
             try modelContext.save()
         } catch {
@@ -626,7 +628,7 @@ struct MainWindowLayout: View {
     /// Live binding from the color popover into the category's persisted
     /// tint — every picker change writes and saves so the sidebar row
     /// re-renders as the user drags.
-    private func categoryColorBinding(for category: CategoryRecord) -> Binding<Color> {
+    private func categoryColorBinding(for category: FolderRecord) -> Binding<Color> {
         Binding(
             get: {
                 category.colorHex.flatMap { PrecisDesignSystem.color(hex: $0) } ?? Color.accentColor
@@ -647,7 +649,7 @@ struct MainWindowLayout: View {
     }
 
     /// Color picker popover for a category's text and icon tint.
-    private func categoryColorPopover(for category: CategoryRecord) -> some View {
+    private func categoryColorPopover(for category: FolderRecord) -> some View {
         VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
             Text("Text & Icon Color")
                 .font(PrecisTypography.metadata)
@@ -802,7 +804,7 @@ struct MainWindowLayout: View {
         }
     }
 
-    private func beginEditingCategory(_ category: CategoryRecord) {
+    private func beginEditingCategory(_ category: FolderRecord) {
         editingCategoryID = category.id
         editingCategoryName = category.name
         DispatchQueue.main.async {
@@ -896,10 +898,11 @@ struct MainWindowLayout: View {
         split.sidebarWidth = measured
     }
 
-    private func deleteCategory(_ category: CategoryRecord) {
-        modelContext.delete(category)
+    private func deleteCategory(_ category: FolderRecord) {
         do {
-            try modelContext.save()
+            // The repository detaches the feeds first — deleting a category
+            // must never delete the feeds inside it.
+            try FolderRepository().delete(category, context: modelContext)
         } catch {
             PrecisLogger.error("Failed to delete category: \(error.localizedDescription)")
         }
@@ -933,18 +936,18 @@ struct MainWindowLayout: View {
     // MARK: - Feed ↔ Category
 
     private var uncategorizedFeeds: [FeedRecord] {
-        importedFeeds.filter { $0.category == nil && $0.feedbinSubscriptionID == nil }
+        importedFeeds.filter { $0.folder == nil && $0.feedbinSubscriptionID == nil }
     }
 
-    private func feeds(in category: CategoryRecord) -> [FeedRecord] {
+    private func feeds(in category: FolderRecord) -> [FeedRecord] {
         importedFeeds.filter {
-            $0.category?.id == category.id && ($0.feedbinSubscriptionID == nil || hasFeedbinCredentials)
+            $0.folder?.id == category.id && ($0.feedbinSubscriptionID == nil || hasFeedbinCredentials)
         }
     }
 
-    private func moveFeed(_ feed: FeedRecord, to category: CategoryRecord?) {
-        guard feed.category?.id != category?.id else { return }
-        feed.category = category
+    private func moveFeed(_ feed: FeedRecord, to category: FolderRecord?) {
+        guard feed.folder?.id != category?.id else { return }
+        feed.folder = category
         do {
             try modelContext.save()
         } catch {
@@ -957,10 +960,10 @@ struct MainWindowLayout: View {
 
     /// Moves every checked feed in one save, then clears the selection so
     /// the action bar retires — the move is visibly "done".
-    private func moveCheckedFeeds(to category: CategoryRecord?) {
+    private func moveCheckedFeeds(to category: FolderRecord?) {
         let checked = importedFeeds.filter { selectedFeedIDs.contains($0.id) }
-        for feed in checked where feed.category?.id != category?.id {
-            feed.category = category
+        for feed in checked where feed.folder?.id != category?.id {
+            feed.folder = category
         }
         do {
             try modelContext.save()
@@ -986,10 +989,10 @@ struct MainWindowLayout: View {
         return Self.feedDragPrefix + ids.map(\.uuidString).joined(separator: ",")
     }
 
-    private func moveFeeds(ids: [UUID], to category: CategoryRecord?) {
+    private func moveFeeds(ids: [UUID], to category: FolderRecord?) {
         let moved = importedFeeds.filter { ids.contains($0.id) }
-        for feed in moved where feed.category?.id != category?.id {
-            feed.category = category
+        for feed in moved where feed.folder?.id != category?.id {
+            feed.folder = category
         }
         do {
             try modelContext.save()
@@ -1106,7 +1109,7 @@ struct MainWindowLayout: View {
     /// "Remove from Category" — ungroup the feeds without deleting them.
     private func ungroupFeeds(_ feeds: [FeedRecord]) {
         for feed in feeds {
-            feed.category = nil
+            feed.folder = nil
         }
         do {
             try modelContext.save()
@@ -1245,7 +1248,7 @@ struct MainWindowLayout: View {
                 Button {
                     if movesWholeSelection(feed) { moveCheckedFeeds(to: nil) } else { moveFeed(feed, to: nil) }
                 } label: {
-                    Label("No Category", systemImage: !movesWholeSelection(feed) && feed.category == nil ? "checkmark" : "square")
+                    Label("No Category", systemImage: !movesWholeSelection(feed) && feed.folder == nil ? "checkmark" : "square")
                 }
                 Divider()
                 if categories.isEmpty {
@@ -1255,7 +1258,7 @@ struct MainWindowLayout: View {
                         Button {
                             if movesWholeSelection(feed) { moveCheckedFeeds(to: category) } else { moveFeed(feed, to: category) }
                         } label: {
-                            Label(category.name, systemImage: !movesWholeSelection(feed) && feed.category?.id == category.id ? "checkmark" : "square")
+                            Label(category.name, systemImage: !movesWholeSelection(feed) && feed.folder?.id == category.id ? "checkmark" : "square")
                         }
                     }
                 }
@@ -1788,7 +1791,7 @@ struct MainWindowLayout: View {
                             // Show only the feeds indented under this category;
                             // the view model merges and sorts them across feeds.
                             selectedSidebarItem = category.name
-                            viewModel.selectedSidebarFilter = .category(category.id)
+                            viewModel.selectedSidebarFilter = .folder(category.id)
                         }
                         .background(
                             RoundedRectangle(cornerRadius: 10)

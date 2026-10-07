@@ -124,9 +124,7 @@ struct SettingsView: View {
     @State private var hasFeedbinCredentials = false
     @AppStorage("feedbinUsername") private var savedFeedbinUsername = ""
     @State private var desktopPanelFeeds: [FeedRecord] = []
-    @State private var desktopPanelCategories: [CategoryRecord] = []
     @State private var desktopPanelFolders: [FolderRecord] = []
-    @State private var isDesktopPanelCategoriesExpanded = false
     @State private var isDesktopPanelFoldersExpanded = false
     @State private var isDesktopPanelFeedsExpanded = false
     @State private var isDesktopPanelSmartCategoriesExpanded = false
@@ -458,19 +456,6 @@ struct SettingsView: View {
                                 .help("Choose article text color")
                             }
 
-                            if !desktopPanelCategories.isEmpty {
-                                sourceDisclosure(
-                                    "Categories",
-                                    isExpanded: $isDesktopPanelCategoriesExpanded
-                                ) {
-                                    VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
-                                        ForEach(desktopPanelCategories) { category in
-                                            sourceToggle(category.name, feedIDs: category.feeds.map(\.id))
-                                        }
-                                    }
-                                }
-                            }
-
                             if !smartCategoryStore.categories.filter({ !$0.isDeleted }).isEmpty {
                                 sourceDisclosure(
                                     "Smart Categories",
@@ -709,11 +694,9 @@ struct SettingsView: View {
     private func loadDesktopPanelSources() {
         do {
             desktopPanelFeeds = try FeedRepository().fetchAll(context: modelContext).sorted { $0.title < $1.title }
-            desktopPanelCategories = try modelContext.fetch(FetchDescriptor<CategoryRecord>()).sorted { $0.name < $1.name }
             desktopPanelFolders = try modelContext.fetch(FetchDescriptor<FolderRecord>()).sorted { $0.name < $1.name }
         } catch {
             desktopPanelFeeds = []
-            desktopPanelCategories = []
             desktopPanelFolders = []
         }
     }
