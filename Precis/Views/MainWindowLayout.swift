@@ -121,6 +121,8 @@ struct MainWindowLayout: View {
             return [feedID]
         case .feedbin:
             return Set(viewModel.allFeeds.filter { $0.feedbinSubscriptionID != nil }.map(\.id))
+        case .feedbinUntagged:
+            return Set(viewModel.allFeeds.filter { $0.feedbinSubscriptionID != nil && ($0.feedbinTagNames ?? []).isEmpty }.map(\.id))
         case .feedbinTag(let name):
             return Set(viewModel.allFeeds.filter { $0.feedbinTagNames?.contains(name) == true }.map(\.id))
         default:
@@ -743,6 +745,59 @@ struct MainWindowLayout: View {
         }
     }
 
+    @ViewBuilder
+    private var feedbinSidebarSection: some View {
+        let feeds = importedFeeds.filter { hasFeedbinCredentials && $0.feedbinSubscriptionID != nil }
+        if !feeds.isEmpty {
+            SidebarItem(
+                title: "All Feedbin Feeds",
+                icon: "tray.full",
+                badge: sidebarCount(viewModel.unreadCount(forFeedIDs: Set(feeds.map(\.id)))),
+                uppercase: true,
+                active: viewModel.selectedSidebarFilter == .feedbin
+            ) {
+                selectedSidebarItem = "All Feedbin Feeds"
+                viewModel.selectedSidebarFilter = .feedbin
+            }
+
+            ForEach(Array(Set(feeds.flatMap { $0.feedbinTagNames ?? [] })).sorted(), id: \.self) { tag in
+                let taggedFeeds = feeds.filter { $0.feedbinTagNames?.contains(tag) == true }
+                FeedbinTagSidebarRow(
+                    title: tag,
+                    badge: sidebarCount(viewModel.unreadCount(forFeedIDs: Set(taggedFeeds.map(\.id)))),
+                    active: viewModel.selectedSidebarFilter == .feedbinTag(tag),
+                    action: {
+                        selectedSidebarItem = tag
+                        viewModel.selectedSidebarFilter = .feedbinTag(tag)
+                    },
+                    onRename: { promptRenameFeedbinTag(tag) },
+                    onDelete: { confirmDeleteFeedbinTag(tag) }
+                )
+                ForEach(taggedFeeds) { feed in
+                    sidebarFeedRow(feed, indent: 32, compact: true, group: feeds)
+                        .id("feedbin-\(tag)-\(feed.id)")
+                }
+            }
+
+            let untagged = feeds.filter { ($0.feedbinTagNames ?? []).isEmpty }
+            if !untagged.isEmpty {
+                SidebarItem(
+                    title: "Untagged",
+                    icon: "tag",
+                    badge: sidebarCount(viewModel.unreadCount(forFeedIDs: Set(untagged.map(\.id)))),
+                    active: viewModel.selectedSidebarFilter == .feedbinUntagged
+                ) {
+                    selectedSidebarItem = "Untagged"
+                    viewModel.selectedSidebarFilter = .feedbinUntagged
+                }
+                ForEach(untagged) { feed in
+                    sidebarFeedRow(feed, indent: 32, compact: true, group: untagged)
+                        .id("feedbin-untagged-\(feed.id)")
+                }
+            }
+        }
+    }
+
     private func beginEditingCategory(_ category: CategoryRecord) {
         editingCategoryID = category.id
         editingCategoryName = category.name
@@ -1262,6 +1317,58 @@ struct MainWindowLayout: View {
                 _ = try await service.sync(context: modelContext)
                 refreshFeeds()
             } catch { PrecisLogger.error("Feedbin tag creation failed: \(error.localizedDescription)") }
+        }
+    }
+
+    private func promptRenameFeedbinTag(_ oldName: String) {
+        let alert = NSAlert()
+        alert.messageText = "Rename Feedbin Tag"
+        alert.informativeText = "Rename ‘\(oldName)’ across your Feedbin feeds."
+        alert.addButton(withTitle: "Save")
+        alert.addButton(withTitle: "Cancel")
+        let field = NSTextField(string: oldName)
+        field.frame = NSRect(x: 0, y: 0, width: 240, height: 24)
+        alert.accessoryView = field
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        let newName = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !newName.isEmpty, newName != oldName else { return }
+        let wasSelected = viewModel.selectedSidebarFilter == .feedbinTag(oldName)
+        Task { @MainActor in
+            do {
+                guard let credentials = await FeedbinCredentialStore.load() else { return }
+                let service = FeedbinService(credentials: credentials)
+                try await service.renameTag(from: oldName, to: newName)
+                _ = try await service.sync(context: modelContext)
+                if wasSelected {
+                    selectedSidebarItem = newName
+                    viewModel.selectedSidebarFilter = .feedbinTag(newName)
+                }
+                refreshFeeds()
+            } catch { PrecisLogger.error("Feedbin tag rename failed: \(error.localizedDescription)") }
+        }
+    }
+
+    private func confirmDeleteFeedbinTag(_ name: String) {
+        let alert = NSAlert()
+        alert.messageText = "Delete Feedbin Tag?"
+        alert.informativeText = "This removes ‘\(name)’ from every Feedbin feed. The subscriptions stay in Feedbin."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Delete Tag")
+        alert.addButton(withTitle: "Cancel")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        let wasSelected = viewModel.selectedSidebarFilter == .feedbinTag(name)
+        Task { @MainActor in
+            do {
+                guard let credentials = await FeedbinCredentialStore.load() else { return }
+                let service = FeedbinService(credentials: credentials)
+                try await service.deleteTag(named: name)
+                _ = try await service.sync(context: modelContext)
+                if wasSelected {
+                    selectedSidebarItem = "All Feedbin Feeds"
+                    viewModel.selectedSidebarFilter = .feedbin
+                }
+                refreshFeeds()
+            } catch { PrecisLogger.error("Feedbin tag deletion failed: \(error.localizedDescription)") }
         }
     }
 
@@ -1805,29 +1912,7 @@ struct MainWindowLayout: View {
 
                 smartCategorySidebarSection
 
-                let feedbinFeeds = importedFeeds.filter { hasFeedbinCredentials && $0.feedbinSubscriptionID != nil }
-                if !feedbinFeeds.isEmpty {
-                    SidebarItem(title: "All Feedbin Feeds", icon: "tray.full", badge: sidebarCount(viewModel.unreadCount(forFeedIDs: Set(feedbinFeeds.map(\.id)))), active: viewModel.selectedSidebarFilter == .feedbin) {
-                        selectedSidebarItem = "All Feedbin Feeds"
-                        viewModel.selectedSidebarFilter = .feedbin
-                    }
-                    let tags = Array(Set(feedbinFeeds.flatMap { $0.feedbinTagNames ?? [] })).sorted()
-                    ForEach(tags, id: \.self) { tag in
-                        SidebarItem(title: tag, icon: "tag", badge: sidebarCount(viewModel.unreadCount(forFeedIDs: Set(feedbinFeeds.filter { $0.feedbinTagNames?.contains(tag) == true }.map(\.id)))), active: viewModel.selectedSidebarFilter == .feedbinTag(tag)) {
-                            selectedSidebarItem = tag
-                            viewModel.selectedSidebarFilter = .feedbinTag(tag)
-                        }
-                        ForEach(feedbinFeeds.filter { $0.feedbinTagNames?.contains(tag) == true }) { feed in
-                            sidebarFeedRow(feed, indent: 32, compact: true, group: feedbinFeeds)
-                                .id("feedbin-\(tag)-\(feed.id)")
-                        }
-                    }
-                    let untagged = feedbinFeeds.filter { ($0.feedbinTagNames ?? []).isEmpty }
-                    if !untagged.isEmpty {
-                        SidebarSection(title: "Untagged")
-                        ForEach(untagged) { feed in sidebarFeedRow(feed, group: untagged).id("feedbin-untagged-\(feed.id)") }
-                    }
-                }
+                feedbinSidebarSection
 
                 // Feeds not assigned to a category
                 if !uncategorizedFeeds.isEmpty {
@@ -2384,6 +2469,68 @@ private struct SidebarSection: View {
     }
 }
 
+private struct FeedbinTagSidebarRow: View {
+    let title: String
+    let badge: Int
+    let active: Bool
+    let action: () -> Void
+    let onRename: () -> Void
+    let onDelete: () -> Void
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        HStack(spacing: 2) {
+            Button(action: action) {
+                HStack(spacing: 10) {
+                    Group {
+                        if active {
+                            Capsule().fill(Color.accentColor)
+                        } else {
+                            Color.clear
+                        }
+                    }
+                    .frame(width: 4, height: 18)
+                    Image(systemName: "tag")
+                        .font(.body)
+                        .frame(width: 18)
+                        .foregroundStyle(active ? PrecisDesignSystem.flag : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.6))
+                    Text(title)
+                        .font(PrecisTypography.body)
+                        .foregroundStyle(active ? PrecisDesignSystem.foreground(for: colorScheme) : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.75))
+                    Spacer(minLength: 4)
+                    if badge > 0 {
+                        Text("(\(badge))")
+                            .font(PrecisTypography.caption)
+                            .foregroundStyle(PrecisDesignSystem.marginalia)
+                    }
+                }
+                .padding(.vertical, 6)
+                .padding(.horizontal, 4)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(active ? PrecisDesignSystem.surface(for: colorScheme).opacity(0.8) : Color.clear)
+                .cornerRadius(10)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            Menu {
+                Button("Rename Tag…", action: onRename)
+                Button("Delete Tag…", role: .destructive, action: onDelete)
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.body)
+                    .foregroundStyle(PrecisDesignSystem.marginalia)
+                    .frame(width: 26, height: 30)
+                    .contentShape(Rectangle())
+            }
+            .menuStyle(.borderlessButton)
+            .help("Manage Feedbin tag")
+        }
+        .padding(.trailing, 4)
+    }
+}
+
 private struct SidebarItem: View {
     let title: String
     var icon: String? = nil
@@ -2392,6 +2539,7 @@ private struct SidebarItem: View {
     /// rows' placement — instead of pushing it to the row's trailing edge.
     var badgeNextToTitle: Bool = false
     var tint: Color? = nil
+    var uppercase: Bool = false
     let active: Bool
     let action: () -> Void
 
@@ -2424,8 +2572,10 @@ private struct SidebarItem: View {
                 }
 
                 Text(title)
-                    .font(PrecisTypography.body)
+                    .font(uppercase ? PrecisTypography.caption : PrecisTypography.body)
                     .foregroundStyle(tint ?? (active ? PrecisDesignSystem.foreground(for: colorScheme) : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.75)))
+                    .textCase(uppercase ? .uppercase : .none)
+                    .tracking(uppercase ? 1.2 : 0)
 
                 if badgeNextToTitle, badge > 0 {
                     badgePill

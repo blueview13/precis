@@ -126,6 +126,8 @@ public final class ArticleListViewModel: ObservableObject {
             return "No starred articles yet"
         case .feedbin:
             return "No Feedbin articles yet — refresh your feeds to load them"
+        case .feedbinUntagged:
+            return "No untagged Feedbin articles yet"
         case .category:
             return "No articles in this category yet"
         case .smartCategory:
@@ -152,6 +154,12 @@ public final class ArticleListViewModel: ObservableObject {
             base = items.filter { $0.feedID == feedID }
         case .feedbin:
             let feedIDs = Set(allFeeds.filter { $0.feedbinSubscriptionID != nil }.map(\.id))
+            base = items.filter { item in
+                guard let feedID = item.feedID else { return false }
+                return feedIDs.contains(feedID)
+            }
+        case .feedbinUntagged:
+            let feedIDs = Set(allFeeds.filter { $0.feedbinSubscriptionID != nil && ($0.feedbinTagNames ?? []).isEmpty }.map(\.id))
             base = items.filter { item in
                 guard let feedID = item.feedID else { return false }
                 return feedIDs.contains(feedID)
@@ -309,6 +317,7 @@ public final class ArticleListViewModel: ObservableObject {
         case all, unread, starred
         case feed(UUID)
         case feedbin
+        case feedbinUntagged
         case folder(UUID)
         case category(UUID)
         case smartCategory(UUID)

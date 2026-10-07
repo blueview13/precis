@@ -138,6 +138,14 @@ public enum FeedbinCredentialStore {
         _ = try await request("taggings.json", method: "POST", body: ["feed_id": feedID, "name": name])
     }
 
+    public func renameTag(from oldName: String, to newName: String) async throws {
+        _ = try await request("tags.json", method: "POST", body: ["old_name": oldName, "new_name": newName])
+    }
+
+    public func deleteTag(named name: String) async throws {
+        _ = try await request("tags.json", method: "DELETE", body: ["name": name])
+    }
+
     public func removeSubscription(_ subscriptionID: Int) async throws {
         _ = try await request("subscriptions/\(subscriptionID).json", method: "DELETE")
     }
