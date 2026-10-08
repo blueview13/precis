@@ -131,6 +131,60 @@ final class NewspaperPDFServiceTests: XCTestCase {
         XCTAssertTrue(extractedText.contains("News content continues"))
     }
 
+    func testPDFRendererUsesRemainingColumnSpaceWithoutAnImage() throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let imageData = try onePixelPNG()
+        let stories = [
+            NewspaperPDFService.PreparedStory(
+                id: UUID(),
+                title: "Cover Story",
+                author: nil,
+                feedTitle: "The Test Gazette",
+                publishedDate: now,
+                html: "<p>Cover story body.</p>",
+                imageData: imageData
+            ),
+            NewspaperPDFService.PreparedStory(
+                id: UUID(),
+                title: "FILLER STORY MARKER",
+                author: "Test Reporter",
+                feedTitle: "The Test Gazette",
+                publishedDate: now,
+                html: "<p>\(String(repeating: "The column filler continues with enough detail. ", count: 24))</p>",
+                imageData: imageData
+            ),
+            NewspaperPDFService.PreparedStory(
+                id: UUID(),
+                title: "BOTTOM GAP MARKER",
+                author: "Test Reporter",
+                feedTitle: "The Test Gazette",
+                publishedDate: now,
+                html: "<p>Following story body.</p>",
+                imageData: imageData
+            )
+        ]
+
+        let data = try NewspaperPDFRenderer.render(stories: stories, scopeTitle: "Technology", issueDate: now)
+        let document = try XCTUnwrap(PDFDocument(data: data))
+        let pageIndex = try XCTUnwrap(
+            (1..<document.pageCount).first { index in
+                let text = document.page(at: index)?.string ?? ""
+                return text.contains("FILLER STORY") && text.contains("BOTTOM")
+            }
+        )
+        let page = try XCTUnwrap(document.page(at: pageIndex))
+        let text = try XCTUnwrap(page.string) as NSString
+        let fillerBounds = try XCTUnwrap(
+            page.selection(for: text.range(of: "FILLER STORY"))?.bounds(for: page)
+        )
+        let followingBounds = try XCTUnwrap(
+            page.selection(for: text.range(of: "BOTTOM"))?.bounds(for: page)
+        )
+
+        XCTAssertEqual(followingBounds.minX, fillerBounds.minX, accuracy: 1)
+        XCTAssertLessThan(followingBounds.midY, fillerBounds.midY - 100)
+    }
+
     func testCoverPageHasMastheadAndEditionIndexAndInteriorHeadlineDoesNotOverlapBody() throws {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         let imageData = try onePixelPNG()

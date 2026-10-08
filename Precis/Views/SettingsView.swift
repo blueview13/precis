@@ -76,7 +76,10 @@ private struct WindowWillCloseObserver: NSViewRepresentable {
                 object: window,
                 queue: .main
             ) { [weak self] _ in
-                self?.onWindowWillClose()
+                // queue: .main guarantees delivery on the main queue.
+                MainActor.assumeIsolated {
+                    self?.onWindowWillClose()
+                }
             }
         }
 
@@ -308,16 +311,20 @@ struct SettingsView: View {
                                 .font(PrecisTypography.body)
                                 .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
 
-                            Text("Default sort order")
-                                .font(PrecisTypography.body)
-                                .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
+                            HStack {
+                                Text("Default sort order")
+                                    .font(PrecisTypography.body)
+                                    .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
 
-                            Picker("", selection: $defaultSortOrder) {
-                                ForEach(sortOptions, id: \.self) { option in
-                                    Text(option.capitalized).tag(option)
+                                Picker("", selection: $defaultSortOrder) {
+                                    ForEach(sortOptions, id: \.self) { option in
+                                        Text(option.capitalized).tag(option)
+                                    }
                                 }
+                                .pickerStyle(.menu)
+                                .labelsHidden()
+                                .fixedSize()
                             }
-                            .pickerStyle(.segmented)
                         }
                     }
 

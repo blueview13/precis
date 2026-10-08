@@ -166,7 +166,7 @@ public enum FeedbinCredentialStore {
         let repository = FeedRepository()
         var added = 0
         for subscription in subscriptions {
-            guard let url = URL(string: subscription.feed_url) else { continue }
+            guard URL(string: subscription.feed_url) != nil else { continue }
             let matching = try repository.fetchAll(context: context).first { $0.feedbinSubscriptionID == subscription.id }
                 ?? repository.existingFeed(forURL: subscription.feed_url, context: context)
             let feed: FeedRecord

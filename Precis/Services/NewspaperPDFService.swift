@@ -664,13 +664,15 @@ enum NewspaperPDFRenderer {
             }
             let titleHeight = max(20, min(maximumTitleHeight, measuredHeight(of: title, width: columnWidth) + 4))
             let titleFramesetter = CTFramesetterCreateWithAttributedString(title)
-            let headingHeight = titleHeight + (byline.isEmpty ? 0 : 16) + imageHeight + 14
+            let headingHeightWithoutImage = titleHeight + (byline.isEmpty ? 0 : 16) + 14
 
             var bodyOffset = 0
             var needsHeading = true
             while bodyOffset < body.length {
                 let rect = columnRect()
                 if needsHeading {
+                    let includeImage = imageHeight > 0 && rect.height >= headingHeightWithoutImage + imageHeight + 40
+                    let headingHeight = headingHeightWithoutImage + (includeImage ? imageHeight : 0)
                     guard rect.height >= headingHeight + 40 else {
                         advanceColumn()
                         continue
@@ -686,7 +688,7 @@ enum NewspaperPDFRenderer {
                                  context: context)
                         cursorY -= 14
                     }
-                    if let image, imageHeight > 0 {
+                    if let image, includeImage {
                         let imageRect = CGRect(x: x, y: cursorY - imageHeight, width: columnWidth, height: imageHeight)
                         context.draw(image, in: imageRect)
                         cursorY -= imageHeight + 7
