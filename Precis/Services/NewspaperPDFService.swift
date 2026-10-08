@@ -330,6 +330,7 @@ enum NewspaperPDFRenderer {
     private static let headerBottom: CGFloat = 53
     private static let coverContentTop: CGFloat = 603
     private static let coverBodyBottom: CGFloat = 59
+    private static let mastheadSize: CGFloat = 59
 
     static func render(stories: [NewspaperPDFService.PreparedStory], scopeTitle: String, issueDate: Date) throws -> Data {
         let output = NSMutableData()
@@ -418,8 +419,7 @@ enum NewspaperPDFRenderer {
             drawLine(issueNumber, fontName: bodyFontName, size: 7.5, bold: true, alignment: .right,
                      in: CGRect(x: pageSize.width - pageMargin - 180, y: topRuleY - 18, width: 180, height: 12), context: context)
 
-            drawLine("PRECIS", fontName: headingFontName, size: 59, bold: true, alignment: .center,
-                     in: CGRect(x: pageMargin, y: 667, width: fullWidth, height: 73), context: context)
+            drawMasthead(in: CGRect(x: pageMargin, y: 667, width: fullWidth, height: 73), context: context)
             context.setLineWidth(1.35)
             context.move(to: CGPoint(x: pageMargin, y: 660))
             context.addLine(to: CGPoint(x: pageSize.width - pageMargin, y: 660))
@@ -878,6 +878,72 @@ enum NewspaperPDFRenderer {
         let path = CGPath(rect: rect, transform: nil)
         let frame = CTFramesetterCreateFrame(framesetter, range, path, nil)
         CTFrameDraw(frame, context)
+    }
+
+    /// The masthead icon, stored as pure black ink on a transparent background.
+    static let mastheadIcon: CGImage? = {
+        guard let image = NSImage(named: NSImage.Name("NewspaperMastheadIcon")) else { return nil }
+        var proposed = CGRect(origin: .zero, size: image.size)
+        return image.cgImage(forProposedRect: &proposed, context: nil, hints: nil)
+    }()
+
+    struct MastheadLockup {
+        let iconRect: CGRect?
+        let wordOrigin: CGPoint
+    }
+
+    /// Centers the icon and the masthead word as one group, with the icon immediately to the left of
+    /// the word. Falls back to centering the word on its own when no icon is available.
+    static func mastheadLockup(
+        in rect: CGRect,
+        wordWidth: CGFloat,
+        wordSize: CGFloat,
+        ascent: CGFloat,
+        descent: CGFloat,
+        iconAspect: CGFloat?
+    ) -> MastheadLockup {
+        let baseline = rect.minY + max(0, (rect.height - wordSize) / 2)
+        guard let iconAspect, iconAspect > 0 else {
+            return MastheadLockup(iconRect: nil, wordOrigin: CGPoint(x: rect.midX - wordWidth / 2, y: baseline))
+        }
+        let iconHeight = min(rect.height - 6, wordSize * 0.88)
+        let iconWidth = iconHeight * iconAspect
+        let gap = iconHeight * 0.26
+        let groupMinX = rect.midX - (iconWidth + gap + wordWidth) / 2
+        return MastheadLockup(
+            iconRect: CGRect(x: groupMinX,
+                             y: baseline + (ascent - descent) / 2 - iconHeight / 2,
+                             width: iconWidth,
+                             height: iconHeight),
+            wordOrigin: CGPoint(x: groupMinX + iconWidth + gap, y: baseline)
+        )
+    }
+
+    private static func drawMasthead(in rect: CGRect, context: CGContext) {
+        let line = CTLineCreateWithAttributedString(
+            attributed("PRECIS", fontName: headingFontName, size: mastheadSize, bold: true,
+                       alignment: .left, paragraphSpacing: 0)
+        )
+        var ascent: CGFloat = 0
+        var descent: CGFloat = 0
+        let wordWidth = CGFloat(CTLineGetTypographicBounds(line, &ascent, &descent, nil))
+        let icon = mastheadIcon
+        let lockup = mastheadLockup(
+            in: rect,
+            wordWidth: wordWidth,
+            wordSize: mastheadSize,
+            ascent: ascent,
+            descent: descent,
+            iconAspect: icon.map { CGFloat($0.width) / CGFloat($0.height) }
+        )
+        if let icon, let iconRect = lockup.iconRect {
+            context.saveGState()
+            context.interpolationQuality = .high
+            context.draw(icon, in: iconRect)
+            context.restoreGState()
+        }
+        context.textPosition = lockup.wordOrigin
+        CTLineDraw(line, context)
     }
 
     static func halftoneImage(_ data: Data) -> CGImage? {

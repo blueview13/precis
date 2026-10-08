@@ -280,6 +280,84 @@ final class NewspaperPDFServiceTests: XCTestCase {
         XCTAssertEqual(values, Set([UInt8(0), UInt8(255)]))
     }
 
+    func testMastheadIconIsBlackAndWhite() throws {
+        let icon = try XCTUnwrap(NewspaperPDFRenderer.mastheadIcon, "The masthead icon must be bundled with the app.")
+        let width = icon.width
+        let height = icon.height
+        let context = try XCTUnwrap(CGContext(
+            data: nil,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
+        ))
+        context.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: width, height: height))
+        context.draw(icon, in: CGRect(x: 0, y: 0, width: width, height: height))
+        let pixels = try XCTUnwrap(context.data).assumingMemoryBound(to: UInt8.self)
+
+        var containsChroma = false
+        var darkest = 255
+        var lightest = 0
+        for row in 0..<height where !containsChroma {
+            for column in 0..<width {
+                let index = row * context.bytesPerRow + column * 4
+                let red = Int(pixels[index])
+                let green = Int(pixels[index + 1])
+                let blue = Int(pixels[index + 2])
+                if red != green || green != blue {
+                    containsChroma = true
+                    break
+                }
+                darkest = min(darkest, red)
+                lightest = max(lightest, red)
+            }
+        }
+        XCTAssertFalse(containsChroma, "The masthead icon must be black and white.")
+        XCTAssertEqual(darkest, 0, "The masthead icon must contain solid black ink.")
+        XCTAssertEqual(lightest, 255, "The masthead icon must leave the paper white.")
+    }
+
+    func testMastheadLockupKeepsIconAndWordCenteredAsOneGroup() throws {
+        let rect = CGRect(x: 34, y: 667, width: 544, height: 73)
+        let wordWidth: CGFloat = 220
+        let lockup = NewspaperPDFRenderer.mastheadLockup(
+            in: rect,
+            wordWidth: wordWidth,
+            wordSize: 59,
+            ascent: 52,
+            descent: 16,
+            iconAspect: 550.0 / 600.0
+        )
+        let iconRect = try XCTUnwrap(lockup.iconRect)
+        let wordTrailing = lockup.wordOrigin.x + wordWidth
+        XCTAssertEqual(iconRect.minX - rect.minX, rect.maxX - wordTrailing, accuracy: 0.5,
+                       "The icon and the masthead word must stay centered as one group.")
+        XCTAssertLessThanOrEqual(iconRect.maxX, lockup.wordOrigin.x,
+                                 "The icon must sit immediately to the left of the word.")
+        XCTAssertEqual(lockup.wordOrigin.y, rect.minY + (rect.height - 59) / 2, accuracy: 0.001,
+                       "The masthead word baseline must be unchanged.")
+        XCTAssertEqual(iconRect.midY, lockup.wordOrigin.y + (52 - 16) / 2, accuracy: 0.001,
+                       "The icon must be vertically centered on the word.")
+    }
+
+    func testMastheadLockupCentersWordAloneWhenIconIsUnavailable() {
+        let rect = CGRect(x: 34, y: 667, width: 544, height: 73)
+        let lockup = NewspaperPDFRenderer.mastheadLockup(
+            in: rect,
+            wordWidth: 220,
+            wordSize: 59,
+            ascent: 52,
+            descent: 16,
+            iconAspect: nil
+        )
+        XCTAssertNil(lockup.iconRect)
+        XCTAssertEqual(lockup.wordOrigin.x, rect.midX - 110, accuracy: 0.001)
+        XCTAssertEqual(lockup.wordOrigin.y, 674, accuracy: 0.001)
+    }
+
     private func onePixelPNG() throws -> Data {
         let output = NSMutableData()
         let colorSpace = CGColorSpaceCreateDeviceRGB()
