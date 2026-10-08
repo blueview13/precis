@@ -26,7 +26,10 @@ struct ArticleListView: View {
     @AppStorage("showThumbnails") private var showThumbnails: Bool = true
     @FocusState private var isSearchFieldFocused: Bool
     @State private var isCreatingNewspaper = false
-    @State private var newspaperProgress = (completed: 0, total: 0)
+    /// Non-optional so progress updates just re-render the open modal:
+    /// presentation is driven by `isShowingNewspaperModal` alone.
+    @State private var newspaperModalContent = NewspaperModalContent.building(.gathering(completed: 0, total: 0))
+    @State private var isShowingNewspaperModal = false
     @State private var newspaperAlertMessage = ""
     @State private var isShowingNewspaperAlert = false
     // Backup invalidation: the view model also observes this key directly and
@@ -89,12 +92,6 @@ struct ArticleListView: View {
                     .disabled(isCreatingNewspaper)
                     .accessibilityLabel("Create 24-hour newspaper PDF")
                     .help("Create a newspaper PDF for \(headerTitle), covering the last 24 hours")
-                    if isCreatingNewspaper {
-                        Text("\(newspaperProgress.completed)/\(newspaperProgress.total)")
-                            .font(.caption.monospacedDigit())
-                            .foregroundStyle(PrecisDesignSystem.marginalia)
-                            .accessibilityLabel("Preparing article \(newspaperProgress.completed) of \(newspaperProgress.total)")
-                    }
                 }
 
                 // Bulk read-state actions on the visible list. Kept INBOARD of
@@ -294,10 +291,18 @@ struct ArticleListView: View {
             }
             return .handled
         }
-        .alert("Newspaper PDF", isPresented: $isShowingNewspaperAlert) {
+        .alert("Precis Newspaper PDF", isPresented: $isShowingNewspaperAlert) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(newspaperAlertMessage)
+        }
+        .sheet(isPresented: $isShowingNewspaperModal) {
+            NewspaperProgressModal(content: newspaperModalContent) {
+                isShowingNewspaperModal = false
+            }
+            // Blocks Esc/click-away for the duration of the build; once the
+            // result is in, the sheet dismisses normally.
+            .interactiveDismissDisabled(isCreatingNewspaper)
         }
     }
 
@@ -321,7 +326,7 @@ struct ArticleListView: View {
         }
 
         let panel = NSSavePanel()
-        panel.title = "Create Newspaper PDF"
+        panel.title = "Create Precis Newspaper PDF"
         panel.nameFieldStringValue = newspaperFilename()
         panel.allowedContentTypes = [.pdf]
         panel.canCreateDirectories = true
@@ -336,7 +341,8 @@ struct ArticleListView: View {
     @MainActor
     private func exportNewspaper(to url: URL, scope: NewspaperPDFScope) async {
         isCreatingNewspaper = true
-        newspaperProgress = (0, 0)
+        newspaperModalContent = .building(.gathering(completed: 0, total: 0))
+        isShowingNewspaperModal = true
         defer { isCreatingNewspaper = false }
 
         do {
@@ -344,24 +350,27 @@ struct ArticleListView: View {
                 context: modelContext,
                 scope: scope,
                 scopeTitle: headerTitle,
-                onProgress: { completed, total in
-                    newspaperProgress = (completed, total)
+                onProgress: { progress in
+                    newspaperModalContent = .building(progress)
                 }
             )
             try edition.pdfData.write(to: url, options: .atomic)
-            let skippedCount = edition.excludedForFullText + edition.excludedForImage
-            newspaperAlertMessage = skippedCount == 0
-                ? "Created a PDF with \(edition.includedCount) articles."
-                : """
-                  Created a PDF with \(edition.includedCount) articles.
-                  Skipped \(edition.excludedForFullText) because full text was unavailable and \(edition.excludedForImage) because a usable image was unavailable.
-                  """
-            isShowingNewspaperAlert = true
+            newspaperModalContent = .result(message: Self.newspaperResultMessage(for: edition))
             NSWorkspace.shared.open(url)
         } catch {
-            newspaperAlertMessage = error.localizedDescription
-            isShowingNewspaperAlert = true
+            newspaperModalContent = .result(message: error.localizedDescription)
         }
+    }
+
+    private static func newspaperResultMessage(for edition: NewspaperEdition) -> String {
+        let skippedCount = edition.excludedForFullText + edition.excludedForImage
+        guard skippedCount > 0 else {
+            return "Created a PDF with \(edition.includedCount) articles."
+        }
+        return """
+               Created a PDF with \(edition.includedCount) articles.
+               Skipped \(edition.excludedForFullText) because full text was unavailable and \(edition.excludedForImage) because a usable image was unavailable.
+               """
     }
 
     private func newspaperFilename() -> String {
@@ -692,4 +701,78 @@ private enum ArticleThumbnailLoader {
 
 #Preview {
     ArticleListView(viewModel: ArticleListViewModel())
+}
+
+/// What the newspaper modal is currently showing. Progress and result swap
+/// inside one open sheet, so the completion summary never has to appear as a
+/// second dialog over the first.
+private enum NewspaperModalContent {
+    case building(NewspaperBuildProgress)
+    case result(message: String)
+}
+
+/// Modal shown while a newspaper PDF is built, replaced in place by the
+/// result summary — or the error — once the edition is written.
+private struct NewspaperProgressModal: View {
+    let content: NewspaperModalContent
+    var onDismiss: (() -> Void)? = nil
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: PrecisSpacing.md) {
+            HStack(spacing: PrecisSpacing.xs) {
+                Image(systemName: "newspaper")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(PrecisDesignSystem.marginalia)
+
+                Text("Precis Newspaper PDF")
+                    .font(PrecisTypography.headline)
+                    .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
+            }
+
+            switch content {
+            case .building(let progress):
+                buildingContent(progress)
+            case .result(let message):
+                resultContent(message)
+            }
+        }
+        .padding(PrecisSpacing.lg)
+        .frame(width: 360, alignment: .leading)
+    }
+
+    private func buildingContent(_ progress: NewspaperBuildProgress) -> some View {
+        VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
+            Text(progress.detailText)
+                .font(PrecisTypography.metadata)
+                .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.8))
+
+            ProgressView(value: progress.fraction)
+                .progressViewStyle(.linear)
+                .tint(PrecisDesignSystem.marginalia)
+                .animation(.easeInOut(duration: 0.2), value: progress.fraction)
+                .accessibilityLabel("Newspaper build progress")
+                .accessibilityValue("\(Int((progress.fraction * 100).rounded())) percent")
+
+            Text("This can take a moment — full text and images are fetched for each article.")
+                .font(PrecisTypography.caption)
+                .foregroundStyle(PrecisDesignSystem.marginalia)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func resultContent(_ message: String) -> some View {
+        VStack(alignment: .leading, spacing: PrecisSpacing.md) {
+            Text(message)
+                .font(PrecisTypography.body)
+                .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack {
+                Spacer()
+                Button("OK") { onDismiss?() }
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+    }
 }

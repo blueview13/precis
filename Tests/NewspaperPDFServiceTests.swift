@@ -79,6 +79,48 @@ final class NewspaperPDFServiceTests: XCTestCase {
         XCTAssertEqual(selected.count, 2)
     }
 
+    func testBuildProgressSplitsTheBarBetweenGatheringAndTypesetting() {
+        XCTAssertEqual(NewspaperBuildProgress.gathering(completed: 0, total: 0).fraction, 0)
+        XCTAssertEqual(NewspaperBuildProgress.gathering(completed: 0, total: 4).fraction, 0)
+        XCTAssertEqual(NewspaperBuildProgress.gathering(completed: 2, total: 4).fraction, 0.425, accuracy: 0.0001)
+        // Gathering tops out below 1 so the bar can't read as finished while
+        // the pages are still being drawn.
+        let gathered = NewspaperBuildProgress.gathering(completed: 4, total: 4)
+        XCTAssertLessThan(gathered.fraction, 1)
+
+        let startOfTypesetting = NewspaperBuildProgress.typesetting(completed: 0, total: 4)
+        XCTAssertEqual(startOfTypesetting.stage, .typesetting)
+        XCTAssertEqual(startOfTypesetting.fraction, gathered.fraction, accuracy: 0.0001)
+
+        // …and typesetting carries the bar the rest of the way to 1.
+        XCTAssertEqual(NewspaperBuildProgress.typesetting(completed: 4, total: 4).fraction, 1, accuracy: 0.0001)
+        XCTAssertEqual(NewspaperBuildProgress.typesetting(completed: 2, total: 4).fraction, 0.925, accuracy: 0.0001)
+    }
+
+    func testBuildProgressNeverMovesBackwards() {
+        let gathering = (0...4).map { NewspaperBuildProgress.gathering(completed: $0, total: 4).fraction }
+        let typesetting = (0...4).map { NewspaperBuildProgress.typesetting(completed: $0, total: 4).fraction }
+        let fractions = gathering + typesetting
+
+        XCTAssertEqual(fractions, fractions.sorted())
+        XCTAssertEqual(fractions.last, 1)
+    }
+
+    func testBuildProgressDescribesEachStage() {
+        XCTAssertEqual(
+            NewspaperBuildProgress.gathering(completed: 3, total: 7).detailText,
+            "Gathering articles — 3 of 7"
+        )
+        XCTAssertEqual(
+            NewspaperBuildProgress.gathering(completed: 0, total: 0).detailText,
+            "Gathering articles…"
+        )
+        XCTAssertEqual(
+            NewspaperBuildProgress.typesetting(completed: 1, total: 7).detailText,
+            "Typesetting the edition…"
+        )
+    }
+
     func testFirstImageURLResolvesRelativePathAndDoesNotSkipArticleOrder() throws {
         let baseURL = try XCTUnwrap(URL(string: "https://example.com/news/story"))
         let html = """
@@ -91,8 +133,38 @@ final class NewspaperPDFServiceTests: XCTestCase {
         XCTAssertEqual(imageURL?.absoluteString, "https://example.com/images/lead.jpg?size=large&format=webp")
     }
 
-    func testPDFRendererProducesReadableEmptyEditionPDF() throws {
-        let data = try NewspaperPDFRenderer.render(
+    /// The bar's driver: one report per story plus bookend reports, so the bar
+    /// advances through the draw pass and lands exactly on 100%.
+    @MainActor
+    func testRendererReportsProgressForEveryStory() async throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let imageData = try onePixelPNG()
+        let stories = (0..<3).map { index in
+            NewspaperPDFService.PreparedStory(
+                id: UUID(),
+                title: "Story \(index)",
+                author: nil,
+                feedTitle: "The Test Gazette",
+                publishedDate: now,
+                html: "<p>Body text for story \(index).</p>",
+                imageData: imageData
+            )
+        }
+        var reports: [(completed: Int, total: Int)] = []
+
+        _ = try await NewspaperPDFRenderer.render(
+            stories: stories,
+            scopeTitle: "Technology",
+            issueDate: now,
+            onProgress: { completed, total in reports.append((completed, total)) }
+        )
+
+        XCTAssertEqual(reports.map(\.total), [3, 3, 3, 3])
+        XCTAssertEqual(reports.map(\.completed), [0, 1, 2, 3])
+    }
+
+    func testPDFRendererProducesReadableEmptyEditionPDF() async throws {
+        let data = try await NewspaperPDFRenderer.render(
             stories: [],
             scopeTitle: "Technology",
             issueDate: Date(timeIntervalSince1970: 1_800_000_000)
@@ -102,7 +174,7 @@ final class NewspaperPDFServiceTests: XCTestCase {
         XCTAssertEqual(PDFDocument(data: data)?.pageCount, 1)
     }
 
-    func testPDFRendererIncludesFullTextAndPaginatesLongStories() throws {
+    func testPDFRendererIncludesFullTextAndPaginatesLongStories() async throws {
         let text = "News content continues across newspaper columns. "
         let html = "<p>Full text verification marker.</p><p>\(String(repeating: text, count: 500))</p>"
         let story = NewspaperPDFService.PreparedStory(
@@ -115,7 +187,7 @@ final class NewspaperPDFServiceTests: XCTestCase {
             imageData: try onePixelPNG()
         )
 
-        let data = try NewspaperPDFRenderer.render(
+        let data = try await NewspaperPDFRenderer.render(
             stories: [story],
             scopeTitle: "Technology",
             issueDate: Date(timeIntervalSince1970: 1_800_000_000)
@@ -131,7 +203,7 @@ final class NewspaperPDFServiceTests: XCTestCase {
         XCTAssertTrue(extractedText.contains("News content continues"))
     }
 
-    func testPDFRendererUsesRemainingColumnSpaceWithoutAnImage() throws {
+    func testPDFRendererUsesRemainingColumnSpaceWithoutAnImage() async throws {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         let imageData = try onePixelPNG()
         let stories = [
@@ -164,7 +236,7 @@ final class NewspaperPDFServiceTests: XCTestCase {
             )
         ]
 
-        let data = try NewspaperPDFRenderer.render(stories: stories, scopeTitle: "Technology", issueDate: now)
+        let data = try await NewspaperPDFRenderer.render(stories: stories, scopeTitle: "Technology", issueDate: now)
         let document = try XCTUnwrap(PDFDocument(data: data))
         let pageIndex = try XCTUnwrap(
             (1..<document.pageCount).first { index in
@@ -185,7 +257,7 @@ final class NewspaperPDFServiceTests: XCTestCase {
         XCTAssertLessThan(followingBounds.midY, fillerBounds.midY - 100)
     }
 
-    func testCoverPageHasMastheadAndEditionIndexAndInteriorHeadlineDoesNotOverlapBody() throws {
+    func testCoverPageHasMastheadAndEditionIndexAndInteriorHeadlineDoesNotOverlapBody() async throws {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         let imageData = try onePixelPNG()
         let coverStory = NewspaperPDFService.PreparedStory(
@@ -215,7 +287,7 @@ final class NewspaperPDFServiceTests: XCTestCase {
             html: "<p>Following story body marker. \(String(repeating: "Following story details. ", count: 10))</p>",
             imageData: imageData
         )
-        let data = try NewspaperPDFRenderer.render(
+        let data = try await NewspaperPDFRenderer.render(
             stories: [coverStory, interiorStory, followingStory],
             scopeTitle: "Technology",
             issueDate: now

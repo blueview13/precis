@@ -48,6 +48,54 @@ struct NewspaperEdition {
     let excludedForImage: Int
 }
 
+/// Coarse progress for a newspaper build, so a single progress bar can span
+/// the whole build. Fetching an article's full text and image is by far the
+/// slowest work, so gathering owns most of the bar; typesetting takes the
+/// rest, which keeps the bar from reading as finished while pages are still
+/// being drawn.
+struct NewspaperBuildProgress: Sendable, Equatable {
+    enum Stage: Sendable, Equatable {
+        case gatheringArticles
+        case typesetting
+    }
+
+    let stage: Stage
+    let completed: Int
+    let total: Int
+    let fraction: Double
+
+    /// Share of the bar spent gathering full text and images.
+    private static let gatheringShare = 0.85
+
+    static func gathering(completed: Int, total: Int) -> NewspaperBuildProgress {
+        NewspaperBuildProgress(
+            stage: .gatheringArticles,
+            completed: completed,
+            total: total,
+            fraction: total > 0 ? gatheringShare * Double(completed) / Double(total) : 0
+        )
+    }
+
+    static func typesetting(completed: Int, total: Int) -> NewspaperBuildProgress {
+        let laidOut = total > 0 ? Double(completed) / Double(total) : 0
+        return NewspaperBuildProgress(
+            stage: .typesetting,
+            completed: completed,
+            total: total,
+            fraction: gatheringShare + (1 - gatheringShare) * laidOut
+        )
+    }
+
+    var detailText: String {
+        switch stage {
+        case .gatheringArticles:
+            return total > 0 ? "Gathering articles — \(completed) of \(total)" : "Gathering articles…"
+        case .typesetting:
+            return "Typesetting the edition…"
+        }
+    }
+}
+
 @MainActor
 final class NewspaperPDFService {
     enum EditionError: LocalizedError {
@@ -103,7 +151,7 @@ final class NewspaperPDFService {
         scope: NewspaperPDFScope,
         scopeTitle: String,
         now: Date = Date(),
-        onProgress: (@MainActor (Int, Int) -> Void)? = nil
+        onProgress: (@MainActor (NewspaperBuildProgress) -> Void)? = nil
     ) async throws -> NewspaperEdition {
         let records = try ArticleRepository().fetchAll(context: context)
         let sources = records.compactMap { record -> Source? in
@@ -165,10 +213,15 @@ final class NewspaperPDFService {
             throw EditionError.noEligibleArticles(fullText: fullTextExclusions, image: imageExclusions)
         }
 
-        let pdfData = try NewspaperPDFRenderer.render(
+        // The draw pass reports its own progress and yields between stories so
+        // the modal's bar keeps advancing while pages are laid out.
+        let pdfData = try await NewspaperPDFRenderer.render(
             stories: included,
             scopeTitle: scopeTitle,
-            issueDate: now
+            issueDate: now,
+            onProgress: { completed, total in
+                onProgress?(.typesetting(completed: completed, total: total))
+            }
         )
         return NewspaperEdition(
             pdfData: pdfData,
@@ -180,7 +233,7 @@ final class NewspaperPDFService {
 
     private func prepare(
         _ sources: [Source],
-        onProgress: (@MainActor (Int, Int) -> Void)?
+        onProgress: (@MainActor (NewspaperBuildProgress) -> Void)?
     ) async -> [PreparationResult] {
         await withTaskGroup(of: PreparationResult.self) { group in
             var iterator = sources.makeIterator()
@@ -195,7 +248,7 @@ final class NewspaperPDFService {
             results.reserveCapacity(sources.count)
             while let result = await group.next() {
                 results.append(result)
-                onProgress?(results.count, sources.count)
+                onProgress?(.gathering(completed: results.count, total: sources.count))
                 if let source = iterator.next() {
                     group.addTask { await Self.prepare(source) }
                 }
@@ -332,7 +385,17 @@ enum NewspaperPDFRenderer {
     private static let coverBodyBottom: CGFloat = 59
     private static let mastheadSize: CGFloat = 59
 
-    static func render(stories: [NewspaperPDFService.PreparedStory], scopeTitle: String, issueDate: Date) throws -> Data {
+    /// Draws the edition. Runs on the main actor because the HTML import used
+    /// to build each story's body text is main-thread only, and pauses between
+    /// stories so the caller's progress bar can repaint while pages are laid
+    /// out instead of freezing until the whole pass returns.
+    @MainActor
+    static func render(
+        stories: [NewspaperPDFService.PreparedStory],
+        scopeTitle: String,
+        issueDate: Date,
+        onProgress: (@MainActor (Int, Int) -> Void)? = nil
+    ) async throws -> Data {
         let output = NSMutableData()
         var mediaBox = CGRect(origin: .zero, size: pageSize)
         guard let consumer = CGDataConsumer(data: output as CFMutableData),
@@ -345,6 +408,15 @@ enum NewspaperPDFRenderer {
                 ] as CFDictionary
               ) else {
             throw NewspaperPDFService.EditionError.saveFailed
+        }
+
+        /// Reports how many stories have been laid out, then idles the main run
+        /// loop for a beat so the update is committed to a frame before the
+        /// next story takes the thread back.
+        @MainActor
+        func reportProgress(_ completed: Int) async {
+            onProgress?(completed, stories.count)
+            try? await Task.sleep(for: .milliseconds(1))
         }
 
         let columnsWidth = pageSize.width - pageMargin * 2
@@ -609,6 +681,8 @@ enum NewspaperPDFRenderer {
             }
         }
 
+        await reportProgress(0)
+
         startCoverPage()
         printContentsIndex()
         let remainingStories: ArraySlice<NewspaperPDFService.PreparedStory>
@@ -628,6 +702,9 @@ enum NewspaperPDFRenderer {
         }
 
         for (storyIndex, story) in remainingStories.enumerated() {
+            // Counting the cover lead as the first story: the index here is the
+            // number of stories already laid out.
+            await reportProgress(storyIndex + 1)
             let bodyText = bodyText(from: story.html)
             guard !bodyText.isEmpty else { continue }
             let body = attributed(
@@ -730,6 +807,10 @@ enum NewspaperPDFRenderer {
                 }
             }
         }
+
+        // Closes out the bar — a story skipped for empty body text never
+        // reports from inside the loop.
+        await reportProgress(stories.count)
 
         context.endPDFPage()
         context.closePDF()
