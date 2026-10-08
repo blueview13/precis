@@ -60,7 +60,7 @@ public struct ArticleListItem: Identifiable, Hashable, Sendable {
         contentHTML: String = ""
     ) {
         self.id = id
-        self.title = title
+        self.title = ArticleHTMLSanitizer.decodingHTMLEntities(title)
         self.titleHash = DeduplicationPipeline.titleHash(title)
         self.cleanURL = link.flatMap(URL.init(string:)).map(DeduplicationPipeline.canonicalURL)
         self.feedTitle = feedTitle
@@ -77,7 +77,7 @@ public struct ArticleListItem: Identifiable, Hashable, Sendable {
 
     public init(record: ArticleRecord) {
         self.id = record.id
-        self.title = record.title
+        self.title = ArticleHTMLSanitizer.decodingHTMLEntities(record.title)
         self.titleHash = record.titleHash ?? DeduplicationPipeline.titleHash(record.title)
         self.cleanURL = record.cleanURL ?? record.link.flatMap(URL.init(string:)).map(DeduplicationPipeline.canonicalURL)
         self.feedTitle = record.feed?.title ?? "Inbox"

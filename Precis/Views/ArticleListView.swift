@@ -201,6 +201,7 @@ struct ArticleListView: View {
             // column — otherwise the whole column measures wider than its
             // frame and gets centred and clipped.
             .padding(.horizontal, PrecisSpacing.sm)
+            .padding(.leading, isColumnLayout ? PrecisSpacing.sm : 0)
             .padding(.vertical, PrecisSpacing.md)
 
             ScrollViewReader { proxy in
@@ -302,6 +303,23 @@ struct ArticleListView: View {
 
     private func chooseNewspaperDestination() {
         guard let newspaperScope else { return }
+        do {
+            let records = try ArticleRepository().fetchAll(context: modelContext)
+            let references = records.compactMap { record -> NewspaperArticleReference? in
+                guard let feed = record.feed, let publishedDate = record.publishedDate else { return nil }
+                return NewspaperArticleReference(id: record.id, feedID: feed.id, publishedDate: publishedDate)
+            }
+            guard !NewspaperArticleSelection.recent(references, scope: newspaperScope, now: .now).isEmpty else {
+                newspaperAlertMessage = NewspaperPDFService.EditionError.noRecentArticles.localizedDescription
+                isShowingNewspaperAlert = true
+                return
+            }
+        } catch {
+            newspaperAlertMessage = error.localizedDescription
+            isShowingNewspaperAlert = true
+            return
+        }
+
         let panel = NSSavePanel()
         panel.title = "Create Newspaper PDF"
         panel.nameFieldStringValue = newspaperFilename()
