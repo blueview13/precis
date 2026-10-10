@@ -94,9 +94,9 @@ private struct WindowWillCloseObserver: NSViewRepresentable {
 struct SettingsView: View {
     private enum SettingsTab: String, CaseIterable, Identifiable {
         case appearance = "Appearance"
-        case sidePanel = "Side Panel"
         case reading = "Reading"
         case feeds = "Feeds"
+        case sidePanel = "Side Panel"
         case accounts = "Accounts"
 
         var id: String { rawValue }
@@ -114,6 +114,7 @@ struct SettingsView: View {
     @AppStorage(PrecisTheme.storageKey) private var selectedThemeRawValue = PrecisTheme.standard.rawValue
     @AppStorage("readingFontSize") private var readingFontSize: Double = 15
     @AppStorage("readingTypeface") private var readingTypefaceRawValue = ReadingTypeface.system.rawValue
+    @AppStorage(ReadingBrowserService.preferenceKey) private var readingBrowserBundleIdentifier = ReadingBrowserService.systemDefaultIdentifier
     @AppStorage("readingContentWidth") private var readingContentWidth: Double = 750
     @AppStorage("showSidebarUnreadPills") private var showSidebarUnreadPills: Bool = true
     // Default On, matching the launch behaviour it gates — users opt out.
@@ -146,6 +147,11 @@ struct SettingsView: View {
     @State private var feedbinBusy = false
     @State private var hasFeedbinCredentials = false
     @AppStorage("feedbinUsername") private var savedFeedbinUsername = ""
+    @State private var oldReaderUsername = ""
+    @State private var oldReaderPassword = ""
+    @State private var oldReaderStatus = ""
+    @State private var oldReaderBusy = false
+    @State private var hasOldReaderCredentials = false
     @State private var desktopPanelFeeds: [FeedRecord] = []
     @State private var desktopPanelFolders: [FolderRecord] = []
     @State private var isDesktopPanelFoldersExpanded = false
@@ -266,6 +272,17 @@ struct SettingsView: View {
 
                     settingsSection(title: "Reading") {
                         VStack(alignment: .leading, spacing: PrecisSpacing.md) {
+                            Picker("Web browser", selection: $readingBrowserBundleIdentifier) {
+                                Text("System Default (\(ReadingBrowserService.systemDefaultBrowser?.name ?? "Default Browser"))")
+                                    .tag(ReadingBrowserService.systemDefaultIdentifier)
+                                ForEach(ReadingBrowserService.installedBrowsers.filter {
+                                    $0.bundleIdentifier != ReadingBrowserService.systemDefaultBrowser?.bundleIdentifier
+                                }) { browser in
+                                    Text(browser.name).tag(browser.bundleIdentifier)
+                                }
+                            }
+                            .pickerStyle(.menu)
+
                             Picker("Article font", selection: $readingTypefaceRawValue) {
                                 ForEach(ReadingTypeface.allCases) { typeface in
                                     Text(typeface.name)
@@ -358,13 +375,16 @@ struct SettingsView: View {
                     }
 
                     settingsSection(title: "Accounts") {
-                        VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
+                        VStack(alignment: .leading, spacing: PrecisSpacing.lg) {
+                            VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
                             HStack(alignment: .top, spacing: PrecisSpacing.xs) {
-                                Image(systemName: "dot.radiowaves.left.and.right")
-                                    .font(.system(size: 16, weight: .medium))
+                                Image("FeedbinIcon")
+                                    .renderingMode(.template)
+                                    .resizable()
+                                    .scaledToFit()
                                     .foregroundStyle(PrecisDesignSystem.marginalia)
-                                    .frame(width: 20, alignment: .leading)
-                                    .accessibilityHidden(true)
+                                    .frame(width: 20, height: 20, alignment: .leading)
+                                    .accessibilityLabel("Feedbin")
                                 Text("Connect your Feedbin account to show its subscriptions and tags in the sidebar.")
                                     .font(PrecisTypography.caption)
                                     .foregroundStyle(PrecisDesignSystem.marginalia)
@@ -396,6 +416,49 @@ struct SettingsView: View {
                                 Text(feedbinStatus)
                                     .font(PrecisTypography.caption)
                                     .foregroundStyle(feedbinStatus.lowercased().contains("failed") ? .red : PrecisDesignSystem.marginalia)
+                            }
+                            }
+
+                            VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
+                                HStack(alignment: .top, spacing: PrecisSpacing.xs) {
+                                    Image("OldReaderIcon")
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 20, height: 20)
+                                        .accessibilityLabel("The Old Reader")
+                                    Text("Connect The Old Reader to show its subscriptions and folders in the sidebar.")
+                                        .font(PrecisTypography.caption)
+                                        .foregroundStyle(PrecisDesignSystem.marginalia)
+                                }
+                                TextField("The Old Reader email", text: $oldReaderUsername)
+                                    .textFieldStyle(.roundedBorder)
+                                    .textContentType(.username)
+                                SecureField("The Old Reader password", text: $oldReaderPassword)
+                                    .textFieldStyle(.roundedBorder)
+                                    .textContentType(.password)
+                                Text("Use your account password for The Old Reader. If you sign in with Google or Facebook, set an API password in the account settings first.")
+                                    .font(PrecisTypography.caption)
+                                    .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.65))
+                                HStack {
+                                    Button(oldReaderBusy ? "Syncing…" : "Connect and Sync") { connectOldReader() }
+                                        .disabled(oldReaderBusy || oldReaderUsername.isEmpty || oldReaderPassword.isEmpty)
+                                    if hasOldReaderCredentials {
+                                        Button("Disconnect") {
+                                            Task {
+                                                await OldReaderCredentialStore.delete()
+                                                hasOldReaderCredentials = false
+                                                oldReaderPassword = ""
+                                                oldReaderStatus = "The Old Reader disconnected. Synced feeds remain in Precis."
+                                                NotificationCenter.default.post(name: .precisFeedsImported, object: nil)
+                                            }
+                                        }
+                                    }
+                                }
+                                if !oldReaderStatus.isEmpty {
+                                    Text(oldReaderStatus)
+                                        .font(PrecisTypography.caption)
+                                        .foregroundStyle(oldReaderStatus.lowercased().contains("failed") ? .red : PrecisDesignSystem.marginalia)
+                                }
                             }
                         }
                     }
@@ -645,6 +708,9 @@ struct SettingsView: View {
             let credentials = await FeedbinCredentialStore.load()
             feedbinUsername = credentials?.username ?? savedFeedbinUsername
             hasFeedbinCredentials = credentials != nil
+            let oldReaderCredentials = await OldReaderCredentialStore.load()
+            oldReaderUsername = oldReaderCredentials?.username ?? ""
+            hasOldReaderCredentials = oldReaderCredentials != nil
         }
         .background(WindowWillCloseObserver {
             // The picker is app-shared and would otherwise float on over the
@@ -792,6 +858,26 @@ struct SettingsView: View {
                 NotificationCenter.default.post(name: .precisFeedbinConnected, object: nil)
             } catch {
                 feedbinStatus = "Feedbin connection failed: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    @MainActor
+    private func connectOldReader() {
+        oldReaderBusy = true
+        oldReaderStatus = "Connecting to The Old Reader…"
+        Task { @MainActor in
+            defer { oldReaderBusy = false }
+            do {
+                let credentials = OldReaderCredentials(username: oldReaderUsername, password: oldReaderPassword)
+                let added = try await OldReaderService(credentials: credentials).sync(context: modelContext)
+                try await OldReaderCredentialStore.save(credentials)
+                hasOldReaderCredentials = true
+                oldReaderPassword = ""
+                oldReaderStatus = "Synced The Old Reader. Added \(added) new feed\(added == 1 ? "" : "s")."
+                NotificationCenter.default.post(name: .precisFeedsImported, object: nil)
+            } catch {
+                oldReaderStatus = "The Old Reader connection failed: \(error.localizedDescription)"
             }
         }
     }

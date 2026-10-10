@@ -598,7 +598,7 @@ private struct DesktopFeedPanelView: View {
         }
         NotificationCenter.default.post(name: .precisArticleRead, object: article.id)
         guard let link = article.link, let url = URL(string: link) else { return }
-        NSWorkspace.shared.open(url)
+        ReadingBrowserService.open(url)
     }
 
     private func articleRow(_ article: ArticleRecord) -> some View {

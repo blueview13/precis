@@ -13,12 +13,16 @@ public struct FeedbinCredentials: Equatable, Sendable {
 
 public enum FeedbinError: LocalizedError {
     case invalidCredentials, feedNotFound, requestFailed(Int), invalidResponse
+    case invalidOldReaderCredentials, oldReaderRequestFailed(Int), oldReaderInvalidResponse
     public var errorDescription: String? {
         switch self {
         case .invalidCredentials: "Feedbin credentials were rejected. Check your email and password."
         case .feedNotFound: "Feedbin couldn't find a feed at that address. Check the URL or paste the direct RSS/Atom feed link."
         case .requestFailed(let code): "Feedbin returned an error (HTTP \(code))."
         case .invalidResponse: "Feedbin returned an unreadable response."
+        case .invalidOldReaderCredentials: "The Old Reader rejected these credentials. Check the email and account password."
+        case .oldReaderRequestFailed(let code): "The Old Reader returned an error (HTTP \(code))."
+        case .oldReaderInvalidResponse: "The Old Reader returned an unreadable response."
         }
     }
 }
@@ -184,6 +188,188 @@ public enum FeedbinCredentialStore {
         }
         try context.save()
 
+        return added
+    }
+}
+
+public struct OldReaderCredentials: Equatable, Sendable {
+    public var username: String
+    public var password: String
+    public init(username: String, password: String) {
+        self.username = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.password = password
+    }
+}
+
+/// The Old Reader login is an account password (OAuth-only accounts must first
+/// set one in The Old Reader's account settings).
+public enum OldReaderCredentialStore {
+    private static let service = "com.precis.oldreader"
+    private static let account = "credentials"
+
+    public static func load() async -> OldReaderCredentials? {
+        await Task.detached(priority: .userInitiated) {
+            guard let data = read(),
+                  let payload = try? JSONDecoder().decode(Payload.self, from: data) else { return nil }
+            return OldReaderCredentials(username: payload.username, password: payload.password)
+        }.value
+    }
+
+    public static func save(_ credentials: OldReaderCredentials) async throws {
+        let data = try JSONEncoder().encode(Payload(username: credentials.username, password: credentials.password))
+        try await Task.detached(priority: .userInitiated) { try write(data) }.value
+    }
+
+    public static func delete() async {
+        await Task.detached(priority: .userInitiated) {
+            _ = SecItemDelete([kSecClass: kSecClassGenericPassword, kSecAttrService: service, kSecAttrAccount: account] as CFDictionary)
+        }.value
+    }
+
+    private struct Payload: Codable, Sendable {
+        let username: String
+        let password: String
+    }
+
+    private static func read() -> Data? {
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching([
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrService: service,
+            kSecAttrAccount: account,
+            kSecReturnData: true,
+            kSecMatchLimit: kSecMatchLimitOne
+        ] as CFDictionary, &result)
+        return status == errSecSuccess ? result as? Data : nil
+    }
+
+    private static func write(_ data: Data) throws {
+        let query: [CFString: Any] = [kSecClass: kSecClassGenericPassword, kSecAttrService: service, kSecAttrAccount: account]
+        let updateStatus = SecItemUpdate(query as CFDictionary, [kSecValueData: data] as CFDictionary)
+        if updateStatus == errSecSuccess { return }
+        guard updateStatus == errSecItemNotFound else { throw NSError(domain: NSOSStatusErrorDomain, code: Int(updateStatus)) }
+        var item = query
+        item[kSecValueData] = data
+        let status = SecItemAdd(item as CFDictionary, nil)
+        guard status == errSecSuccess else { throw NSError(domain: NSOSStatusErrorDomain, code: Int(status)) }
+    }
+}
+
+@MainActor public final class OldReaderService {
+    private let credentials: OldReaderCredentials
+    private let session: URLSession
+    private let base = URL(string: "https://theoldreader.com")!
+
+    public init(credentials: OldReaderCredentials, session: URLSession = .shared) {
+        self.credentials = credentials
+        self.session = session
+    }
+
+    private struct SubscriptionList: Decodable {
+        let subscriptions: [Subscription]
+    }
+    private struct Subscription: Decodable {
+        let id: String
+        let title: String
+        let url: String
+        let categories: [Category]?
+    }
+    private struct Category: Decodable {
+        let label: String?
+    }
+    private struct LoginResponse: Decodable {
+        let Auth: String?
+        let auth: String?
+    }
+
+    private func formBody(_ values: [(String, String)]) -> Data {
+        var components = URLComponents()
+        components.queryItems = values.map { URLQueryItem(name: $0.0, value: $0.1) }
+        return Data((components.percentEncodedQuery ?? "").replacingOccurrences(of: "%20", with: "+").utf8)
+    }
+
+    private func authenticate() async throws -> String {
+        var request = URLRequest(url: base.appending(path: "/accounts/ClientLogin"))
+        request.httpMethod = "POST"
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.httpBody = formBody([
+            ("client", "Precis"),
+            ("accountType", "HOSTED_OR_GOOGLE"),
+            ("service", "reader"),
+            ("Email", credentials.username),
+            ("Passwd", credentials.password),
+            ("output", "json")
+        ])
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw FeedbinError.oldReaderInvalidResponse }
+        guard (200..<300).contains(http.statusCode) else {
+            if http.statusCode == 401 || http.statusCode == 403 { throw FeedbinError.invalidOldReaderCredentials }
+            throw FeedbinError.oldReaderRequestFailed(http.statusCode)
+        }
+        if let result = try? JSONDecoder().decode(LoginResponse.self, from: data),
+           let token = result.Auth ?? result.auth, !token.isEmpty { return token }
+        let responseText = String(decoding: data, as: UTF8.self)
+        if let line = responseText.split(whereSeparator: \.isNewline).first(where: { $0.hasPrefix("Auth=") }) {
+            let token = String(line.dropFirst("Auth=".count)).trimmingCharacters(in: .whitespacesAndNewlines)
+            if !token.isEmpty { return token }
+        }
+        throw FeedbinError.invalidOldReaderCredentials
+    }
+
+    private func subscriptions(token: String) async throws -> [Subscription] {
+        var components = URLComponents(url: base.appending(path: "/reader/api/0/subscription/list"), resolvingAgainstBaseURL: false)!
+        components.queryItems = [URLQueryItem(name: "output", value: "json")]
+        var request = URLRequest(url: components.url!)
+        request.setValue("GoogleLogin auth=\(token)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw FeedbinError.oldReaderInvalidResponse }
+        guard (200..<300).contains(http.statusCode) else {
+            if http.statusCode == 401 || http.statusCode == 403 { throw FeedbinError.invalidOldReaderCredentials }
+            throw FeedbinError.oldReaderRequestFailed(http.statusCode)
+        }
+        return try JSONDecoder().decode(SubscriptionList.self, from: data).subscriptions
+    }
+
+    public func removeSubscription(_ subscriptionID: String) async throws {
+        let token = try await authenticate()
+        var request = URLRequest(url: base.appending(path: "/reader/api/0/subscription/edit"))
+        request.httpMethod = "POST"
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        request.setValue("GoogleLogin auth=\(token)", forHTTPHeaderField: "Authorization")
+        request.httpBody = formBody([("ac", "unsubscribe"), ("s", subscriptionID)])
+        let (_, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw FeedbinError.oldReaderInvalidResponse }
+        guard (200..<300).contains(http.statusCode) else {
+            if http.statusCode == 401 || http.statusCode == 403 { throw FeedbinError.invalidOldReaderCredentials }
+            throw FeedbinError.oldReaderRequestFailed(http.statusCode)
+        }
+    }
+
+    /// Mirrors The Old Reader subscriptions and their folder labels into Precis.
+    public func sync(context: ModelContext) async throws -> Int {
+        let token = try await authenticate()
+        let subscriptions = try await subscriptions(token: token)
+        let repository = FeedRepository()
+        var added = 0
+        for subscription in subscriptions {
+            guard URL(string: subscription.url)?.scheme?.hasPrefix("http") == true else { continue }
+            let matching = try repository.fetchAll(context: context).first {
+                $0.oldReaderSubscriptionID == subscription.id
+            } ?? repository.existingFeed(forURL: subscription.url, context: context)
+            let feed: FeedRecord
+            if let matching {
+                feed = matching
+            } else {
+                feed = FeedRecord(title: subscription.title, url: subscription.url)
+                context.insert(feed)
+                added += 1
+            }
+            feed.oldReaderSubscriptionID = subscription.id
+            feed.oldReaderFolderNames = Array(Set(subscription.categories?.compactMap(\.label).filter { !$0.isEmpty } ?? [])).sorted()
+            feed.title = subscription.title
+        }
+        try context.save()
         return added
     }
 }

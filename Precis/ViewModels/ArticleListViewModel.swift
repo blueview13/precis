@@ -128,6 +128,12 @@ public final class ArticleListViewModel: ObservableObject {
             return "No Feedbin articles yet — refresh your feeds to load them"
         case .feedbinUntagged:
             return "No untagged Feedbin articles yet"
+        case .oldReader:
+            return "No The Old Reader articles yet — refresh your feeds to load them"
+        case .oldReaderFolder:
+            return "No articles in this Old Reader folder yet"
+        case .oldReaderUnfiled:
+            return "No unfiled Old Reader articles yet"
         case .folder:
             return "No articles in this category yet"
         case .smartCategory:
@@ -160,6 +166,24 @@ public final class ArticleListViewModel: ObservableObject {
             }
         case .feedbinUntagged:
             let feedIDs = Set(allFeeds.filter { $0.feedbinSubscriptionID != nil && ($0.feedbinTagNames ?? []).isEmpty }.map(\.id))
+            base = items.filter { item in
+                guard let feedID = item.feedID else { return false }
+                return feedIDs.contains(feedID)
+            }
+        case .oldReader:
+            let feedIDs = Set(allFeeds.filter { $0.oldReaderSubscriptionID != nil }.map(\.id))
+            base = items.filter { item in
+                guard let feedID = item.feedID else { return false }
+                return feedIDs.contains(feedID)
+            }
+        case .oldReaderFolder(let name):
+            let feedIDs = Set(allFeeds.filter { $0.oldReaderFolderNames?.contains(name) == true }.map(\.id))
+            base = items.filter { item in
+                guard let feedID = item.feedID else { return false }
+                return feedIDs.contains(feedID)
+            }
+        case .oldReaderUnfiled:
+            let feedIDs = Set(allFeeds.filter { $0.oldReaderSubscriptionID != nil && ($0.oldReaderFolderNames ?? []).isEmpty }.map(\.id))
             base = items.filter { item in
                 guard let feedID = item.feedID else { return false }
                 return feedIDs.contains(feedID)
@@ -306,6 +330,9 @@ public final class ArticleListViewModel: ObservableObject {
         case feed(UUID)
         case feedbin
         case feedbinUntagged
+        case oldReader
+        case oldReaderFolder(String)
+        case oldReaderUnfiled
         case folder(UUID)
         case smartCategory(UUID)
         case feedbinTag(String)

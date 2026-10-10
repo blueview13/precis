@@ -1132,7 +1132,7 @@ private extension ArticleHTMLView.Coordinator {
            let url = navigationAction.request.url,
            let scheme = url.scheme?.lowercased(),
            scheme == "http" || scheme == "https" {
-            NSWorkspace.shared.open(url)
+            ReadingBrowserService.open(url)
             decisionHandler(.cancel)
             return
         }

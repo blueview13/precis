@@ -41,6 +41,9 @@ struct MainWindowLayout: View {
     @State private var importedFeeds: [FeedRecord] = []
     @State private var showAddFeedSheet = false
     @State private var hasFeedbinCredentials = false
+    @State private var hasOldReaderCredentials = false
+    @State private var isRefreshingFeedbin = false
+    @State private var isRefreshingOldReader = false
     @State private var showSmartCategoryEditor = false
     @State private var editingSmartCategory: SmartCategory?
     @State private var isHoveringAddFeeds = false
@@ -131,6 +134,12 @@ struct MainWindowLayout: View {
             return Set(viewModel.allFeeds.filter { $0.feedbinSubscriptionID != nil && ($0.feedbinTagNames ?? []).isEmpty }.map(\.id))
         case .feedbinTag(let name):
             return Set(viewModel.allFeeds.filter { $0.feedbinTagNames?.contains(name) == true }.map(\.id))
+        case .oldReader:
+            return Set(viewModel.allFeeds.filter { $0.oldReaderSubscriptionID != nil }.map(\.id))
+        case .oldReaderFolder(let name):
+            return Set(viewModel.allFeeds.filter { $0.oldReaderFolderNames?.contains(name) == true }.map(\.id))
+        case .oldReaderUnfiled:
+            return Set(viewModel.allFeeds.filter { $0.oldReaderSubscriptionID != nil && ($0.oldReaderFolderNames ?? []).isEmpty }.map(\.id))
         default:
             return nil
         }
@@ -214,7 +223,7 @@ struct MainWindowLayout: View {
             onOpenInBrowser: {
                 guard let link = viewModel.selectedItem?.link,
                       let url = URL(string: link) else { return }
-                NSWorkspace.shared.open(url)
+                ReadingBrowserService.open(url)
             },
             isFetchingContent: !listIsEmpty && viewModel.loadingFullContentID == viewModel.selectedItem?.id,
             onPreviousArticle: { viewModel.selectPrevious(context: modelContext) },
@@ -306,6 +315,7 @@ struct MainWindowLayout: View {
         }
         .task {
             hasFeedbinCredentials = await FeedbinCredentialStore.load() != nil
+            hasOldReaderCredentials = await OldReaderCredentialStore.load() != nil
         }
         .onDisappear {
             stopSpacebarMonitor()
@@ -330,30 +340,13 @@ struct MainWindowLayout: View {
             viewModel.invalidateSmartCategoryCaches()
         }
         .onReceive(NotificationCenter.default.publisher(for: .precisFeedsImported)) { _ in
-            // OPML import finished in the Settings window — reload the feed
-            // list so the sidebar shows the new feeds immediately.
-            refreshFeeds()
+            handleFeedsImported()
         }
         .onReceive(NotificationCenter.default.publisher(for: .precisFeedbinConnected)) { _ in
             hasFeedbinCredentials = true
         }
         .onReceive(NotificationCenter.default.publisher(for: .precisFeedbinDisconnected)) { _ in
-            hasFeedbinCredentials = false
-            let selectedExternalFeed = viewModel.selectedFeedID.flatMap { id in
-                importedFeeds.first(where: { $0.id == id && $0.feedbinSubscriptionID != nil })
-            } != nil
-            let selectedFeedbinScope: Bool
-            switch viewModel.selectedSidebarFilter {
-            case .feedbin, .feedbinTag:
-                selectedFeedbinScope = true
-            default:
-                selectedFeedbinScope = false
-            }
-            if selectedExternalFeed || selectedFeedbinScope {
-                selectedSidebarItem = "All Articles"
-                viewModel.selectedSidebarFilter = .all
-                viewModel.loadArticles(for: nil, context: modelContext)
-            }
+            handleFeedbinDisconnected()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didDeminiaturizeNotification)) { notification in
             // Only for the reader we restored on Settings' behalf. A reader
@@ -399,6 +392,69 @@ struct MainWindowLayout: View {
     /// Tracks the pointer over the window's top edge, which is where the
     /// auto-hidden menu bar reveals once the window is flush with the display's
     /// top — see `TopChromeReveal`.
+    private func handleFeedbinDisconnected() {
+        hasFeedbinCredentials = false
+        let selectedExternalFeed: Bool
+        if let selectedID = viewModel.selectedFeedID {
+            selectedExternalFeed = importedFeeds.contains {
+                $0.id == selectedID && $0.feedbinSubscriptionID != nil
+            }
+        } else {
+            selectedExternalFeed = false
+        }
+
+        let selectedFeedbinScope: Bool
+        switch viewModel.selectedSidebarFilter {
+        case .feedbin, .feedbinTag:
+            selectedFeedbinScope = true
+        default:
+            selectedFeedbinScope = false
+        }
+        guard selectedExternalFeed || selectedFeedbinScope else { return }
+        selectedSidebarItem = "All Articles"
+        viewModel.selectedSidebarFilter = .all
+        viewModel.loadArticles(for: nil, context: modelContext)
+    }
+
+    private func handleOldReaderDisconnected() {
+        hasOldReaderCredentials = false
+        let selectedOldReaderFeed: Bool
+        if let selectedID = viewModel.selectedFeedID {
+            selectedOldReaderFeed = importedFeeds.contains {
+                $0.id == selectedID && $0.oldReaderSubscriptionID != nil
+            }
+        } else {
+            selectedOldReaderFeed = false
+        }
+
+        let selectedOldReaderScope: Bool
+        switch viewModel.selectedSidebarFilter {
+        case .oldReader, .oldReaderFolder, .oldReaderUnfiled:
+            selectedOldReaderScope = true
+        default:
+            selectedOldReaderScope = false
+        }
+        guard selectedOldReaderFeed || selectedOldReaderScope else { return }
+        selectedSidebarItem = "All Articles"
+        viewModel.selectedSidebarFilter = .all
+        viewModel.loadArticles(for: nil, context: modelContext)
+    }
+
+    private func handleFeedsImported() {
+        // OPML imports and account syncs both refresh the sidebar. Reload the
+        // Old Reader connection state here so this doesn't add more modifiers
+        // to the settings window observer chain.
+        refreshFeeds()
+        Task { @MainActor in
+            let isConnected = await OldReaderCredentialStore.load() != nil
+            if hasOldReaderCredentials && !isConnected {
+                handleOldReaderDisconnected()
+            } else {
+                hasOldReaderCredentials = isConnected
+            }
+        }
+    }
+
     private func handleHover(_ phase: HoverPhase) {
         switch phase {
         case .active:
@@ -781,18 +837,29 @@ struct MainWindowLayout: View {
                 && $0.feedbinSubscriptionID != nil
                 && $0.title.trimmingCharacters(in: .whitespacesAndNewlines).localizedCaseInsensitiveCompare("Feedbin") != .orderedSame
         }
-        if !feeds.isEmpty {
-            SidebarItem(
-                title: "All Feedbin Feeds",
-                icon: "tray.full",
-                badge: sidebarCount(viewModel.unreadCount(forFeedIDs: Set(feeds.map(\.id)))),
-                uppercase: true,
-                active: viewModel.selectedSidebarFilter == .feedbin
-            ) {
-                selectedSidebarItem = "All Feedbin Feeds"
-                viewModel.selectedSidebarFilter = .feedbin
+        if hasFeedbinCredentials {
+            HStack(spacing: 2) {
+                feedbinAllFeedsRow(feeds: feeds)
+                Button {
+                    Task { await refreshFeedbinFeeds() }
+                } label: {
+                    Group {
+                        if isRefreshingFeedbin {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 12, weight: .medium))
+                        }
+                    }
+                    .frame(width: 26, height: 26)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(isRefreshingFeedbin || isRefreshingOldReader || isRefreshingAll)
+                .help("Sync and refresh Feedbin feeds")
+                .accessibilityLabel("Sync and refresh Feedbin feeds")
             }
-
             ForEach(Array(Set(feeds.flatMap { $0.feedbinTagNames ?? [] })).sorted(), id: \.self) { tag in
                 let taggedFeeds = feeds.filter { $0.feedbinTagNames?.contains(tag) == true }
                 FeedbinTagSidebarRow(
@@ -829,6 +896,188 @@ struct MainWindowLayout: View {
                 }
             }
         }
+    }
+
+    private func feedbinAllFeedsRow(feeds: [FeedRecord]) -> some View {
+        SidebarItem(
+            title: "All Feedbin Feeds",
+            icon: "tray.full",
+            badge: sidebarCount(viewModel.unreadCount(forFeedIDs: Set(feeds.map(\.id)))),
+            uppercase: true,
+            active: viewModel.selectedSidebarFilter == .feedbin
+        ) {
+            selectedSidebarItem = "All Feedbin Feeds"
+            viewModel.selectedSidebarFilter = .feedbin
+        }
+    }
+
+    @ViewBuilder
+    private var oldReaderSidebarSection: some View {
+        let feeds = importedFeeds.filter {
+            hasOldReaderCredentials
+                && $0.oldReaderSubscriptionID != nil
+                && $0.title.trimmingCharacters(in: .whitespacesAndNewlines).localizedCaseInsensitiveCompare("The Old Reader") != .orderedSame
+                && !$0.title.localizedCaseInsensitiveContains("old reader sponsored")
+        }
+        if hasOldReaderCredentials {
+            HStack(spacing: 2) {
+                oldReaderAllFeedsRow(feeds: feeds)
+                Button {
+                    Task { await refreshOldReaderFeeds() }
+                } label: {
+                    Group {
+                        if isRefreshingOldReader {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 12, weight: .medium))
+                        }
+                    }
+                    .frame(width: 26, height: 26)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(isRefreshingOldReader || isRefreshingFeedbin || isRefreshingAll)
+                .help("Sync and refresh The Old Reader feeds")
+                .accessibilityLabel("Sync and refresh The Old Reader feeds")
+            }
+            oldReaderFolderSections(feeds: feeds)
+            oldReaderUnfiledSection(feeds: feeds)
+        }
+    }
+
+    private func oldReaderAllFeedsRow(feeds: [FeedRecord]) -> some View {
+        SidebarItem(
+            title: "All Old Reader Feeds",
+            icon: "books.vertical",
+            badge: sidebarCount(viewModel.unreadCount(forFeedIDs: Set(feeds.map(\.id)))),
+            uppercase: true,
+            active: viewModel.selectedSidebarFilter == .oldReader
+        ) {
+            selectedSidebarItem = "All Old Reader Feeds"
+            viewModel.selectedSidebarFilter = .oldReader
+        }
+    }
+
+    @ViewBuilder
+    private func oldReaderFolderSections(feeds: [FeedRecord]) -> some View {
+        let folderNames = Array(Set(feeds.flatMap { $0.oldReaderFolderNames ?? [] }))
+            .filter { !$0.localizedCaseInsensitiveContains("old reader sponsored") }
+            .sorted()
+        ForEach(folderNames, id: \.self) { folder in
+            oldReaderFolderSection(folder, feeds: feeds)
+        }
+    }
+
+    @ViewBuilder
+    private func oldReaderFolderSection(_ folder: String, feeds: [FeedRecord]) -> some View {
+        let folderFeeds = feeds.filter { $0.oldReaderFolderNames?.contains(folder) == true }
+        SidebarItem(
+            title: folder,
+            icon: "folder",
+            badge: sidebarCount(viewModel.unreadCount(forFeedIDs: Set(folderFeeds.map(\.id)))),
+            active: viewModel.selectedSidebarFilter == .oldReaderFolder(folder)
+        ) {
+            selectedSidebarItem = folder
+            viewModel.selectedSidebarFilter = .oldReaderFolder(folder)
+        }
+        ForEach(folderFeeds) { feed in
+            sidebarFeedRow(feed, indent: 32, compact: true, group: folderFeeds)
+                .id("oldreader-\(folder)-\(feed.id)")
+        }
+    }
+
+    @ViewBuilder
+    private func oldReaderUnfiledSection(feeds: [FeedRecord]) -> some View {
+        let unfiled = feeds.filter { ($0.oldReaderFolderNames ?? []).isEmpty }
+        if !unfiled.isEmpty {
+            SidebarItem(
+                title: "Unfiled",
+                icon: "tray",
+                badge: sidebarCount(viewModel.unreadCount(forFeedIDs: Set(unfiled.map(\.id)))),
+                active: viewModel.selectedSidebarFilter == .oldReaderUnfiled
+            ) {
+                selectedSidebarItem = "Old Reader Unfiled"
+                viewModel.selectedSidebarFilter = .oldReaderUnfiled
+            }
+            ForEach(unfiled) { feed in
+                sidebarFeedRow(feed, indent: 32, compact: true, group: unfiled)
+                    .id("oldreader-unfiled-\(feed.id)")
+            }
+        }
+    }
+
+    @MainActor
+    private func refreshOldReaderFeeds() async {
+        guard !isRefreshingOldReader,
+              AppScopedFeedRefreshCoordinator.shared.beginManualRefresh() else { return }
+        isRefreshingOldReader = true
+        defer {
+            isRefreshingOldReader = false
+            AppScopedFeedRefreshCoordinator.shared.endManualRefresh()
+        }
+
+        guard let credentials = await OldReaderCredentialStore.load() else {
+            return
+        }
+        do {
+            _ = try await OldReaderService(credentials: credentials).sync(context: modelContext)
+            refreshFeeds()
+            let readerFeeds = importedFeeds.filter { $0.oldReaderSubscriptionID != nil }
+            var newArticleCount = 0
+            var refreshedFeedNames: [String] = []
+            for feed in readerFeeds {
+                let added = await refreshSingleFeed(feed, reload: false, sendNotification: false)
+                if added > 0 {
+                    newArticleCount += added
+                    refreshedFeedNames.append(sidebarDisplayTitle(for: feed))
+                }
+            }
+            refreshFeeds()
+            if notifyOnNewArticles, newArticleCount > 0 {
+                try? await NewArticleNotificationService.sendNewArticlesNotification(
+                    count: newArticleCount,
+                    feedNames: refreshedFeedNames
+                )
+            }
+        } catch { PrecisLogger.error("The Old Reader sync failed: \(error.localizedDescription)") }
+    }
+
+    @MainActor
+    private func refreshFeedbinFeeds() async {
+        guard !isRefreshingFeedbin,
+              AppScopedFeedRefreshCoordinator.shared.beginManualRefresh() else { return }
+        isRefreshingFeedbin = true
+        defer {
+            isRefreshingFeedbin = false
+            AppScopedFeedRefreshCoordinator.shared.endManualRefresh()
+        }
+
+        guard let credentials = await FeedbinCredentialStore.load() else {
+            return
+        }
+        do {
+            _ = try await FeedbinService(credentials: credentials).sync(context: modelContext)
+            refreshFeeds()
+            let feedbinFeeds = importedFeeds.filter { $0.feedbinSubscriptionID != nil }
+            var newArticleCount = 0
+            var refreshedFeedNames: [String] = []
+            for feed in feedbinFeeds {
+                let added = await refreshSingleFeed(feed, reload: false, sendNotification: false)
+                if added > 0 {
+                    newArticleCount += added
+                    refreshedFeedNames.append(sidebarDisplayTitle(for: feed))
+                }
+            }
+            refreshFeeds()
+            if notifyOnNewArticles, newArticleCount > 0 {
+                try? await NewArticleNotificationService.sendNewArticlesNotification(
+                    count: newArticleCount,
+                    feedNames: refreshedFeedNames
+                )
+            }
+        } catch { PrecisLogger.error("Feedbin sync failed: \(error.localizedDescription)") }
     }
 
     private func beginEditingCategory(_ category: FolderRecord) {
@@ -963,12 +1212,14 @@ struct MainWindowLayout: View {
     // MARK: - Feed ↔ Category
 
     private var uncategorizedFeeds: [FeedRecord] {
-        importedFeeds.filter { $0.folder == nil && $0.feedbinSubscriptionID == nil }
+        importedFeeds.filter { $0.folder == nil && $0.feedbinSubscriptionID == nil && $0.oldReaderSubscriptionID == nil }
     }
 
     private func feeds(in category: FolderRecord) -> [FeedRecord] {
         importedFeeds.filter {
-            $0.folder?.id == category.id && ($0.feedbinSubscriptionID == nil || hasFeedbinCredentials)
+            $0.folder?.id == category.id
+                && ($0.feedbinSubscriptionID == nil || hasFeedbinCredentials)
+                && ($0.oldReaderSubscriptionID == nil || hasOldReaderCredentials)
         }
     }
 
@@ -1104,6 +1355,12 @@ struct MainWindowLayout: View {
                     let service = FeedbinService(credentials: credentials)
                     for feed in pending {
                         if let id = feed.feedbinSubscriptionID { try await service.removeSubscription(id) }
+                    }
+                }
+                if hasOldReaderCredentials, let credentials = await OldReaderCredentialStore.load() {
+                    let service = OldReaderService(credentials: credentials)
+                    for feed in pending {
+                        if let id = feed.oldReaderSubscriptionID { try await service.removeSubscription(id) }
                     }
                 }
                 let repository = FeedRepository()
@@ -1477,6 +1734,14 @@ struct MainWindowLayout: View {
                 refreshFeeds()
             } catch {
                 PrecisLogger.error("Feedbin sync failed: \(error.localizedDescription)")
+            }
+        }
+        if hasOldReaderCredentials, let credentials = await OldReaderCredentialStore.load() {
+            do {
+                _ = try await OldReaderService(credentials: credentials).sync(context: modelContext)
+                refreshFeeds()
+            } catch {
+                PrecisLogger.error("The Old Reader sync failed: \(error.localizedDescription)")
             }
         }
         for feed in importedFeeds {
@@ -1920,8 +2185,6 @@ struct MainWindowLayout: View {
 
                 smartCategorySidebarSection
 
-                feedbinSidebarSection
-
                 // Feeds not assigned to a category
                 if !uncategorizedFeeds.isEmpty {
                     SidebarSection(title: "Feeds")
@@ -1931,6 +2194,9 @@ struct MainWindowLayout: View {
                     sidebarFeedRow(feed, group: uncategorizedFeeds)
                         .id("uncat-\(feed.id)-\(selectedFeedIDs.contains(feed.id))")
                 }
+
+                feedbinSidebarSection
+                oldReaderSidebarSection
             }
             .padding(.horizontal, PrecisSpacing.md)
             }

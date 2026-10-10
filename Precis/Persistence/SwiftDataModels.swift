@@ -49,6 +49,9 @@ public final class FeedRecord {
     public var feedbinSubscriptionID: Int?
     public var feedbinFeedID: Int?
     public var feedbinTagNames: [String]?
+    /// The Old Reader subscription identity and folder labels, if this feed is synced from that account.
+    public var oldReaderSubscriptionID: String?
+    public var oldReaderFolderNames: [String]?
     @Relationship(deleteRule: .cascade, inverse: \ArticleRecord.feed) public var articles: [ArticleRecord] = []
 
     public init(
@@ -62,7 +65,9 @@ public final class FeedRecord {
         lastFetched: Date? = nil,
         feedbinSubscriptionID: Int? = nil,
         feedbinFeedID: Int? = nil,
-        feedbinTagNames: [String]? = nil
+        feedbinTagNames: [String]? = nil,
+        oldReaderSubscriptionID: String? = nil,
+        oldReaderFolderNames: [String]? = nil
     ) {
         self.id = id
         self.title = title
@@ -75,6 +80,8 @@ public final class FeedRecord {
         self.feedbinSubscriptionID = feedbinSubscriptionID
         self.feedbinFeedID = feedbinFeedID
         self.feedbinTagNames = feedbinTagNames
+        self.oldReaderSubscriptionID = oldReaderSubscriptionID
+        self.oldReaderFolderNames = oldReaderFolderNames
     }
 }
 
