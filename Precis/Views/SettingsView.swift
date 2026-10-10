@@ -94,17 +94,19 @@ private struct WindowWillCloseObserver: NSViewRepresentable {
 struct SettingsView: View {
     private enum SettingsTab: String, CaseIterable, Identifiable {
         case appearance = "Appearance"
+        case sidePanel = "Side Panel"
         case reading = "Reading"
         case feeds = "Feeds"
-        case sidePanel = "Side Panel"
+        case accounts = "Accounts"
 
         var id: String { rawValue }
         var symbol: String {
             switch self {
             case .appearance: "circle.lefthalf.filled"
+            case .sidePanel: "rectangle.rightthird.inset.filled"
             case .reading: "text.book.closed"
             case .feeds: "dot.radiowaves.left.and.right"
-            case .sidePanel: "rectangle.rightthird.inset.filled"
+            case .accounts: "person.crop.circle"
             }
         }
     }
@@ -355,11 +357,18 @@ struct SettingsView: View {
                         }
                     }
 
-                    settingsSection(title: "Feedbin") {
+                    settingsSection(title: "Accounts") {
                         VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
-                            Text("Connect your Feedbin account to show its subscriptions and tags in the sidebar.")
-                                .font(PrecisTypography.caption)
-                                .foregroundStyle(PrecisDesignSystem.marginalia)
+                            HStack(alignment: .top, spacing: PrecisSpacing.xs) {
+                                Image(systemName: "dot.radiowaves.left.and.right")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundStyle(PrecisDesignSystem.marginalia)
+                                    .frame(width: 20, alignment: .leading)
+                                    .accessibilityHidden(true)
+                                Text("Connect your Feedbin account to show its subscriptions and tags in the sidebar.")
+                                    .font(PrecisTypography.caption)
+                                    .foregroundStyle(PrecisDesignSystem.marginalia)
+                            }
                             TextField("Feedbin email", text: $feedbinUsername)
                                 .textFieldStyle(.roundedBorder)
                                 .textContentType(.username)
@@ -992,7 +1001,8 @@ struct SettingsView: View {
         switch title {
         case "Appearance", "Article List", "Left Sidebar": .appearance
         case "Reading", "AI Summaries": .reading
-        case "Refresh", "Feedbin", "OPML": .feeds
+        case "Refresh", "OPML": .feeds
+        case "Accounts": .accounts
         default: .sidePanel
         }
     }
