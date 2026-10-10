@@ -6,6 +6,7 @@ import SwiftData
 struct MainWindowLayout: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @StateObject private var viewModel: ArticleListViewModel
     @ObservedObject private var smartCategoryStore = SmartCategoryStore.shared
     @AppStorage("notifyOnNewArticles") private var notifyOnNewArticles = false
@@ -750,10 +751,11 @@ struct MainWindowLayout: View {
         if !smartCategoryStore.categories.filter({ !$0.isDeleted }).isEmpty {
             SidebarSection(title: "Smart Categories")
             ForEach(smartCategoryStore.categories.filter({ !$0.isDeleted })) { smartCategory in
-                SidebarItem(title: smartCategory.name, icon: "gearshape", badge: sidebarCount(viewModel.unreadCount(inSmartCategory: smartCategory.id)), badgeNextToTitle: true, tint: smartCategory.colorHex.flatMap { PrecisDesignSystem.color(hex: $0) }, active: viewModel.selectedSidebarFilter == .smartCategory(smartCategory.id)) {
+                SidebarItem(title: smartCategory.name, icon: "sparkles", badge: sidebarCount(viewModel.unreadCount(inSmartCategory: smartCategory.id)), badgeNextToTitle: true, tint: smartCategory.colorHex.flatMap { PrecisDesignSystem.color(hex: $0) }, active: viewModel.selectedSidebarFilter == .smartCategory(smartCategory.id)) {
                     selectedSidebarItem = smartCategory.name
                     viewModel.selectedSidebarFilter = .smartCategory(smartCategory.id)
                 }
+                .symbolEffect(.breathe, isActive: !reduceMotion)
                 .contextMenu {
                     Button("Edit Smart Category…") { editingSmartCategory = smartCategory; showSmartCategoryEditor = true }
                     Button("Rename…") { editingSmartCategory = smartCategory; showSmartCategoryEditor = true }
