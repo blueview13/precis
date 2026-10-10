@@ -375,89 +375,63 @@ struct SettingsView: View {
                     }
 
                     settingsSection(title: "Accounts") {
-                        VStack(alignment: .leading, spacing: PrecisSpacing.lg) {
-                            VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
-                            HStack(alignment: .top, spacing: PrecisSpacing.xs) {
-                                Image("FeedbinIcon")
-                                    .renderingMode(.template)
-                                    .resizable()
-                                    .scaledToFit()
-                                    .foregroundStyle(PrecisDesignSystem.marginalia)
-                                    .frame(width: 20, height: 20, alignment: .leading)
-                                    .accessibilityLabel("Feedbin")
-                                Text("Connect your Feedbin account to show its subscriptions and tags in the sidebar.")
-                                    .font(PrecisTypography.caption)
-                                    .foregroundStyle(PrecisDesignSystem.marginalia)
-                            }
-                            TextField("Feedbin email", text: $feedbinUsername)
-                                .textFieldStyle(.roundedBorder)
-                                .textContentType(.username)
-                            SecureField("Feedbin password", text: $feedbinPassword)
-                                .textFieldStyle(.roundedBorder)
-                                .textContentType(.password)
-                            HStack {
-                                Button(feedbinBusy ? "Syncing…" : "Connect and Sync") { connectFeedbin() }
-                                    .disabled(feedbinBusy || feedbinUsername.isEmpty || feedbinPassword.isEmpty)
-                                if hasFeedbinCredentials {
-                                    Button("Disconnect") {
-                                        Task {
-                                            await FeedbinCredentialStore.delete()
-                                            hasFeedbinCredentials = false
-                                            feedbinPassword = ""
-                                            savedFeedbinUsername = ""
-                                            feedbinStatus = "Feedbin disconnected. Synced feeds remain in Precis."
-                                            NotificationCenter.default.post(name: .precisFeedsImported, object: nil)
-                                            NotificationCenter.default.post(name: .precisFeedbinDisconnected, object: nil)
-                                        }
-                                    }
+                        VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
+                            Text("Manage your connected RSS services.")
+                                .font(PrecisTypography.caption)
+                                .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.68))
+
+                            accountCard(
+                                name: "Feedbin", icon: "FeedbinIcon", connected: hasFeedbinCredentials,
+                                identifier: feedbinUsername, description: "Sync your subscriptions and tags.",
+                                status: feedbinStatus, busy: feedbinBusy
+                            ) {
+                                TextField("Email address", text: $feedbinUsername)
+                                    .textFieldStyle(.roundedBorder).textContentType(.username)
+                                SecureField("Password", text: $feedbinPassword)
+                                    .textFieldStyle(.roundedBorder).textContentType(.password)
+                                Button { connectFeedbin() } label: {
+                                    if feedbinBusy { ProgressView().controlSize(.small); Text("Connecting…") }
+                                    else { Text("Connect and Sync") }
                                 }
-                            }
-                            if !feedbinStatus.isEmpty {
-                                Text(feedbinStatus)
-                                    .font(PrecisTypography.caption)
-                                    .foregroundStyle(feedbinStatus.lowercased().contains("failed") ? .red : PrecisDesignSystem.marginalia)
-                            }
+                                .disabled(feedbinBusy || feedbinUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || feedbinPassword.isEmpty)
+                                .buttonStyle(.borderedProminent)
+                            } disconnect: {
+                                Task {
+                                    await FeedbinCredentialStore.delete()
+                                    hasFeedbinCredentials = false
+                                    feedbinPassword = ""
+                                    savedFeedbinUsername = ""
+                                    feedbinStatus = "Feedbin disconnected. Synced feeds remain in Precis."
+                                    NotificationCenter.default.post(name: .precisFeedsImported, object: nil)
+                                    NotificationCenter.default.post(name: .precisFeedbinDisconnected, object: nil)
+                                }
                             }
 
-                            VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
-                                HStack(alignment: .top, spacing: PrecisSpacing.xs) {
-                                    Image("OldReaderIcon")
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 20, height: 20)
-                                        .accessibilityLabel("The Old Reader")
-                                    Text("Connect The Old Reader to show its subscriptions and folders in the sidebar.")
-                                        .font(PrecisTypography.caption)
-                                        .foregroundStyle(PrecisDesignSystem.marginalia)
-                                }
-                                TextField("The Old Reader email", text: $oldReaderUsername)
-                                    .textFieldStyle(.roundedBorder)
-                                    .textContentType(.username)
-                                SecureField("The Old Reader password", text: $oldReaderPassword)
-                                    .textFieldStyle(.roundedBorder)
-                                    .textContentType(.password)
-                                Text("Use your account password for The Old Reader. If you sign in with Google or Facebook, set an API password in the account settings first.")
+                            accountCard(
+                                name: "The Old Reader", icon: "OldReaderIcon", connected: hasOldReaderCredentials,
+                                identifier: oldReaderUsername, description: "Sync your subscriptions and folders.",
+                                status: oldReaderStatus, busy: oldReaderBusy
+                            ) {
+                                TextField("Email or username", text: $oldReaderUsername)
+                                    .textFieldStyle(.roundedBorder).textContentType(.username)
+                                SecureField("Password", text: $oldReaderPassword)
+                                    .textFieldStyle(.roundedBorder).textContentType(.password)
+                                Text("Use your account password. If you sign in with Google or Facebook, set an API password in your account settings first.")
                                     .font(PrecisTypography.caption)
-                                    .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.65))
-                                HStack {
-                                    Button(oldReaderBusy ? "Syncing…" : "Connect and Sync") { connectOldReader() }
-                                        .disabled(oldReaderBusy || oldReaderUsername.isEmpty || oldReaderPassword.isEmpty)
-                                    if hasOldReaderCredentials {
-                                        Button("Disconnect") {
-                                            Task {
-                                                await OldReaderCredentialStore.delete()
-                                                hasOldReaderCredentials = false
-                                                oldReaderPassword = ""
-                                                oldReaderStatus = "The Old Reader disconnected. Synced feeds remain in Precis."
-                                                NotificationCenter.default.post(name: .precisFeedsImported, object: nil)
-                                            }
-                                        }
-                                    }
+                                    .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.62))
+                                Button { connectOldReader() } label: {
+                                    if oldReaderBusy { ProgressView().controlSize(.small); Text("Connecting…") }
+                                    else { Text("Connect and Sync") }
                                 }
-                                if !oldReaderStatus.isEmpty {
-                                    Text(oldReaderStatus)
-                                        .font(PrecisTypography.caption)
-                                        .foregroundStyle(oldReaderStatus.lowercased().contains("failed") ? .red : PrecisDesignSystem.marginalia)
+                                .disabled(oldReaderBusy || oldReaderUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || oldReaderPassword.isEmpty)
+                                .buttonStyle(.borderedProminent)
+                            } disconnect: {
+                                Task {
+                                    await OldReaderCredentialStore.delete()
+                                    hasOldReaderCredentials = false
+                                    oldReaderPassword = ""
+                                    oldReaderStatus = "The Old Reader disconnected. Synced feeds remain in Precis."
+                                    NotificationCenter.default.post(name: .precisFeedsImported, object: nil)
                                 }
                             }
                         }
@@ -1081,6 +1055,75 @@ struct SettingsView: View {
                 .padding(.top, PrecisSpacing.xs)
         }
         }
+    }
+
+    private func accountCard<Fields: View>(
+        name: String,
+        icon: String,
+        connected: Bool,
+        identifier: String,
+        description: String,
+        status: String,
+        busy: Bool,
+        @ViewBuilder fields: () -> Fields,
+        disconnect: @escaping () -> Void
+    ) -> some View {
+        VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
+            HStack(spacing: PrecisSpacing.sm) {
+                Image(icon)
+                    .resizable().scaledToFit()
+                    .frame(width: 24, height: 24)
+                    .accessibilityHidden(true)
+                Text(name)
+                    .font(PrecisTypography.body.weight(.semibold))
+                    .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
+                Spacer(minLength: 8)
+                HStack(spacing: 5) {
+                    Circle().fill(connected ? Color.green : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.35))
+                        .frame(width: 7, height: 7)
+                    Text(connected ? "Connected" : "Not connected")
+                        .font(PrecisTypography.caption.weight(.medium))
+                }
+                .foregroundStyle(connected ? Color.green : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.65))
+                .fixedSize()
+            }
+
+            if connected {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text("Account")
+                        .font(PrecisTypography.caption)
+                        .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.62))
+                    Text(identifier)
+                        .font(PrecisTypography.body)
+                        .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
+                        .textSelection(.enabled)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                HStack {
+                    Spacer()
+                    Button("Disconnect", action: disconnect)
+                        .buttonStyle(.bordered)
+                        .disabled(busy)
+                }
+            } else {
+                Text(description)
+                    .font(PrecisTypography.caption)
+                    .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.68))
+                fields()
+            }
+
+            if !status.isEmpty {
+                Text(status)
+                    .font(PrecisTypography.caption)
+                    .foregroundStyle(status.localizedCaseInsensitiveContains("failed") ? Color.red : PrecisDesignSystem.marginalia)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(PrecisSpacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(PrecisDesignSystem.foreground(for: colorScheme).opacity(colorScheme == .dark ? 0.08 : 0.035), in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(PrecisDesignSystem.rule(for: colorScheme), lineWidth: 1))
     }
 
     private func settingsTab(for title: String) -> SettingsTab {
