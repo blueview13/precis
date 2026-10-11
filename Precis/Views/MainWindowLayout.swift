@@ -2203,6 +2203,11 @@ struct MainWindowLayout: View {
 
         }
         .background(PrecisDesignSystem.sidebar(for: colorScheme))
+        // Lives on the sidebar sub-expression rather than the window body —
+        // the body's modifier chain is already at the type-checker's limit.
+        .onReceive(NotificationCenter.default.publisher(for: .precisOpenHelp)) { _ in
+            openWindow(id: "help")
+        }
         .sheet(isPresented: $showAddFeedSheet) {
             AddFeedSheet(
                 feedURLInput: $feedURLInput,

@@ -44,6 +44,7 @@ targets:
     resources:
       - path: Precis/Assets.xcassets
         optional: true
+      - path: Precis/Help
     dependencies:
       - package: FeedKit
         product: FeedKit

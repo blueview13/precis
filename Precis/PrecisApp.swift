@@ -41,6 +41,13 @@ struct PrecisApp: App {
             .tint(selectedTheme.accent)
         }
         .defaultSize(width: 480, height: 560)
+
+        Window("Help", id: "help") {
+            HelpWindowView()
+                .preferredColorScheme(selectedTheme.colorScheme)
+                .tint(selectedTheme.accent)
+        }
+        .defaultSize(width: 760, height: 520)
         .commands {
             CommandGroup(after: .newItem) {
                 Button("New Smart Category…") {
@@ -54,6 +61,15 @@ struct PrecisApp: App {
                 }
                 .keyboardShortcut(",", modifiers: .command)
             }
+            // Help > Precis Help (⌘?) opens the Help window instead of the
+            // default help book. Commands have no window environment, so the
+            // main window observes this and opens the scene for us.
+            CommandGroup(replacing: .help) {
+                Button("Precis Help") {
+                    NotificationCenter.default.post(name: .precisOpenHelp, object: nil)
+                }
+                .keyboardShortcut("?", modifiers: .command)
+            }
         }
     }
 }
@@ -62,6 +78,8 @@ extension Notification.Name {
     /// Posted by the app menu's Settings command. The main window observes it
     /// and calls its `openWindow` action (commands have no window environment).
     static let precisOpenSettings = Notification.Name("PrecisOpenSettings")
+    /// Posted by the Help menu command; the main window opens the Help scene.
+    static let precisOpenHelp = Notification.Name("PrecisOpenHelp")
     /// Posted after an OPML import completes in the Settings window so the
     /// main window reloads its sidebar feed list.
     static let precisFeedsImported = Notification.Name("PrecisFeedsImported")
