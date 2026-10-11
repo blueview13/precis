@@ -1,5 +1,4 @@
 import AppKit
-import CoreServices
 
 struct ReadingBrowserOption: Identifiable, Hashable {
     let bundleIdentifier: String
@@ -13,9 +12,12 @@ enum ReadingBrowserService {
     static let preferenceKey = "readingBrowserBundleIdentifier"
     static let systemDefaultIdentifier = "__system_default__"
 
+    /// Representative URL used to query the system for applications registered to open web pages.
+    private static let webURLProbe = URL(string: "https://example.com")!
+
     static var systemDefaultBrowser: ReadingBrowserOption? {
-        guard let bundleIdentifier = LSCopyDefaultHandlerForURLScheme("https" as CFString)?.takeRetainedValue() as String?,
-              let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier),
+        guard let appURL = NSWorkspace.shared.urlForApplication(toOpen: webURLProbe),
+              let bundleIdentifier = Bundle(url: appURL)?.bundleIdentifier,
               let name = appName(at: appURL) else {
             return nil
         }
@@ -23,15 +25,17 @@ enum ReadingBrowserService {
     }
 
     static var installedBrowsers: [ReadingBrowserOption] {
-        let identifiers = (LSCopyAllHandlersForURLScheme("https" as CFString)?.takeRetainedValue() as? [String]) ?? []
-        return identifiers.compactMap { identifier in
-            guard let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: identifier),
-                  let name = appName(at: appURL) else {
-                return nil
+        var seen = Set<String>()
+        return NSWorkspace.shared.urlsForApplications(toOpen: webURLProbe)
+            .compactMap { appURL -> ReadingBrowserOption? in
+                guard let bundleIdentifier = Bundle(url: appURL)?.bundleIdentifier,
+                      seen.insert(bundleIdentifier).inserted,
+                      let name = appName(at: appURL) else {
+                    return nil
+                }
+                return ReadingBrowserOption(bundleIdentifier: bundleIdentifier, name: name)
             }
-            return ReadingBrowserOption(bundleIdentifier: identifier, name: name)
-        }
-        .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
     static func open(_ url: URL) {
