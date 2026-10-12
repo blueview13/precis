@@ -39,6 +39,29 @@ enum NewspaperArticleSelection {
             }
             .sorted { $0.publishedDate > $1.publishedDate }
     }
+
+    /// Visible characters a story must carry to be eligible as the featured
+    /// lead — stricter than the 200-char floor for appearing in the edition.
+    static let featuredMinimumTextLength = 500
+
+    /// Index of the story to feature on the cover. Every included story
+    /// already has a photo, so among those clearing the featured text bar we
+    /// prefer starred, then longer text, then newest. When nothing clears the
+    /// bar, fall back to the newest story so the cover always gets a lead.
+    static func featuredIndex(in stories: [NewspaperPDFService.PreparedStory]) -> Int? {
+        guard !stories.isEmpty else { return nil }
+        let eligible = stories.indices.filter { stories[$0].visibleTextLength > featuredMinimumTextLength }
+        guard !eligible.isEmpty else {
+            return stories.indices.max { stories[$0].publishedDate < stories[$1].publishedDate }
+        }
+        return eligible.max { lhs, rhs in
+            let a = stories[lhs]
+            let b = stories[rhs]
+            if a.isStarred != b.isStarred { return !a.isStarred }
+            if a.visibleTextLength != b.visibleTextLength { return a.visibleTextLength < b.visibleTextLength }
+            return a.publishedDate < b.publishedDate
+        }
+    }
 }
 
 struct NewspaperEdition {
@@ -126,6 +149,7 @@ final class NewspaperPDFService {
         let existingHTML: String?
         let fullContentFetched: Bool
         let imageURL: String?
+        let isStarred: Bool
     }
 
     struct PreparedStory: Sendable {
@@ -136,6 +160,31 @@ final class NewspaperPDFService {
         let publishedDate: Date
         let html: String
         let imageData: Data
+        /// Visible characters in the sanitized body — the featured-lead gate.
+        let visibleTextLength: Int
+        let isStarred: Bool
+
+        init(
+            id: UUID,
+            title: String,
+            author: String?,
+            feedTitle: String,
+            publishedDate: Date,
+            html: String,
+            imageData: Data,
+            visibleTextLength: Int = 0,
+            isStarred: Bool = false
+        ) {
+            self.id = id
+            self.title = title
+            self.author = author
+            self.feedTitle = feedTitle
+            self.publishedDate = publishedDate
+            self.html = html
+            self.imageData = imageData
+            self.visibleTextLength = visibleTextLength
+            self.isStarred = isStarred
+        }
     }
 
     private struct PreparationResult: Sendable {
@@ -167,7 +216,8 @@ final class NewspaperPDFService {
                 articleURL: Self.webURL(record.link),
                 existingHTML: record.contentHTMLText,
                 fullContentFetched: record.fullContentFetched == true,
-                imageURL: record.imageURL
+                imageURL: record.imageURL,
+                isStarred: record.isStarred
             )
         }
         let references = sources.map {
@@ -211,6 +261,10 @@ final class NewspaperPDFService {
         }
         guard !included.isEmpty else {
             throw EditionError.noEligibleArticles(fullText: fullTextExclusions, image: imageExclusions)
+        }
+        if let featured = NewspaperArticleSelection.featuredIndex(in: included) {
+            let lead = included.remove(at: featured)
+            included.insert(lead, at: 0)
         }
 
         // The draw pass reports its own progress and yields between stories so
@@ -278,7 +332,8 @@ final class NewspaperPDFService {
         }
 
         let editionHTML = ArticleHTMLSanitizer.sanitize(html, title: source.title)
-        guard ArticleContentLoader.visibleTextLength(in: editionHTML) >= ArticleContentLoader.minimumArticleText else {
+        let visibleLength = ArticleContentLoader.visibleTextLength(in: editionHTML)
+        guard visibleLength >= ArticleContentLoader.minimumArticleText else {
             return PreparationResult(
                 id: source.id,
                 story: nil,
@@ -310,7 +365,9 @@ final class NewspaperPDFService {
                 feedTitle: source.feedTitle,
                 publishedDate: source.publishedDate,
                 html: editionHTML,
-                imageData: imageData
+                imageData: imageData,
+                visibleTextLength: visibleLength,
+                isStarred: source.isStarred
             ),
             fetchedHTML: fetchedHTML,
             excludedForFullText: false,
@@ -383,6 +440,11 @@ enum NewspaperPDFRenderer {
     private static let headerBottom: CGFloat = 53
     private static let coverContentTop: CGFloat = 603
     private static let coverBodyBottom: CGFloat = 59
+    /// The featured band owns the top 30% of the cover's content area, spanning
+    /// the left and middle columns; the index sits beside it in the right one.
+    private static let coverBandHeight = (coverContentTop - coverBodyBottom) * 0.30
+    private static let coverBandBottom = coverContentTop - coverBandHeight
+    private static let coverBodyTop = coverBandBottom - 16
     private static let mastheadSize: CGFloat = 59
 
     /// Draws the edition. Runs on the main actor because the HTML import used
@@ -426,6 +488,9 @@ enum NewspaperPDFRenderer {
         var pageNumber = 0
         var column = 0
         var cursorY: CGFloat = 0
+        /// Top edge of the current run of columns: below the cover band on
+        /// page 1, below the header on interior pages.
+        var columnTop: CGFloat = 0
 
         func drawPageFooter() {
             drawLine("EDITION  ·  PAGE \(pageNumber)", fontName: bodyFontName, size: 7, bold: false, alignment: .center,
@@ -468,6 +533,7 @@ enum NewspaperPDFRenderer {
             let top = ruleY - 15
             drawColumnRules(top: top, bottom: bodyBottom)
             drawPageFooter()
+            columnTop = top
             cursorY = top
             column = 0
         }
@@ -508,14 +574,14 @@ enum NewspaperPDFRenderer {
             context.addLine(to: CGPoint(x: pageSize.width - pageMargin, y: 620))
             context.strokePath()
 
-            drawColumnRules(top: coverContentTop, bottom: coverBodyBottom)
+            drawColumnRules(top: coverBodyTop, bottom: coverBodyBottom)
             drawPageFooter()
         }
 
         func advanceColumn() {
             if column + 1 < columnCount {
                 column += 1
-                cursorY = pageSize.height - pageMargin - 68
+                cursorY = columnTop
             } else {
                 context.endPDFPage()
                 startInteriorPage()
@@ -531,8 +597,7 @@ enum NewspaperPDFRenderer {
             )
         }
 
-        func printContentsIndex() {
-            let x = pageMargin
+        func printContentsIndex(x: CGFloat, maxBottom: CGFloat) {
             let width = columnWidth
             let ruleY = coverContentTop - 6
             context.setStrokeColor(CGColor(gray: 0, alpha: 1))
@@ -548,7 +613,6 @@ enum NewspaperPDFRenderer {
             context.strokePath()
 
             var y = ruleY - 43
-            let maxBottom = coverBodyBottom + 12
             let maxItems = min(stories.count, 16)
             var printedCount = 0
             for (index, story) in stories.prefix(maxItems).enumerated() {
@@ -584,110 +648,118 @@ enum NewspaperPDFRenderer {
             context.strokePath()
         }
 
-        func drawCoverLead(_ story: NewspaperPDFService.PreparedStory) {
-            let centerX = pageMargin + columnWidth + columnGap
+        func drawCoverFeature(_ story: NewspaperPDFService.PreparedStory) {
+            let blockX = pageMargin + columnWidth + columnGap
             let rightX = pageMargin + 2 * (columnWidth + columnGap)
-            let contentTop = coverContentTop - 7
+
+            // Photo fills the left column of the band, aspect-fit inside its
+            // box so wide or tall crops are letterboxed rather than squashed.
+            let boxHeight = coverBandHeight - 16
+            if let image = halftoneImage(story.imageData) {
+                let aspect = CGFloat(image.height) / CGFloat(image.width)
+                var drawWidth = columnWidth
+                var drawHeight = columnWidth * aspect
+                if drawHeight > boxHeight {
+                    drawHeight = boxHeight
+                    drawWidth = boxHeight / aspect
+                }
+                context.draw(image, in: CGRect(
+                    x: pageMargin + (columnWidth - drawWidth) / 2,
+                    y: coverBandBottom + (coverBandHeight - drawHeight) / 2,
+                    width: drawWidth,
+                    height: drawHeight
+                ))
+            }
+
             drawLine(story.feedTitle.uppercased(), fontName: bodyFontName, size: 7.5, bold: true, alignment: .left,
-                     in: CGRect(x: centerX, y: contentTop - 12, width: columnWidth, height: 10), context: context)
+                     in: CGRect(x: blockX, y: coverContentTop - 12, width: columnWidth, height: 10), context: context)
+            context.setStrokeColor(CGColor(gray: 0, alpha: 1))
             context.setLineWidth(0.8)
-            context.move(to: CGPoint(x: centerX, y: contentTop - 17))
-            context.addLine(to: CGPoint(x: centerX + columnWidth, y: contentTop - 17))
+            context.move(to: CGPoint(x: blockX, y: coverContentTop - 17))
+            context.addLine(to: CGPoint(x: blockX + columnWidth, y: coverContentTop - 17))
             context.strokePath()
 
+            let fullBody = bodyText(from: story.html)
             let byline = story.author?.trimmingCharacters(in: .whitespacesAndNewlines)
             let meta = [byline, story.publishedDate.formatted(date: .abbreviated, time: .omitted)]
                 .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: "  ·  ")
 
-            var titleSize: CGFloat = 29
+            let deck = attributed(deckText(from: fullBody), fontName: bodyFontName, size: 9, bold: false,
+                                  italic: true, alignment: .left, paragraphSpacing: 0)
+            let deckHeight = deck.length > 0 ? measuredHeight(of: deck, width: columnWidth) : 0
+            let metaHeight: CGFloat = meta.isEmpty ? 0 : 12
+            let titleTop = coverContentTop - 25
+            let maxTitleHeight = max(44, titleTop - (coverBandBottom + 8) - metaHeight - deckHeight - 6)
+
+            var titleSize: CGFloat = 26
             var title = attributed(story.title, fontName: headingFontName, size: titleSize, bold: true,
                                    alignment: .left, paragraphSpacing: 0)
-            let titleTop = contentTop - 25
-            let maxTitleHeight: CGFloat = 286
             while measuredHeight(of: title, width: columnWidth) > maxTitleHeight, titleSize > 17 {
                 titleSize -= 1
                 title = attributed(story.title, fontName: headingFontName, size: titleSize, bold: true,
                                    alignment: .left, paragraphSpacing: 0)
             }
             let titleHeight = min(maxTitleHeight, measuredHeight(of: title, width: columnWidth))
-            _ = drawWrappedText(title, x: centerX, top: titleTop, width: columnWidth,
+            _ = drawWrappedText(title, x: blockX, top: titleTop, width: columnWidth,
                                 maximumHeight: titleHeight, context: context)
 
-            var imageTop = titleTop - titleHeight - 8
+            var y = titleTop - titleHeight - 4
             if !meta.isEmpty {
                 drawLine(meta, fontName: bodyFontName, size: 7, bold: false, alignment: .left,
-                         in: CGRect(x: centerX, y: imageTop - 10, width: columnWidth, height: 10), context: context)
-                imageTop -= 17
+                         in: CGRect(x: blockX, y: y - 10, width: columnWidth, height: 10), context: context)
+                y -= 14
             }
-            let image = halftoneImage(story.imageData)
-            if let image, imageTop - coverBodyBottom > 55 {
-                let aspect = CGFloat(image.height) / CGFloat(image.width)
-                let imageHeight = min(columnWidth * aspect, 112, imageTop - coverBodyBottom - 20)
-                context.draw(image, in: CGRect(x: centerX, y: imageTop - imageHeight,
-                                               width: columnWidth, height: imageHeight))
-                imageTop -= imageHeight + 8
+            if deck.length > 0, y - deckHeight >= coverBandBottom + 6 {
+                _ = drawWrappedText(deck, x: blockX, top: y, width: columnWidth,
+                                    maximumHeight: deckHeight, context: context)
             }
-            context.setLineWidth(0.55)
-            context.move(to: CGPoint(x: centerX, y: imageTop))
-            context.addLine(to: CGPoint(x: centerX + columnWidth, y: imageTop))
+
+            context.setLineWidth(0.8)
+            context.move(to: CGPoint(x: pageMargin, y: coverBandBottom))
+            context.addLine(to: CGPoint(x: blockX + columnWidth, y: coverBandBottom))
+            context.strokePath()
+            context.move(to: CGPoint(x: rightX, y: coverBandBottom))
+            context.addLine(to: CGPoint(x: pageSize.width - pageMargin, y: coverBandBottom))
             context.strokePath()
 
-            let body = attributed(bodyText(from: story.html), fontName: bodyFontName, size: bodyFontSize,
-                                 bold: false, alignment: .justified, paragraphSpacing: 3)
-            let bodyTop = contentTop - (meta.isEmpty ? 2 : 17)
-            drawLine(meta.isEmpty ? "LEAD STORY" : meta, fontName: bodyFontName, size: 7, bold: false,
-                     alignment: .left,
-                     in: CGRect(x: rightX, y: bodyTop - 10, width: columnWidth, height: 10), context: context)
-            context.setLineWidth(0.5)
-            context.move(to: CGPoint(x: rightX, y: bodyTop - 13))
-            context.addLine(to: CGPoint(x: rightX + columnWidth, y: bodyTop - 13))
-            context.strokePath()
-
-            let storyTextTop = bodyTop - 20
-            let storyRect = CGRect(x: rightX, y: coverBodyBottom + 5, width: columnWidth,
-                                   height: storyTextTop - coverBodyBottom - 5)
+            // The lead body runs across all three columns below the band.
+            column = 0
+            columnTop = coverBodyTop
+            cursorY = coverBodyTop
+            let body = attributed(fullBody, fontName: bodyFontName, size: bodyFontSize,
+                                  bold: false, alignment: .justified, paragraphSpacing: 3)
             let framesetter = CTFramesetterCreateWithAttributedString(body)
-            let frame = CTFramesetterCreateFrame(framesetter, CFRange(location: 0, length: 0),
-                                                 CGPath(rect: storyRect, transform: nil), nil)
-            CTFrameDraw(frame, context)
-            let visibleRange = CTFrameGetVisibleStringRange(frame)
-            var offset = visibleRange.location + visibleRange.length
-            if offset < body.length {
-                context.endPDFPage()
-                startInteriorPage()
-                while offset < body.length {
-                    let rect = columnRect()
-                    let nextFrame = CTFramesetterCreateFrame(
-                        framesetter,
-                        CFRange(location: offset, length: 0),
-                        CGPath(rect: rect, transform: nil),
-                        nil
-                    )
-                    let range = CTFrameGetVisibleStringRange(nextFrame)
-                    guard range.length > 0 else {
-                        advanceColumn()
-                        continue
-                    }
-                    CTFrameDraw(nextFrame, context)
-                    offset = range.location + range.length
-                    if offset < body.length {
-                        advanceColumn()
-                    } else {
-                        cursorY = max(bodyBottom, cursorY - occupiedHeight(of: nextFrame) - 8)
-                    }
+            var offset = 0
+            while offset < body.length {
+                let rect = columnRect()
+                guard rect.height > 10 else {
+                    advanceColumn()
+                    continue
                 }
-            } else {
-                cursorY = max(bodyBottom, storyTextTop - occupiedHeight(of: frame) - 8)
+                let frame = CTFramesetterCreateFrame(framesetter, CFRange(location: offset, length: 0),
+                                                     CGPath(rect: rect, transform: nil), nil)
+                let range = CTFrameGetVisibleStringRange(frame)
+                guard range.length > 0 else {
+                    advanceColumn()
+                    continue
+                }
+                CTFrameDraw(frame, context)
+                offset = range.location + range.length
+                if offset < body.length {
+                    advanceColumn()
+                } else {
+                    cursorY = max(bodyBottom, cursorY - occupiedHeight(of: frame) - 8)
+                }
             }
         }
 
         await reportProgress(0)
 
         startCoverPage()
-        printContentsIndex()
+        printContentsIndex(x: pageMargin + 2 * (columnWidth + columnGap), maxBottom: coverBandBottom + 7)
         let remainingStories: ArraySlice<NewspaperPDFService.PreparedStory>
         if let lead = stories.first {
-            drawCoverLead(lead)
+            drawCoverFeature(lead)
             remainingStories = stories.dropFirst()
             if !remainingStories.isEmpty {
                 context.endPDFPage()
@@ -901,15 +973,35 @@ enum NewspaperPDFRenderer {
         return lines.joined(separator: "\n\n")
     }
 
+    /// First sentence of the body, used as the band's standfirst.
+    private static func deckText(from body: String) -> String {
+        let text = body.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard text.count > 40 else { return "" }
+        let head = String(text.prefix(240))
+        let endings = [". ", "? ", "! ", "\n"]
+        if let cut = endings.compactMap({ head.range(of: $0)?.lowerBound }).min(),
+           String(head[..<cut]).count >= 40 {
+            let sentence = String(head[..<cut]).trimmingCharacters(in: .whitespaces)
+            return head[cut] == "\n" ? sentence : sentence + String(head[cut])
+        }
+        let truncated = String(head.prefix(160))
+        if let lastSpace = truncated.lastIndex(of: " ") {
+            return String(truncated[..<lastSpace]) + "…"
+        }
+        return truncated + "…"
+    }
+
     private static func attributed(
         _ text: String,
         fontName: String,
         size: CGFloat,
         bold: Bool,
+        italic: Bool = false,
         alignment: NSTextAlignment,
         paragraphSpacing: CGFloat
     ) -> NSAttributedString {
-        let font = NSFont(name: fontName + (bold ? "-Bold" : ""), size: size)
+        let suffix = bold ? "-Bold" : italic ? "-Italic" : ""
+        let font = NSFont(name: fontName + suffix, size: size)
             ?? NSFont(name: fontName, size: size)
             ?? NSFont(name: "Georgia", size: size)
             ?? NSFont.systemFont(ofSize: size, weight: bold ? .bold : .regular)

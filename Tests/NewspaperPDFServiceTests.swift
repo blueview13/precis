@@ -430,6 +430,113 @@ final class NewspaperPDFServiceTests: XCTestCase {
         XCTAssertEqual(lockup.wordOrigin.y, 674, accuracy: 0.001)
     }
 
+    func testFeaturedSelectionPrefersStarredStoryOverNewerOne() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let stories = [
+            featuredStory(title: "Newest", published: now, textLength: 700),
+            featuredStory(title: "Starred", published: now.addingTimeInterval(-3_600), starred: true, textLength: 600)
+        ]
+
+        XCTAssertEqual(NewspaperArticleSelection.featuredIndex(in: stories), 1)
+    }
+
+    func testFeaturedSelectionPrefersLongerStoryWhenNoneAreStarred() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let stories = [
+            featuredStory(title: "Shorter", published: now, textLength: 600),
+            featuredStory(title: "Longer", published: now.addingTimeInterval(-3_600), textLength: 1_800)
+        ]
+
+        XCTAssertEqual(NewspaperArticleSelection.featuredIndex(in: stories), 1)
+    }
+
+    func testFeaturedSelectionRequiresMoreThanFiveHundredVisibleCharacters() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let stories = [
+            featuredStory(title: "At threshold", published: now, textLength: 500),
+            featuredStory(title: "Above threshold", published: now.addingTimeInterval(-3_600), textLength: 501)
+        ]
+
+        XCTAssertEqual(NewspaperArticleSelection.featuredIndex(in: stories), 1)
+    }
+
+    func testFeaturedSelectionFallsBackToNewestWhenNothingClearsTheBar() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let stories = [
+            featuredStory(title: "Older and longer", published: now.addingTimeInterval(-3_600), starred: true, textLength: 450),
+            featuredStory(title: "Newer and shorter", published: now, textLength: 210)
+        ]
+
+        XCTAssertEqual(NewspaperArticleSelection.featuredIndex(in: stories), 1)
+    }
+
+    func testFeaturedSelectionReturnsNilWithoutStories() {
+        XCTAssertNil(NewspaperArticleSelection.featuredIndex(in: []))
+    }
+
+    /// The band owns the top 30% of the cover across the left and middle
+    /// columns; the index sits beside it, and the lead body starts below both.
+    @MainActor
+    func testCoverFeatureKeepsHeadlineInTopBandAndIndexBesideIt() async throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let story = NewspaperPDFService.PreparedStory(
+            id: UUID(),
+            title: "FEATURED BAND MARKER",
+            author: "Cover Reporter",
+            feedTitle: "The Daily Feed",
+            publishedDate: now,
+            html: "<p>BELOW BAND MARKER. \(String(repeating: "The story continues with additional detail. ", count: 80))</p>",
+            imageData: try onePixelPNG(),
+            visibleTextLength: 4_000
+        )
+
+        let data = try await NewspaperPDFRenderer.render(stories: [story], scopeTitle: "Technology", issueDate: now)
+        let document = try XCTUnwrap(PDFDocument(data: data))
+        let page = try XCTUnwrap(document.page(at: 0))
+        let text = try XCTUnwrap(page.string) as NSString
+
+        let titleRange = text.range(of: "FEATURED")
+        XCTAssertNotEqual(titleRange.location, NSNotFound)
+        let afterTitle = NSRange(location: titleRange.location + titleRange.length,
+                                 length: text.length - titleRange.location - titleRange.length)
+        let secondRange = text.range(of: "FEATURED", options: [], range: afterTitle)
+        XCTAssertNotEqual(secondRange.location, NSNotFound,
+                          "The title must appear in the index and again in the band.")
+
+        let firstBounds = try XCTUnwrap(page.selection(for: titleRange)?.bounds(for: page))
+        let secondBounds = try XCTUnwrap(page.selection(for: secondRange)?.bounds(for: page))
+        let bandBounds = firstBounds.minX < 400 ? firstBounds : secondBounds
+        let indexBounds = firstBounds.minX < 400 ? secondBounds : firstBounds
+
+        XCTAssertGreaterThan(bandBounds.minY, 430, "The featured headline must sit in the top band.")
+        XCTAssertLessThan(bandBounds.maxY, 610, "The featured headline must stay below the masthead.")
+        XCTAssertLessThan(bandBounds.maxX, 400, "The band must not reach into the index column.")
+        XCTAssertGreaterThan(indexBounds.minX, 400, "The index belongs beside the band in the right column.")
+
+        let bodyRange = text.range(of: "BELOW BAND MARKER")
+        let bodyBounds = try XCTUnwrap(page.selection(for: bodyRange)?.bounds(for: page))
+        XCTAssertLessThan(bodyBounds.maxY, 435, "The lead body must start below the band.")
+    }
+
+    private func featuredStory(
+        title: String,
+        published: Date,
+        starred: Bool = false,
+        textLength: Int = 600
+    ) -> NewspaperPDFService.PreparedStory {
+        NewspaperPDFService.PreparedStory(
+            id: UUID(),
+            title: title,
+            author: nil,
+            feedTitle: "The Test Gazette",
+            publishedDate: published,
+            html: "<p>Body text.</p>",
+            imageData: Data(),
+            visibleTextLength: textLength,
+            isStarred: starred
+        )
+    }
+
     private func onePixelPNG() throws -> Data {
         let output = NSMutableData()
         let colorSpace = CGColorSpaceCreateDeviceRGB()

@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<!--
+  PROTOTYPE — throwaway. Three variants of the Precis newspaper PDF cover page,
+  switchable via #variant= (or ?variant=) : A classic split, B banner+strip,
+  C hero photo. Draws at exact PDF geometry (612x792pt, 34pt margin, 3 cols).
+  Question being answered: what should the featured lead band + page-1 cover
+  layout look like? Not production code — fold the winner into
+  Precis/Services/NewspaperPDFService.swift, then bin this file.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PROTOTYPE — Precis newspaper cover variants</title>
+<style>
+  :root { --s: 1; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: #37373a;
+    font-family: system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  #caption {
+    color: #d6d6d6;
+    text-align: center;
+    font-size: 13px;
+    padding: 14px 16px 4px;
+    min-height: 40px;
+  }
+  #caption .tag { color: #ff6b6b; font-weight: 700; letter-spacing: .08em; }
+  #stage { display: flex; justify-content: center; }
+  #pagewrap { position: relative; }
+  .page {
+    position: absolute;
+    top: 0; left: 0;
+    width: 612pt;
+    height: 792pt;
+    background: #fff;
+    color: #111;
+    transform-origin: top left;
+    font-family: Baskerville, Georgia, serif;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,.55);
+  }
+  .abs { position: absolute; }
+
+  /* ---- shared cover frame (invariant across variants) ---- */
+  #toptag {
+    left: 6pt; top: 5pt; font: 700 6pt system-ui, sans-serif;
+    color: #d33; letter-spacing: .12em;
+  }
+  .rule { position: absolute; background: #111; }
+  #dateline-l { left: 34pt; top: 36pt; width: 200pt; font-size: 8pt; font-weight: bold; letter-spacing: .04em; }
+  #dateline-c { left: 156pt; top: 37pt; width: 300pt; text-align: center; font-size: 7.5pt; letter-spacing: .06em; }
+  #dateline-r { right: 34pt; top: 37pt; width: 200pt; text-align: right; font-size: 7.5pt; font-weight: bold; letter-spacing: .04em; }
+  #masthead {
+    left: 34pt; top: 50pt; width: 544pt; height: 75pt;
+    display: flex; align-items: center; justify-content: center; gap: 10pt;
+  }
+  #masthead .word { font-size: 59pt; font-weight: bold; letter-spacing: .02em; line-height: 1; }
+  #masthead svg { width: 44pt; height: 44pt; }
+  #scopeline { left: 34pt; top: 146pt; width: 544pt; text-align: center; font-size: 9pt; font-weight: bold; letter-spacing: .1em; }
+  #footer { left: 34pt; top: 747pt; width: 544pt; text-align: center; font-size: 7pt; letter-spacing: .18em; color: #333; }
+
+  /* ---- shared atoms ---- */
+  .kicker { font-size: 7.5pt; font-weight: bold; letter-spacing: .09em; text-transform: uppercase; }
+  .byline { font-size: 7pt; color: #333; }
+  .deck { font-size: 9pt; font-style: italic; line-height: 1.25; color: #222; }
+  .bodytext {
+    font-size: 9pt; line-height: 1.18; text-align: justify;
+    hyphens: auto; overflow: hidden;
+  }
+  .bodytext p { margin: 0 0 6pt 0; text-indent: 1.2em; }
+  .bodytext p:first-child { text-indent: 0; }
+  .photo {
+    background:
+      linear-gradient(135deg, rgba(255,255,255,.25), rgba(0,0,0,.18)),
+      repeating-radial-gradient(circle at 1.5px 1.5px, #4a4a4a 0 .8px, #e4e4e4 .9px 3px);
+    background-color: #cfcfcf;
+    outline: .5pt solid #999;
+    position: relative;
+  }
+  .photo::after {
+    content: "PHOTO";
+    position: absolute; right: 3pt; bottom: 2pt;
+    font: 700 5.5pt system-ui, sans-serif; letter-spacing: .15em;
+    color: rgba(0,0,0,.45);
+  }
+
+  /* ---- index (IN THIS EDITION) ---- */
+  .index-head { text-align: center; }
+  .index-head .t { font-size: 11pt; font-weight: bold; letter-spacing: .06em; }
+  .idx-feed { font-size: 6.5pt; letter-spacing: .08em; color: #444; margin-top: 5pt; }
+  .idx-title { font-size: 8pt; line-height: 1.12; margin-top: 1pt; }
+  .idx-title.lead { font-size: 9pt; font-weight: bold; }
+  .idx-more { font-size: 6.5pt; font-weight: bold; letter-spacing: .06em; margin-top: 6pt; }
+
+  /* ---- variants ---- */
+  .variant { display: none; }
+  .variant.on { display: block; }
+
+  /* A — Classic split: headline left / photo right inside the band,
+     full-height index in the right column, body below band in 2 columns. */
+  #va .band { position: absolute; left: 34pt; top: 189pt; width: 357.33pt; height: 163.2pt; }
+  #va .headline { position: absolute; left: 0; top: 16pt; width: 170.67pt; font-size: 19pt; font-weight: bold; line-height: 1.06; }
+  #va .photo { position: absolute; left: 186.67pt; top: 17.6pt; width: 170.67pt; height: 128pt; }
+  #va .band .byline { position: absolute; left: 0; top: 148pt; width: 170.67pt; }
+  #va .idx { position: absolute; left: 407.33pt; top: 189pt; width: 170.67pt; height: 544pt; }
+  #va .bodycols { position: absolute; left: 34pt; top: 362pt; width: 357.33pt; height: 371pt;
+                  column-count: 2; column-gap: 16pt; column-rule: .45pt solid #777; column-fill: auto; }
+
+  /* B — Banner + strip: full-band-width kicker/headline/byline over a wide
+     photo strip; right column index full height; below the band two secondary
+     stories instead of lead text (lead body jumps to page 2). */
+  #vb .band { position: absolute; left: 34pt; top: 189pt; width: 357.33pt; height: 163.2pt; }
+  #vb .headline { position: absolute; left: 0; top: 15pt; width: 357.33pt; font-size: 26pt; font-weight: bold; line-height: 1.04; }
+  #vb .byline { position: absolute; left: 0; top: 102pt; width: 357.33pt; }
+  #vb .photo { position: absolute; left: 0; top: 117pt; width: 357.33pt; height: 46pt; }
+  #vb .jump { position: absolute; left: 34pt; top: 357pt; width: 357.33pt; text-align: center;
+              font-size: 7.5pt; font-style: italic; letter-spacing: .08em; color: #333; }
+  #vb .idx { position: absolute; left: 407.33pt; top: 189pt; width: 170.67pt; height: 544pt; }
+  #vb .sec { position: absolute; top: 374pt; width: 170.67pt; height: 359pt; }
+  #vb .sec1 { left: 34pt; }
+  #vb .sec2 { left: 220.67pt; }
+  #vb .sec .headline2 { font-size: 14pt; font-weight: bold; line-height: 1.08; margin-top: 4pt; }
+  #vb .sec .photo { position: relative; width: 170.67pt; height: 96pt; margin-top: 6pt; }
+  #vb .sec .snip { font-size: 8.5pt; line-height: 1.2; text-align: justify; margin-top: 6pt; }
+
+  /* C — Hero photo: photo left inside the band, headline+deck right; compact
+     index box in the right column beside the band; body below band across
+     all three columns. */
+  #vc .band { position: absolute; left: 34pt; top: 189pt; width: 357.33pt; height: 163.2pt; }
+  #vc .photo { position: absolute; left: 0; top: 17.6pt; width: 170.67pt; height: 128pt; }
+  #vc .headline { position: absolute; left: 186.67pt; top: 16pt; width: 170.67pt; font-size: 18pt; font-weight: bold; line-height: 1.06; }
+  #vc .byline { position: absolute; left: 186.67pt; top: 110pt; width: 170.67pt; }
+  #vc .deck { position: absolute; left: 186.67pt; top: 122pt; width: 170.67pt; }
+  #vc .idx { position: absolute; left: 407.33pt; top: 189pt; width: 170.67pt; height: 163.2pt; overflow: hidden; }
+  #vc .bodycols { position: absolute; left: 34pt; top: 368pt; width: 544pt; height: 365pt;
+                  column-count: 3; column-gap: 16pt; column-rule: .45pt solid #777; column-fill: auto; }
+
+  /* ---- guides ---- */
+  #guides { display: none; position: absolute; inset: 0; pointer-events: none; font-family: ui-monospace, monospace; }
+  .page.guides #guides { display: block; }
+  .gline { position: absolute; border: 0; border-top: 1pt dashed #00b8d4; left: 0; width: 612pt; }
+  .gline.bottom { border-top-color: #ff2d78; }
+  .glabel { position: absolute; font-size: 6.5pt; color: #00b8d4; background: rgba(255,255,255,.85); padding: 0 2pt; }
+  .glabel.bottom { color: #ff2d78; }
+  .gcol { position: absolute; width: 0; border-left: .75pt dashed rgba(255,45,120,.65); top: 189pt; height: 544pt; }
+  .gframe { position: absolute; left: 34pt; top: 189pt; width: 544pt; height: 544pt; border: .75pt dashed rgba(0,184,212,.7); }
+
+  /* ---- switcher ---- */
+  #bar {
+    position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 10px;
+    background: #111; color: #fff; border-radius: 999px;
+    padding: 8px 12px; font-size: 13px;
+    box-shadow: 0 6px 24px rgba(0,0,0,.6);
+    z-index: 10;
+  }
+  #bar button {
+    background: #2c2c2e; color: #fff; border: 0; border-radius: 999px;
+    min-width: 40px; height: 30px; font-size: 15px; cursor: pointer;
+  }
+  #bar button:hover { background: #48484a; }
+  #bar .label { min-width: 210px; text-align: center; font-weight: 600; }
+  #bar .sep { width: 1px; height: 22px; background: #444; }
+  #bar button.toggled { background: #00b8d4; color: #00343d; }
+</style>
+</head>
+<body>
+
+<div id="caption"></div>
+
+<div id="stage">
+  <div id="pagewrap">
+    <div class="page" id="page">
+
+      <!-- shared cover frame -->
+      <div class="abs" id="toptag">PROTOTYPE — NOT FINAL</div>
+      <div class="rule" style="left:34pt; top:30pt; width:544pt; height:2.2pt;"></div>
+      <div class="abs" id="dateline-l">SATURDAY, OCTOBER 12, 2026</div>
+      <div class="abs" id="dateline-c">A DAILY EDITION FROM YOUR FEEDS</div>
+      <div class="abs" id="dateline-r">NO. 001&nbsp;&nbsp;·&nbsp;&nbsp;THE CITY</div>
+      <div class="abs" id="masthead">
+        <svg viewBox="0 0 44 44" aria-hidden="true">
+          <rect x="2" y="6" width="40" height="32" rx="2" fill="#111"/>
+          <rect x="6" y="10" width="16" height="12" fill="#fff"/>
+          <rect x="26" y="10" width="12" height="2.5" fill="#fff"/>
+          <rect x="26" y="15" width="12" height="2.5" fill="#fff"/>
+          <rect x="26" y="20" width="12" height="2.5" fill="#fff"/>
+          <rect x="6" y="26" width="32" height="2.5" fill="#fff"/>
+          <rect x="6" y="31" width="32" height="2.5" fill="#fff"/>
+        </svg>
+        <span class="word">PRECIS</span>
+      </div>
+      <div class="rule" style="left:34pt; top:132pt; width:544pt; height:1.35pt;"></div>
+      <div class="rule" style="left:34pt; top:138pt; width:544pt; height:.55pt;"></div>
+      <div class="abs" id="scopeline">THE CITY&nbsp;&nbsp;·&nbsp;&nbsp;THE LAST 24 HOURS</div>
+      <div class="rule" style="left:34pt; top:172pt; width:544pt; height:1.2pt;"></div>
+      <div class="abs" id="footer">EDITION&nbsp;&nbsp;·&nbsp;&nbsp;PAGE 1</div>
+
+      <!-- ================= VARIANT A ================= -->
+      <div class="variant" id="va">
+        <div class="band">
+          <div class="kicker" style="position:absolute; left:0; top:0; width:170.67pt; padding-bottom:3pt; border-bottom:.8pt solid #111;">The Daily Ledger</div>
+          <div class="headline">City Council Approves $2.4 Billion Riverfront Transit Plan After Marathon Session</div>
+          <div class="byline">By Elena Marsh&nbsp;&nbsp;·&nbsp;&nbsp;Oct 12</div>
+          <div class="photo"></div>
+        </div>
+        <div class="rule" style="left:34pt; top:352.2pt; width:357.33pt; height:.8pt;"></div>
+
+        <div class="idx">
+          <div class="index-head">
+            <div class="rule" style="position:relative; left:0; top:0; width:170.67pt; height:1.2pt;"></div>
+            <div class="t" style="margin-top:8pt;">IN THIS EDITION</div>
+            <div class="rule" style="position:relative; left:0; top:6pt; width:170.67pt; height:.7pt;"></div>
+          </div>
+          <div class="idx-feed" style="margin-top:14pt;">THE DAILY LEDGER</div>
+          <div class="idx-title lead">City Council Approves $2.4 Billion Riverfront Transit Plan</div>
+          <div class="idx-feed">HARBOR TIMES</div><div class="idx-title">Port Authority Reports Record Cargo Quarter</div>
+          <div class="idx-feed">THE DAILY LEDGER</div><div class="idx-title">Storm System Pushes Coastal Flood Watch Into Wednesday</div>
+          <div class="idx-feed">HARBOR TIMES</div><div class="idx-title">The Quiet Comeback of the Neighborhood Cinema</div>
+          <div class="idx-feed">SPORTING LIFE</div><div class="idx-title">Late Rally Sends Harbor United Into the Final</div>
+          <div class="idx-feed">TECH WEEKLY</div><div class="idx-title">Chip Plant Approval Clears Last Regulatory Hurdle</div>
+          <div class="idx-feed">THE DAILY LEDGER</div><div class="idx-title">School Board Revises Calendar After Staffing Vote</div>
+          <div class="idx-feed">HARBOR TIMES</div><div class="idx-title">Regional Hospital Opens New Children's Wing</div>
+          <div class="idx-feed">THE DAILY LEDGER</div><div class="idx-title">The Case for Slower, Denser Growth</div>
+          <div class="idx-feed">MARKET WATCH</div><div class="idx-title">Local Grocer Chain Acquires Rival's Stores</div>
+          <div class="idx-feed">WORLD DESK</div><div class="idx-title">Neighbors Summit Ends With Water Accord</div>
+          <div class="idx-feed">HARBOR TIMES</div><div class="idx-title">Ten Tables Worth the Wait This Autumn</div>
+          <div class="idx-more">AND 4 MORE STORIES</div>
+        </div>
+
+        <div class="bodycols bodytext">
+          <p>The City Council voted 9 to 4 early Tuesday morning to approve a sweeping $2.4 billion transit plan that will extend the light-rail line along the riverfront, build three new stations, and reshape waterfront development for a generation. The decision, reached after nearly seven hours of public comment, ends eighteen months of bitter debate between neighborhood groups, business owners, and transit advocates.</p>
+          <p>Under the agreement, construction will begin next spring on the first phase of the extension, connecting the existing terminus at Harbor Street to the renovated Union Pier. Officials estimate the segment will carry 42,000 riders a day by its second year of operation, roughly triple the bus ridership it replaces. A second phase, still unfunded, would push the line north into the industrial district.</p>
+          <p>Opponents argued the project's cost had ballooned beyond what taxpayers were promised when the measure first appeared on the ballot. "We are being asked to mortgage the next thirty years for a line that serves a fraction of the city," said Council member Priya Raman, who voted against the plan. Supporters countered that delays have only made the project more expensive, and that federal matching funds will lapse if the city waits another year.</p>
+          <p>Construction impacts are expected to begin downtown within weeks, with lane closures on two major corridors. The transit authority said it will publish a mitigation plan by the end of the month, including shuttle service and small-business grants for merchants along the route.</p>
+        </div>
+      </div>
+
+      <!-- ================= VARIANT B ================= -->
+      <div class="variant" id="vb">
+        <div class="band">
+          <div class="kicker" style="position:absolute; left:0; top:0; width:357.33pt; padding-bottom:3pt; border-bottom:.8pt solid #111;">The Daily Ledger</div>
+          <div class="headline">City Council Approves $2.4 Billion Riverfront Transit Plan After Marathon Session</div>
+          <div class="byline">By Elena Marsh&nbsp;&nbsp;·&nbsp;&nbsp;Oct 12</div>
+          <div class="photo"></div>
+        </div>
+        <div class="rule" style="left:34pt; top:352.2pt; width:357.33pt; height:.8pt;"></div>
+        <div class="jump">LEAD STORY CONTINUES ON PAGE 2 →</div>
+
+        <div class="idx">
+          <div class="index-head">
+            <div class="rule" style="position:relative; left:0; top:0; width:170.67pt; height:1.2pt;"></div>
+            <div class="t" style="margin-top:8pt;">IN THIS EDITION</div>
+            <div class="rule" style="position:relative; left:0; top:6pt; width:170.67pt; height:.7pt;"></div>
+          </div>
+          <div class="idx-feed" style="margin-top:14pt;">THE DAILY LEDGER</div>
+          <div class="idx-title lead">City Council Approves $2.4 Billion Riverfront Transit Plan</div>
+          <div class="idx-feed">HARBOR TIMES</div><div class="idx-title">Port Authority Reports Record Cargo Quarter</div>
+          <div class="idx-feed">THE DAILY LEDGER</div><div class="idx-title">Storm System Pushes Coastal Flood Watch Into Wednesday</div>
+          <div class="idx-feed">HARBOR TIMES</div><div class="idx-title">The Quiet Comeback of the Neighborhood Cinema</div>
+          <div class="idx-feed">SPORTING LIFE</div><div class="idx-title">Late Rally Sends Harbor United Into the Final</div>
+          <div class="idx-feed">TECH WEEKLY</div><div class="idx-title">Chip Plant Approval Clears Last Regulatory Hurdle</div>
+          <div class="idx-feed">THE DAILY LEDGER</div><div class="idx-title">School Board Revises Calendar After Staffing Vote</div>
+          <div class="idx-feed">HARBOR TIMES</div><div class="idx-title">Regional Hospital Opens New Children's Wing</div>
+          <div class="idx-feed">THE DAILY LEDGER</div><div class="idx-title">The Case for Slower, Denser Growth</div>
+          <div class="idx-feed">MARKET WATCH</div><div class="idx-title">Local Grocer Chain Acquires Rival's Stores</div>
+          <div class="idx-feed">WORLD DESK</div><div class="idx-title">Neighbors Summit Ends With Water Accord</div>
+          <div class="idx-feed">HARBOR TIMES</div><div class="idx-title">Ten Tables Worth the Wait This Autumn</div>
+          <div class="idx-more">AND 4 MORE STORIES</div>
+        </div>
+
+        <div class="sec sec1">
+          <div class="kicker" style="padding-bottom:3pt; border-bottom:.8pt solid #111;">Harbor Times</div>
+          <div class="headline2">Port Authority Reports Record Cargo Quarter</div>
+          <div class="photo"></div>
+          <div class="snip">Container traffic through the renovated terminal rose 14 percent over the past three months, officials said, marking the strongest quarter since the pier reopened. Growth was driven by a single new shipping route and by warehouses that stayed open later to clear backlogs.</div>
+        </div>
+        <div class="sec sec2">
+          <div class="kicker" style="padding-bottom:3pt; border-bottom:.8pt solid #111;">The Daily Ledger</div>
+          <div class="headline2">Storm System Pushes Coastal Flood Watch Into Wednesday</div>
+          <div class="photo"></div>
+          <div class="snip">A slow-moving storm offshore has extended a coastal flood watch through Wednesday morning, with the highest tides expected before dawn. Residents in low-lying blocks were advised to move vehicles to higher ground and to allow extra travel time along the seawall.</div>
+        </div>
+      </div>
+
+      <!-- ================= VARIANT C ================= -->
+      <div class="variant" id="vc">
+        <div class="band">
+          <div class="photo"></div>
+          <div class="kicker" style="position:absolute; left:186.67pt; top:0; width:170.67pt; padding-bottom:3pt; border-bottom:.8pt solid #111;">The Daily Ledger</div>
+          <div class="headline">City Council Approves $2.4 Billion Riverfront Transit Plan</div>
+          <div class="byline">By Elena Marsh&nbsp;&nbsp;·&nbsp;&nbsp;Oct 12</div>
+          <div class="deck">The vote came just before midnight, ending eighteen months of debate over the light-rail extension.</div>
+        </div>
+        <div class="rule" style="left:34pt; top:352.2pt; width:357.33pt; height:.8pt;"></div>
+
+        <div class="idx">
+          <div class="index-head">
+            <div class="rule" style="position:relative; left:0; top:0; width:170.67pt; height:1.2pt;"></div>
+            <div class="t" style="margin-top:6pt;">IN THIS EDITION</div>
+            <div class="rule" style="position:relative; left:0; top:5pt; width:170.67pt; height:.7pt;"></div>
+          </div>
+          <div class="idx-feed" style="margin-top:8pt;">THE DAILY LEDGER</div>
+          <div class="idx-title lead">City Council Approves $2.4 Billion Riverfront Transit Plan</div>
+          <div class="idx-feed">HARBOR TIMES</div><div class="idx-title">Port Authority Reports Record Cargo Quarter</div>
+          <div class="idx-feed">THE DAILY LEDGER</div><div class="idx-title">Storm System Pushes Coastal Flood Watch Into Wednesday</div>
+          <div class="idx-feed">HARBOR TIMES</div><div class="idx-title">The Quiet Comeback of the Neighborhood Cinema</div>
+          <div class="idx-more">AND 12 MORE STORIES</div>
+        </div>
+        <div class="rule" style="left:407.33pt; top:352.2pt; width:170.67pt; height:.8pt;"></div>
+
+        <div class="bodycols bodytext">
+          <p>The City Council voted 9 to 4 early Tuesday morning to approve a sweeping $2.4 billion transit plan that will extend the light-rail line along the riverfront, build three new stations, and reshape waterfront development for a generation. The decision, reached after nearly seven hours of public comment, ends eighteen months of bitter debate between neighborhood groups, business owners, and transit advocates.</p>
+          <p>Under the agreement, construction will begin next spring on the first phase of the extension, connecting the existing terminus at Harbor Street to the renovated Union Pier. Officials estimate the segment will carry 42,000 riders a day by its second year of operation, roughly triple the bus ridership it replaces. A second phase, still unfunded, would push the line north into the industrial district.</p>
+          <p>Opponents argued the project's cost had ballooned beyond what taxpayers were promised when the measure first appeared on the ballot. "We are being asked to mortgage the next thirty years for a line that serves a fraction of the city," said Council member Priya Raman, who voted against the plan. Supporters countered that delays have only made the project more expensive, and that federal matching funds will lapse if the city waits another year.</p>
+          <p>Construction impacts are expected to begin downtown within weeks, with lane closures on two major corridors. The transit authority said it will publish a mitigation plan by the end of the month, including shuttle service and small-business grants for merchants along the route.</p>
+        </div>
+      </div>
+
+      <!-- guides -->
+      <div id="guides">
+        <div class="gframe"></div>
+        <div class="gline" style="top:189pt;"></div>
+        <div class="glabel" style="left:36pt; top:182pt;">content top — 189pt</div>
+        <div class="gline" style="top:352.2pt;"></div>
+        <div class="glabel" style="left:36pt; top:344pt;">30% band line — 163pt (y 352.2)</div>
+        <div class="gline bottom" style="top:733pt;"></div>
+        <div class="glabel bottom" style="left:36pt; top:724pt;">content bottom — 733pt</div>
+        <div class="gcol" style="left:212.67pt;"></div>
+        <div class="gcol" style="left:399.33pt;"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div id="bar">
+  <button id="prev" title="Previous variant">←</button>
+  <span class="label" id="variantLabel"></span>
+  <button id="next" title="Next variant">→</button>
+  <span class="sep"></span>
+  <button id="guidesBtn" title="Toggle geometry guides">Guides</button>
+</div>
+
+<script>
+  const VARIANTS = {
+    a: {
+      name: 'A — Classic split',
+      caption: 'Band splits along the column line: headline in the left column, photo in the middle. Full-height "In this edition" index in the right column. Lead body fills the two columns below the band.'
+    },
+    b: {
+      name: 'B — Banner + strip',
+      caption: 'Band runs full width: kicker, banner headline, byline, then a wide photo strip. No lead text on page 1 — two secondary stories fill the space below; lead body jumps to page 2.'
+    },
+    c: {
+      name: 'C — Hero photo',
+      caption: 'Photo leads the band on the left, headline + deck on the right. Compact index sits beside the band in the right column. Lead body runs across all three columns below.'
+    }
+  };
+  const ORDER = ['a', 'b', 'c'];
+
+  function currentVariant() {
+    const m = location.hash.match(/variant=([abc])/) || location.search.match(/variant=([abc])/);
+    return m ? m[1] : 'a';
+  }
+
+  function show(key) {
+    for (const k of ORDER) {
+      document.getElementById('v' + k).classList.toggle('on', k === key);
+    }
+    document.getElementById('variantLabel').textContent = VARIANTS[key].name;
+    document.getElementById('caption').innerHTML =
+      '<span class="tag">PROTOTYPE</span> · ' + VARIANTS[key].name + ' — ' + VARIANTS[key].caption;
+    try { history.replaceState(null, '', '#variant=' + key); }
+    catch (e) { location.hash = 'variant=' + key; }
+  }
+
+  function cycle(delta) {
+    const i = ORDER.indexOf(currentVariant());
+    show(ORDER[(i + delta + ORDER.length) % ORDER.length]);
+  }
+
+  document.getElementById('prev').onclick = () => cycle(-1);
+  document.getElementById('next').onclick = () => cycle(1);
+  document.addEventListener('keydown', (e) => {
+    if (e.target.matches('input, textarea, [contenteditable]')) return;
+    if (e.key === 'ArrowLeft') cycle(-1);
+    if (e.key === 'ArrowRight') cycle(1);
+  });
+
+  const page = document.getElementById('page');
+  document.getElementById('guidesBtn').onclick = (e) => {
+    const on = page.classList.toggle('guides');
+    e.target.classList.toggle('toggled', on);
+  };
+
+  function fit() {
+    const scale = Math.min((innerHeight - 110) / 792, (innerWidth - 48) / 612, 1.6);
+    page.style.transform = 'scale(' + scale + ')';
+    const wrap = document.getElementById('pagewrap');
+    wrap.style.width = (612 * scale) + 'px';
+    wrap.style.height = (792 * scale) + 'px';
+  }
+  addEventListener('resize', fit);
+  addEventListener('hashchange', () => show(currentVariant()));
+
+  fit();
+  show(currentVariant());
+</script>
+</body>
+</html>
