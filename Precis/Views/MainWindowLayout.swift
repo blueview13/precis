@@ -59,6 +59,9 @@ struct MainWindowLayout: View {
     // Category whose color popover is open (set from its context menu).
     @State private var colorEditingCategoryID: UUID?
     @State private var colorEditingSmartCategoryID: UUID?
+    /// Set by sidebar context menus; the article list picks it up and runs
+    /// the newspaper flow for the row that was clicked.
+    @State private var newspaperRequest: NewspaperRequest?
     @FocusState private var isCategoryInputFocused: Bool
     @FocusState private var isCategoryEditFocused: Bool
     @FocusState private var isFeedEditFocused: Bool
@@ -187,6 +190,7 @@ struct MainWindowLayout: View {
             headerTitle: selectedSidebarItem,
             isColumnLayout: isColumnLayout,
             newspaperScope: newspaperScope,
+            newspaperRequest: newspaperRequest,
             onToggleLayout: {
                 withAnimation(.easeInOut(duration: 0.25)) {
                     isColumnLayout.toggle()
@@ -816,6 +820,14 @@ struct MainWindowLayout: View {
                     Button("Edit Smart Category…") { editingSmartCategory = smartCategory; showSmartCategoryEditor = true }
                     Button("Rename…") { editingSmartCategory = smartCategory; showSmartCategoryEditor = true }
                     Button("Change Color…") { colorEditingSmartCategoryID = smartCategory.id }
+                    if let articleIDs = viewModel.smartCategoryArticleIDs(for: smartCategory.id) {
+                        Button("Create Newspaper") {
+                            newspaperRequest = NewspaperRequest(
+                                scope: NewspaperPDFScope(feedIDs: Set(viewModel.allFeeds.map(\.id)), articleIDs: articleIDs),
+                                title: smartCategory.name
+                            )
+                        }
+                    }
                     Divider()
                     Button("New Smart Category…") { editingSmartCategory = nil; showSmartCategoryEditor = true }
                     Button("Delete Smart Category", role: .destructive) {
@@ -1483,6 +1495,14 @@ struct MainWindowLayout: View {
             } label: {
                 Label("Rename Feed…", systemImage: "pencil")
             }
+            Button {
+                newspaperRequest = NewspaperRequest(
+                    scope: NewspaperPDFScope(feedIDs: [feed.id]),
+                    title: feed.title
+                )
+            } label: {
+                Label("Create Newspaper", systemImage: "newspaper")
+            }
             Divider()
             if selectedFeedsForBulkAction.count > 1 {
                 Button(role: .destructive) {
@@ -2132,6 +2152,14 @@ struct MainWindowLayout: View {
                                 colorEditingCategoryID = category.id
                             } label: {
                                 Label("Change Color…", systemImage: "paintpalette")
+                            }
+                            Button {
+                                newspaperRequest = NewspaperRequest(
+                                    scope: NewspaperPDFScope(feedIDs: Set(feeds(in: category).map(\.id))),
+                                    title: category.name
+                                )
+                            } label: {
+                                Label("Create Newspaper", systemImage: "newspaper")
                             }
                             Divider()
                             Button {

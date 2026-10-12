@@ -6,6 +6,7 @@ Right-click any feed row:
 
 - **Refresh Feed** — check this feed for new articles now.
 - **Rename Feed…** — edit the name shown in the sidebar.
+- **Create Newspaper** — makes a PDF of this feed's articles from the last 24 hours and asks where to save it.
 - **Move to Category** — submenu: pick a category, or **No Category** to ungroup it. With several feeds selected it reads *Move N Feeds to Category* and moves the whole selection.
 - **Delete Feed…** — remove the feed and its articles after a confirmation. With several feeds selected it reads *Delete N feeds…*.
 
@@ -20,6 +21,7 @@ Right-click any category row:
 
 - **Rename…** — type a new name in place.
 - **Change Color…** — pick a text and icon tint for the category.
+- **Create Newspaper** — makes a PDF of this category's articles from the last 24 hours and asks where to save it.
 - **Remove from Category** — move its feeds back to the top level; nothing is deleted.
 - **Delete All Feeds in Category** — delete every feed inside, after a confirmation.
 - **Delete Category** — delete the category itself; its feeds move to the top level.
@@ -31,6 +33,7 @@ Right-click any Smart Category:
 - **Edit Smart Category…** — open the rules editor.
 - **Rename…** — open the rules editor (same as Edit Smart Category…).
 - **Change Color…** — pick a tint for the row.
+- **Create Newspaper** — makes a PDF of this Smart Category's articles from the last 24 hours and asks where to save it.
 - **New Smart Category…** — create another Smart Category.
 - **Delete Smart Category** — remove it; feeds are untouched.
 

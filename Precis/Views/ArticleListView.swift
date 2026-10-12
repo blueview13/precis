@@ -19,6 +19,9 @@ struct ArticleListView: View {
     /// Available only when the sidebar is scoped to a feed, regular category,
     /// or a resolved Smart Category.
     var newspaperScope: NewspaperPDFScope? = nil
+    /// A sidebar right-click asking to build a newspaper for that row instead
+    /// of the current selection.
+    var newspaperRequest: NewspaperRequest? = nil
     /// Flips between the stacked and three-column reading layouts.
     var onToggleLayout: (() -> Void)? = nil
     @Environment(\.modelContext) private var modelContext
@@ -304,17 +307,28 @@ struct ArticleListView: View {
             // result is in, the sheet dismisses normally.
             .interactiveDismissDisabled(isCreatingNewspaper)
         }
+        .onChange(of: newspaperRequest) { _, request in
+            guard let request, !isCreatingNewspaper else { return }
+            startNewspaperFlow(scope: request.scope, title: request.title)
+        }
     }
 
     private func chooseNewspaperDestination() {
         guard let newspaperScope else { return }
+        startNewspaperFlow(scope: newspaperScope, title: headerTitle)
+    }
+
+    /// The whole flow — recent-articles check, save panel, build — for an
+    /// explicit scope. The header button passes the sidebar selection; a
+    /// sidebar right-click passes the row it was clicked on.
+    private func startNewspaperFlow(scope: NewspaperPDFScope, title: String) {
         do {
             let records = try ArticleRepository().fetchAll(context: modelContext)
             let references = records.compactMap { record -> NewspaperArticleReference? in
                 guard let feed = record.feed, let publishedDate = record.publishedDate else { return nil }
                 return NewspaperArticleReference(id: record.id, feedID: feed.id, publishedDate: publishedDate)
             }
-            guard !NewspaperArticleSelection.recent(references, scope: newspaperScope, now: .now).isEmpty else {
+            guard !NewspaperArticleSelection.recent(references, scope: scope, now: .now).isEmpty else {
                 newspaperAlertMessage = NewspaperPDFService.EditionError.noRecentArticles.localizedDescription
                 isShowingNewspaperAlert = true
                 return
@@ -327,19 +341,19 @@ struct ArticleListView: View {
 
         let panel = NSSavePanel()
         panel.title = "Create Precis Newspaper PDF"
-        panel.nameFieldStringValue = newspaperFilename()
+        panel.nameFieldStringValue = newspaperFilename(title: title)
         panel.allowedContentTypes = [.pdf]
         panel.canCreateDirectories = true
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
             Task { @MainActor in
-                await exportNewspaper(to: url, scope: newspaperScope)
+                await exportNewspaper(to: url, scope: scope, title: title)
             }
         }
     }
 
     @MainActor
-    private func exportNewspaper(to url: URL, scope: NewspaperPDFScope) async {
+    private func exportNewspaper(to url: URL, scope: NewspaperPDFScope, title: String) async {
         isCreatingNewspaper = true
         newspaperModalContent = .building(.gathering(completed: 0, total: 0))
         isShowingNewspaperModal = true
@@ -349,7 +363,7 @@ struct ArticleListView: View {
             let edition = try await NewspaperPDFService().createEdition(
                 context: modelContext,
                 scope: scope,
-                scopeTitle: headerTitle,
+                scopeTitle: title,
                 onProgress: { progress in
                     newspaperModalContent = .building(progress)
                 }
@@ -373,8 +387,8 @@ struct ArticleListView: View {
                """
     }
 
-    private func newspaperFilename() -> String {
-        let safeTitle = headerTitle
+    private func newspaperFilename(title: String) -> String {
+        let safeTitle = title
             .replacingOccurrences(of: #"[^\p{L}\p{N}-]+"#, with: "-", options: .regularExpression)
             .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
         let formatter = DateFormatter()
@@ -382,6 +396,19 @@ struct ArticleListView: View {
         formatter.dateFormat = "yyyy-MM-dd"
         let date = formatter.string(from: .now)
         return "Precis-\(safeTitle.isEmpty ? "Edition" : safeTitle)-\(date).pdf"
+    }
+}
+
+/// A sidebar context menu asking the article list to build a newspaper for
+/// the row that was clicked rather than the current selection. The id keeps
+/// repeated requests distinguishable so onChange fires even for the same row.
+struct NewspaperRequest: Equatable {
+    let id = UUID()
+    let scope: NewspaperPDFScope
+    let title: String
+
+    static func == (lhs: NewspaperRequest, rhs: NewspaperRequest) -> Bool {
+        lhs.id == rhs.id
     }
 }
 
