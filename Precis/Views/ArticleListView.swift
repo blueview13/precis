@@ -35,6 +35,7 @@ struct ArticleListView: View {
     @State private var isShowingNewspaperModal = false
     @State private var newspaperAlertMessage = ""
     @State private var isShowingNewspaperAlert = false
+    @State private var expandedStoryIDs: Set<UUID> = []
     // Backup invalidation: the view model also observes this key directly and
     // republishes `sortPreference`, so the list re-sorts the moment Settings
     // changes it.
@@ -104,7 +105,7 @@ struct ArticleListView: View {
                 // crease, where the resize divider made it awkward to click.
                 if viewModel.visibleHasUnread {
                     Button(action: {
-                        let visibleArticleIDs = Set(viewModel.filteredItems.map(\.id))
+                        let visibleArticleIDs = viewModel.filteredItems.reduce(into: Set<UUID>()) { $0.formUnion($1.storyArticleIDs) }
                         viewModel.markAllAsRead(context: modelContext, articleIDs: visibleArticleIDs)
                     }) {
                         Image(systemName: "checkmark.circle")
@@ -121,7 +122,7 @@ struct ArticleListView: View {
 
                 if viewModel.visibleHasRead {
                     Button(action: {
-                        let visibleArticleIDs = Set(viewModel.filteredItems.map(\.id))
+                        let visibleArticleIDs = viewModel.filteredItems.reduce(into: Set<UUID>()) { $0.formUnion($1.storyArticleIDs) }
                         viewModel.markAllAsUnread(context: modelContext, articleIDs: visibleArticleIDs)
                     }) {
                         Image(systemName: "envelope.badge")
@@ -227,15 +228,45 @@ struct ArticleListView: View {
                         // VStack measured every article and stalled the main thread.
                         LazyVStack(alignment: .leading, spacing: 0) {
                             ForEach(viewModel.filteredItems) { item in
-                                ArticleListRow(
-                                    item: item,
-                                    isSelected: viewModel.selectedItemID == item.id,
-                                    showThumbnails: showThumbnails,
-                                    onSelect: { viewModel.select(item, context: modelContext) },
-                                    onToggleStar: { viewModel.toggleStarred(item, context: modelContext) },
-                                    showsThumbnailAbove: isColumnLayout
-                                )
-                                .contentShape(Rectangle())
+                                VStack(alignment: .leading, spacing: 0) {
+                                    ArticleListRow(
+                                        item: item,
+                                        isSelected: viewModel.selectedItemID == item.id,
+                                        showThumbnails: showThumbnails,
+                                        onSelect: { viewModel.select(item, context: modelContext) },
+                                        onToggleStar: { viewModel.toggleStarred(item, context: modelContext) },
+                                        isStoryExpanded: expandedStoryIDs.contains(item.id),
+                                        onToggleStoryExpansion: {
+                                            if expandedStoryIDs.contains(item.id) { expandedStoryIDs.remove(item.id) }
+                                            else { expandedStoryIDs.insert(item.id) }
+                                        },
+                                        showsThumbnailAbove: isColumnLayout
+                                    )
+                                    if !item.storyMembers.isEmpty {
+                                        if expandedStoryIDs.contains(item.id) {
+                                            ForEach(item.storyMembers) { member in
+                                                Button {
+                                                    if let article = viewModel.items.first(where: { $0.id == member.id }) {
+                                                        viewModel.select(article, context: modelContext)
+                                                    }
+                                                } label: {
+                                                    VStack(alignment: .leading, spacing: 3) {
+                                                        Text(member.title)
+                                                            .font(PrecisTypography.body)
+                                                            .lineLimit(2)
+                                                        Text(FeedDiscoveryService.conciseTitle(member.feedTitle))
+                                                            .font(PrecisTypography.metadata)
+                                                            .foregroundStyle(PrecisDesignSystem.marginalia)
+                                                    }
+                                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                                    .padding(.leading, PrecisSpacing.lg)
+                                                    .padding(.vertical, PrecisSpacing.xs)
+                                                }
+                                                .buttonStyle(.plain)
+                                            }
+                                        }
+                                    }
+                                }
                                 .id(item.id)
                             }
                         }
@@ -418,6 +449,8 @@ private struct ArticleListRow: View, Equatable {
     let showThumbnails: Bool
     let onSelect: () -> Void
     let onToggleStar: () -> Void
+    var isStoryExpanded: Bool = false
+    var onToggleStoryExpansion: () -> Void = {}
     @AppStorage("showReadingTime") private var showReadingTime: Bool = true
     @Environment(\.colorScheme) private var colorScheme
     /// Three-column layout: the thumbnail sits ABOVE the headline and
@@ -436,6 +469,7 @@ private struct ArticleListRow: View, Equatable {
         lhs.item == rhs.item
             && lhs.isSelected == rhs.isSelected
             && lhs.showThumbnails == rhs.showThumbnails
+            && lhs.isStoryExpanded == rhs.isStoryExpanded
             && lhs.showsThumbnailAbove == rhs.showsThumbnailAbove
     }
 
@@ -533,7 +567,17 @@ private struct ArticleListRow: View, Equatable {
                 }
             }
 
-            if !item.alsoIn.isEmpty {
+            if !item.storyMembers.isEmpty {
+                Button(action: onToggleStoryExpansion) {
+                    StorySourceStrip(
+                        sources: item.storySources,
+                        relatedCount: item.storyMembers.count,
+                        isExpanded: isStoryExpanded
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(item.storySources.count) sources, \(item.storyMembers.count) related articles. \(isStoryExpanded ? "Collapse" : "Expand") related articles.")
+            } else if !item.alsoIn.isEmpty {
                 Text("Also in: " + item.alsoIn.joined(separator: ", "))
                     .font(PrecisTypography.metadata)
                     .foregroundStyle(PrecisDesignSystem.marginalia)
@@ -582,6 +626,66 @@ private struct ArticleListRow: View, Equatable {
             return "\(max(1, Int((seconds / 86_400).rounded())))d"
         }
         return date.formatted(.dateTime.month(.abbreviated).day())
+    }
+}
+
+/// Compact source marks for a stacked story, following the feed logos/count
+/// treatment used in the user's reference.
+private struct StorySourceStrip: View {
+    let sources: [StorySourceReference]
+    let relatedCount: Int
+    let isExpanded: Bool
+
+    var body: some View {
+        HStack(spacing: 7) {
+            ForEach(sources.prefix(4)) { source in
+                StorySourceMark(source: source)
+            }
+            Text("\(sources.count) sources")
+                .font(PrecisTypography.metadata.weight(.semibold))
+                .foregroundStyle(PrecisDesignSystem.marginalia)
+            Text("(\(relatedCount) related \(relatedCount == 1 ? "article" : "articles"))")
+                .font(PrecisTypography.metadata)
+                .foregroundStyle(PrecisDesignSystem.marginalia)
+            Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(PrecisDesignSystem.marginalia)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Coverage from \(sources.count) sources")
+    }
+}
+
+private struct StorySourceMark: View {
+    let source: StorySourceReference
+    @State private var iconData: Data?
+
+    private var fallbackLetter: String {
+        String(FeedDiscoveryService.conciseTitle(source.title).prefix(1)).uppercased()
+    }
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 5)
+                .fill(Color(nsColor: .controlBackgroundColor))
+            if let iconData, let image = NSImage(data: iconData) {
+                Image(nsImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .padding(2)
+            } else {
+                Text(fallbackLetter)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(PrecisDesignSystem.marginalia)
+            }
+        }
+        .frame(width: 26, height: 26)
+        .clipShape(RoundedRectangle(cornerRadius: 5))
+        .accessibilityHidden(true)
+        .task(id: source.feedURL) {
+            guard let feedURL = source.feedURL else { return }
+            iconData = await FaviconService.favicon(for: feedURL)
+        }
     }
 }
 

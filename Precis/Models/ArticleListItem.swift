@@ -7,7 +7,12 @@ public struct ArticleListItem: Identifiable, Hashable, Sendable {
     public var titleHash: String
     public var cleanURL: String?
     public var alsoIn: [String] = []
+    /// Other articles folded into this row as coverage of the same story.
+    public var storyMembers: [StoryArticleReference] = []
+    public var storySources: [StorySourceReference] = []
+    public var storyArticleIDs: Set<UUID> { Set([id] + storyMembers.map(\.id)) }
     public var feedTitle: String
+    public var sourceFeedURL: String?
     public var author: String?
     public var feedID: UUID?
     public var publishedDate: Date?
@@ -64,6 +69,7 @@ public struct ArticleListItem: Identifiable, Hashable, Sendable {
         self.titleHash = DeduplicationPipeline.titleHash(title)
         self.cleanURL = link.flatMap(URL.init(string:)).map(DeduplicationPipeline.canonicalURL)
         self.feedTitle = feedTitle
+        self.sourceFeedURL = nil
         self.author = nil
         self.publishedDate = publishedDate
         self.isRead = isRead
@@ -81,6 +87,7 @@ public struct ArticleListItem: Identifiable, Hashable, Sendable {
         self.titleHash = record.titleHash ?? DeduplicationPipeline.titleHash(record.title)
         self.cleanURL = record.cleanURL ?? record.link.flatMap(URL.init(string:)).map(DeduplicationPipeline.canonicalURL)
         self.feedTitle = record.feed?.title ?? "Inbox"
+        self.sourceFeedURL = record.feed?.url
         self.author = record.author
         self.feedID = record.feed?.id
         self.publishedDate = record.publishedDate ?? Date()
@@ -236,4 +243,18 @@ public struct ArticleListItem: Identifiable, Hashable, Sendable {
         result += remainder
         return result
     }
+}
+
+public struct StoryArticleReference: Identifiable, Hashable, Sendable {
+    public let id: UUID
+    public let title: String
+    public let feedTitle: String
+    public let isRead: Bool
+    public let isStarred: Bool
+}
+
+public struct StorySourceReference: Identifiable, Hashable, Sendable {
+    public let id: UUID
+    public let title: String
+    public let feedURL: String?
 }

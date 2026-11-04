@@ -124,6 +124,7 @@ struct SettingsView: View {
     @AppStorage("showReadingTime") private var showReadingTime: Bool = true
     @AppStorage("showThumbnails") private var showThumbnails: Bool = true
     @AppStorage("showArticleImages") private var showArticleImages: Bool = true
+    @AppStorage("stackRelatedStories") private var stackRelatedStories: Bool = true
     @AppStorage("notifyOnNewArticles") private var notifyOnNewArticles = false
     @AppStorage("desktopPanelEnabled") private var desktopPanelEnabled = false
     @AppStorage("desktopPanelEdge") private var desktopPanelEdge = "right"
@@ -322,6 +323,13 @@ struct SettingsView: View {
 
                     settingsSection(title: "Article List") {
                         VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
+                            Toggle("Stack related stories", isOn: $stackRelatedStories)
+                                .font(PrecisTypography.body)
+                                .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
+                            Text("Group matching stories among the 800 newest articles into expandable rows.")
+                                .font(PrecisTypography.metadata)
+                                .foregroundStyle(PrecisDesignSystem.marginalia)
+
                             Toggle("Show article thumbnails", isOn: $showThumbnails)
                                 .font(PrecisTypography.body)
                                 .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))

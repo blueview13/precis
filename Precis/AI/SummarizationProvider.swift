@@ -1,6 +1,38 @@
 import Foundation
 import FoundationModels
 
+/// Uses Apple's on-device model to decide whether two candidate headlines
+/// describe the same specific news event. The caller keeps its local matcher
+/// as the fallback when the model cannot answer.
+actor StorySimilarityService {
+    @Generable
+    struct Decision {
+        @Guide(description: "True only when both headlines have the same main subject and report the same specific event or development.")
+        var sameStory: Bool
+    }
+
+    func availability() -> Bool {
+        SystemLanguageModel.default.isAvailable
+    }
+
+    func areSameStory(_ first: String, _ second: String) async -> Bool? {
+        guard SystemLanguageModel.default.isAvailable else { return nil }
+        do {
+            let session = LanguageModelSession(instructions: "You compare news headlines for a feed reader. Be very conservative. The headlines must have the same main subject and describe the same specific event or development. A shared category, year, place, genre, or event type is not enough. Different bands announcing tours are different stories, even in the same year. If the main named person, band, company, or organization differs, return false.")
+            let prompt = """
+            Do these headlines report the same specific news story? Require the same main subject and same event. Return false if they merely share a topic or event type.
+
+            Headline A: \(String(first.prefix(240)))
+            Headline B: \(String(second.prefix(240)))
+            """
+            let response = try await session.respond(to: prompt, generating: Decision.self)
+            return response.content.sameStory
+        } catch {
+            return nil
+        }
+    }
+}
+
 public protocol SummarizationProvider {
     var providerName: String { get }
     func summarize(_ text: String) async throws -> Summary
