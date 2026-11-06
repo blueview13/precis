@@ -1,6 +1,8 @@
 import SwiftUI
 import WebKit
 import AppKit
+import NaturalLanguage
+@preconcurrency import Translation
 
 struct ReadingPaneView: View {
     let item: ArticleListItem?
@@ -44,6 +46,7 @@ struct ReadingPaneView: View {
     @AppStorage("readingContentWidth") private var readingContentWidth: Double = 750
     @AppStorage("showReadingTime") private var showReadingTime: Bool = true
     @AppStorage("showArticleImages") private var showArticleImages: Bool = true
+    @AppStorage("articleTranslationTargetLanguage") private var translationTargetLanguage = ""
     @Environment(\.colorScheme) private var colorScheme
     /// Content height reported by the article web view — it grows as the
     /// document (and its images) finish measuring inside this scroll view.
@@ -59,6 +62,13 @@ struct ReadingPaneView: View {
     @State private var isDigestExpanded = true
     @State private var speechService = TextToSpeechService()
     @State private var isReadingAloud = false
+    @State private var translationConfiguration: TranslationSession.Configuration?
+    @State private var translatedTitle: String?
+    @State private var translatedBody: String?
+    @State private var isShowingTranslation = false
+    @State private var isTranslating = false
+    @State private var translationProgress = 0.0
+    @State private var translationError: String?
     /// Hover state for the card's generate button — the accent wash deepens
     /// the same way the sidebar's "Add Feeds" pill does.
     @State private var isHoveringGenerate = false
@@ -104,6 +114,36 @@ struct ReadingPaneView: View {
     private var articleText: String {
         guard let item else { return "Pick a story from the list to read it here." }
         return item.articleBody.isEmpty ? "No article content is available yet." : item.articleBody
+    }
+
+    private var displayTitle: String { isShowingTranslation ? (translatedTitle ?? item?.title ?? "") : (item?.title ?? "") }
+    private var displayArticleText: String { isShowingTranslation ? (translatedBody ?? articleText) : articleText }
+    private var translationTargetName: String? {
+        guard !translationTargetLanguage.isEmpty else { return nil }
+        return Locale.current.localizedString(forIdentifier: translationTargetLanguage) ?? translationTargetLanguage
+    }
+
+    private func translationChunks(_ text: String, limit: Int = 1800) -> [String] {
+        var chunks: [String] = []
+        var current = ""
+        for word in text.split(whereSeparator: \.isWhitespace) {
+            let value = String(word)
+            if !current.isEmpty && current.count + value.count + 1 > limit {
+                chunks.append(current)
+                current = ""
+            }
+            if !current.isEmpty { current += " " }
+            current += value
+        }
+        if !current.isEmpty { chunks.append(current) }
+        return chunks
+    }
+
+    private func detectedSourceLanguage(in text: String) -> Locale.Language? {
+        let recognizer = NLLanguageRecognizer()
+        recognizer.processString(text)
+        guard let languageCode = recognizer.dominantLanguage?.rawValue else { return nil }
+        return Locale.Language(identifier: languageCode)
     }
 
     /// YouTube requires embedded players in desktop apps to send an app
@@ -265,6 +305,64 @@ struct ReadingPaneView: View {
             ScrollViewReader { proxy in
                 pane(proxy)
             }
+            .translationTask(translationConfiguration) { session in
+                guard let sourceItem = item else { return }
+                let articleID = sourceItem.id
+                let requestedTargetLanguage = translationTargetLanguage
+                isTranslating = true
+                translationProgress = 0.02
+                translationError = nil
+                defer { isTranslating = false }
+                do {
+                    try await session.prepareTranslation()
+                    translationProgress = 0.12
+                    let chunks = translationChunks(sourceItem.articleBody)
+                    let totalSteps = max(1, 1 + chunks.count)
+                    var completedSteps = 0
+                    let titleResponse = try await session.translate(sourceItem.title)
+                    completedSteps += 1
+                    translationProgress = 0.12 + 0.84 * Double(completedSteps) / Double(totalSteps)
+                    var translatedChunks: [String] = []
+                    for chunk in chunks {
+                        translatedChunks.append(try await session.translate(chunk).targetText)
+                        completedSteps += 1
+                        translationProgress = 0.12 + 0.84 * Double(completedSteps) / Double(totalSteps)
+                    }
+                    guard item?.id == articleID,
+                          translationTargetLanguage == requestedTargetLanguage else { return }
+                    translatedTitle = titleResponse.targetText
+                    translatedBody = translatedChunks.joined(separator: "\n\n")
+                    isShowingTranslation = true
+                    translationProgress = 1
+                } catch {
+                    translationError = error.localizedDescription
+                    translationConfiguration = nil
+                    translationProgress = 0
+                }
+            }
+            .onChange(of: item?.id) { _, _ in
+                speechService.stop()
+                isReadingAloud = false
+                translationConfiguration = nil
+                translatedTitle = nil
+                translatedBody = nil
+                isShowingTranslation = false
+                isTranslating = false
+                translationProgress = 0
+                translationError = nil
+            }
+            .onChange(of: translationTargetLanguage) { _, _ in
+                translationConfiguration = nil
+                translatedTitle = nil
+                translatedBody = nil
+                isShowingTranslation = false
+                translationProgress = 0
+                translationError = nil
+            }
+            .onChange(of: isShowingTranslation) { _, _ in
+                speechService.stop()
+                isReadingAloud = false
+            }
         }
     }
 
@@ -357,10 +455,13 @@ struct ReadingPaneView: View {
                         }
 
                         if isDigestExpanded, let feedWideSummary, !feedWideSummary.isEmpty {
-                            Text(feedWideSummary)
-                                .font(selectedReadingTypeface.swiftUIFont(size: readingFontSize))
-                                .lineSpacing(5)
-                                .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.85))
+                            AISummaryActionsView(
+                                text: feedWideSummary,
+                                font: selectedReadingTypeface.swiftUIFont(size: readingFontSize),
+                                foreground: PrecisDesignSystem.foreground(for: colorScheme).opacity(0.85),
+                                lineSpacing: 5,
+                                controlsBesideDigestHeader: true
+                            )
                         }
 
                         // The only way to start a run with auto-generation
@@ -400,7 +501,7 @@ struct ReadingPaneView: View {
                 }
 
                 HStack(alignment: .top) {
-                    Text(item?.title ?? emptyMessage ?? "Select an article")
+                    Text(displayTitle.isEmpty ? (emptyMessage ?? "Select an article") : displayTitle)
                         // A touch larger than the article-list headlines so the
                         // open article reads as the focus of the pane.
                         .font(selectedReadingTypeface.swiftUIFont(size: 22, weight: .semibold))
@@ -411,12 +512,64 @@ struct ReadingPaneView: View {
 
                     if item != nil {
                         HStack(spacing: 8) {
+                            if translatedBody != nil {
+                                Button {
+                                    isShowingTranslation.toggle()
+                                    translationError = nil
+                                } label: {
+                                    Label(isShowingTranslation ? "Original" : "Translation", systemImage: "character.bubble")
+                                }
+                                .buttonStyle(.bordered)
+                                .help(isShowingTranslation ? "Show Original Article" : "Show Translation")
+                            } else {
+                                VStack(alignment: .trailing, spacing: 4) {
+                                    Button {
+                                        guard !isTranslating else { return }
+                                        guard let sourceLanguage = detectedSourceLanguage(in: articleText) else {
+                                            translationError = "Couldn’t identify the article’s language."
+                                            return
+                                        }
+                                    let target = translationTargetLanguage.isEmpty
+                                        ? nil
+                                        : Locale.Language(identifier: translationTargetLanguage)
+                                    if var configuration = translationConfiguration,
+                                       configuration.source == sourceLanguage,
+                                       configuration.target == target {
+                                        configuration.invalidate()
+                                        translationConfiguration = configuration
+                                    } else {
+                                        translationConfiguration = TranslationSession.Configuration(source: sourceLanguage, target: target)
+                                    }
+                                    translationProgress = 0.02
+                                    translationError = nil
+                                    } label: {
+                                        if isTranslating {
+                                            Label("Translating…", systemImage: "hourglass")
+                                        } else {
+                                            Label(translationTargetName.map { "Translate to \($0)" } ?? "Translate", systemImage: "character.bubble")
+                                        }
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .disabled(isTranslating || isFetchingContent || (item?.articleBody.count ?? 0) < 20)
+                                    .help(translationTargetName.map { "Translate Article into \($0)" } ?? "Translate Article")
+
+                                    if isTranslating {
+                                        ProgressView(value: translationProgress)
+                                            .progressViewStyle(.linear)
+                                            .tint(PrecisDesignSystem.marginalia)
+                                            .frame(width: 112)
+                                            .accessibilityLabel("Translation progress")
+                                            .accessibilityValue("\(Int(translationProgress * 100)) percent")
+                                    }
+                                }
+                            }
+
                             Button {
                                 if isReadingAloud {
                                     speechService.stop()
                                     isReadingAloud = false
                                 } else {
-                                    speechService.speak("\(item?.title ?? ""). \(articleText)")
+                                    speechService.speak("\(displayTitle). \(displayArticleText)")
                                     isReadingAloud = true
                                 }
                             } label: {
@@ -474,10 +627,12 @@ struct ReadingPaneView: View {
                                 .textCase(.uppercase)
                                 .tracking(1.2)
 
-                            Text(summaryOverride)
-                                .font(selectedReadingTypeface.swiftUIFont(size: readingFontSize))
-                                .lineSpacing(7)
-                                .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.85))
+                            AISummaryActionsView(
+                                text: summaryOverride,
+                                font: selectedReadingTypeface.swiftUIFont(size: readingFontSize),
+                                foreground: PrecisDesignSystem.foreground(for: colorScheme).opacity(0.85),
+                                lineSpacing: 7
+                            )
                         }
                     }
 
@@ -492,16 +647,37 @@ struct ReadingPaneView: View {
                         .padding(.bottom, PrecisSpacing.xs)
                     }
 
+                    if let translationError {
+                        Text("Translation failed: \(translationError)")
+                            .font(selectedReadingTypeface.swiftUIFont(size: 12))
+                            .foregroundStyle(.red)
+                    }
+
                     // Full article as a formatted document — headings, links
                     // and images render natively, and it re-renders whenever
                     // a font-size change rewrites `articleDocument`.
-                    ArticleHTMLView(
-                        document: articleDocument,
-                        baseURL: articleBaseURL,
-                        isResizing: isResizing,
-                        onHeightChange: { articleHeight = $0 }
-                    )
-                    .frame(height: max(articleHeight, 1))
+                    if isShowingTranslation, let translatedBody {
+                        VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
+                            Text("Translated article")
+                                .font(selectedReadingTypeface.swiftUIFont(size: 11, weight: .medium))
+                                .foregroundStyle(PrecisDesignSystem.marginalia)
+                                .textCase(.uppercase)
+                                .tracking(1.2)
+                            Text(translatedBody)
+                                .font(selectedReadingTypeface.swiftUIFont(size: readingFontSize))
+                                .lineSpacing(7)
+                                .textSelection(.enabled)
+                                .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
+                        }
+                    } else {
+                        ArticleHTMLView(
+                            document: articleDocument,
+                            baseURL: articleBaseURL,
+                            isResizing: isResizing,
+                            onHeightChange: { articleHeight = $0 }
+                        )
+                        .frame(height: max(articleHeight, 1))
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -879,6 +1055,225 @@ struct ReadingPaneView: View {
         let green = Int((nsColor.greenComponent * 255).rounded())
         let blue = Int((nsColor.blueComponent * 255).rounded())
         return "rgba(\(red), \(green), \(blue), \(String(format: "%.2f", opacity)))"
+    }
+}
+
+private struct AISummaryActionsView: View {
+    let text: String
+    let font: Font
+    let foreground: Color
+    let lineSpacing: CGFloat
+    var controlsBesideDigestHeader = false
+
+    @AppStorage("articleTranslationTargetLanguage") private var translationTargetLanguage = ""
+    @State private var speechService = TextToSpeechService()
+    @State private var translationConfiguration: TranslationSession.Configuration?
+    @State private var translatedText: String?
+    @State private var isShowingTranslation = false
+    @State private var isReading = false
+    @State private var isTranslating = false
+    @State private var progress = 0.0
+    @State private var errorMessage: String?
+
+    private var targetLanguage: Locale.Language? {
+        translationTargetLanguage.isEmpty ? nil : Locale.Language(identifier: translationTargetLanguage)
+    }
+
+    private var targetLanguageName: String? {
+        guard !translationTargetLanguage.isEmpty else { return nil }
+        return Locale.current.localizedString(forIdentifier: translationTargetLanguage) ?? translationTargetLanguage
+    }
+
+    private var startsWithDailyDigestHeader: Bool {
+        guard let firstLine = text.components(separatedBy: .newlines).first else { return false }
+        let normalized = firstLine
+            .replacingOccurrences(of: "*", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return normalized.range(
+            of: #"^\d+\s+articles?\s+from\s+the\s+last\s+24\s+hours\s*:$"#,
+            options: .regularExpression.union(.caseInsensitive)
+        ) != nil
+    }
+
+    private var displayedText: String {
+        isShowingTranslation ? (translatedText ?? text) : text
+    }
+
+    private var digestHeaderLine: String? {
+        guard controlsBesideDigestHeader, startsWithDailyDigestHeader else { return nil }
+        return displayedText.components(separatedBy: .newlines).first
+    }
+
+    private var digestBodyText: String {
+        guard digestHeaderLine != nil else { return displayedText }
+        var lines = displayedText.components(separatedBy: .newlines)
+        if !lines.isEmpty { lines.removeFirst() }
+        while lines.first?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true {
+            lines.removeFirst()
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    private func speechText(from summary: String) -> String {
+        guard startsWithDailyDigestHeader else { return summary }
+        var lines = summary.components(separatedBy: .newlines)
+        if lines.count > 1 {
+            lines.removeFirst()
+            while lines.first?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true {
+                lines.removeFirst()
+            }
+            return lines.joined(separator: "\n")
+        }
+        guard let colon = summary.firstIndex(of: ":") else { return "" }
+        return summary[summary.index(after: colon)...]
+            .replacingOccurrences(of: "*", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
+            if let digestHeaderLine {
+                HStack(alignment: .firstTextBaseline, spacing: PrecisSpacing.xl) {
+                    Text(digestHeaderLine)
+                        .font(font)
+                        .lineSpacing(lineSpacing)
+                        .foregroundStyle(foreground)
+                        .textSelection(.enabled)
+                    summaryActionButtons
+                }
+                if !digestBodyText.isEmpty {
+                    Text(digestBodyText)
+                        .font(font)
+                        .lineSpacing(lineSpacing)
+                        .foregroundStyle(foreground)
+                        .textSelection(.enabled)
+                }
+            } else {
+                Text(displayedText)
+                    .font(font)
+                    .lineSpacing(lineSpacing)
+                    .foregroundStyle(foreground)
+                    .textSelection(.enabled)
+                summaryActionButtons
+            }
+
+            if let errorMessage {
+                Text("Summary translation failed: \(errorMessage)")
+                    .font(font.weight(.regular))
+                    .foregroundStyle(.red)
+            }
+        }
+        .translationTask(translationConfiguration) { session in
+            let sourceText = text
+            let requestedTarget = translationTargetLanguage
+            isTranslating = true
+            progress = 0.03
+            defer { isTranslating = false }
+            do {
+                try await session.prepareTranslation()
+                progress = 0.25
+                let response = try await session.translate(sourceText)
+                guard text == sourceText, translationTargetLanguage == requestedTarget else { return }
+                translatedText = response.targetText
+                isShowingTranslation = true
+                progress = 1
+            } catch {
+                errorMessage = error.localizedDescription
+                translationConfiguration = nil
+                progress = 0
+            }
+        }
+        .onChange(of: text) { _, _ in resetTranslation() }
+        .onChange(of: translationTargetLanguage) { _, _ in resetTranslation() }
+        .onChange(of: isShowingTranslation) { _, _ in
+            speechService.stop()
+            isReading = false
+        }
+    }
+
+    private var summaryActionButtons: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: PrecisSpacing.xs) {
+                Button {
+                    if isReading {
+                        speechService.stop()
+                        isReading = false
+                    } else {
+                        let activeSummary = displayedText
+                        speechService.speak(speechText(from: activeSummary))
+                        isReading = true
+                    }
+                } label: {
+                    Label(isReading ? "Stop" : "Read summary", systemImage: isReading ? "stop.fill" : "speaker.wave.2.fill")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .help(isReading ? "Stop Reading Summary" : "Read Summary Aloud")
+
+                if translatedText != nil {
+                    Button {
+                        speechService.stop()
+                        isReading = false
+                        isShowingTranslation.toggle()
+                    } label: {
+                        Label(isShowingTranslation ? "Original" : "Translation", systemImage: "character.bubble")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                } else {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Button(action: beginTranslation) {
+                            Label(
+                                isTranslating ? "Translating…" : (targetLanguageName.map { "Translate to \($0)" } ?? "Translate"),
+                                systemImage: "character.bubble"
+                            )
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .disabled(isTranslating || text.count < 20)
+                        .help(targetLanguageName.map { "Translate Summary into \($0)" } ?? "Translate Summary")
+
+                        if isTranslating {
+                            ProgressView(value: progress)
+                                .progressViewStyle(.linear)
+                                .tint(PrecisDesignSystem.marginalia)
+                                .frame(width: 150)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func beginTranslation() {
+        let recognizer = NLLanguageRecognizer()
+        recognizer.processString(text)
+        guard let languageCode = recognizer.dominantLanguage?.rawValue else {
+            errorMessage = "Couldn’t identify the summary’s language."
+            return
+        }
+        let sourceLanguage = Locale.Language(identifier: languageCode)
+        if var configuration = translationConfiguration,
+           configuration.source == sourceLanguage,
+           configuration.target == targetLanguage {
+            configuration.invalidate()
+            translationConfiguration = configuration
+        } else {
+            translationConfiguration = TranslationSession.Configuration(source: sourceLanguage, target: targetLanguage)
+        }
+        errorMessage = nil
+        progress = 0.03
+    }
+
+    private func resetTranslation() {
+        speechService.stop()
+        isReading = false
+        translationConfiguration = nil
+        translatedText = nil
+        isShowingTranslation = false
+        isTranslating = false
+        progress = 0
+        errorMessage = nil
     }
 }
 

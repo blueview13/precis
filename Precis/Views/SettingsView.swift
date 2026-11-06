@@ -2,6 +2,7 @@ import SwiftUI
 import AppKit
 import SwiftData
 import AVFoundation
+@preconcurrency import Translation
 
 @MainActor
 private final class DesktopPanelColorPanelController: NSObject {
@@ -116,6 +117,8 @@ struct SettingsView: View {
     @AppStorage("readingFontSize") private var readingFontSize: Double = 15
     @AppStorage("readingTypeface") private var readingTypefaceRawValue = ReadingTypeface.system.rawValue
     @AppStorage(TextToSpeechService.voicePreferenceKey) private var readingSpeechVoiceIdentifier = ""
+    @AppStorage("articleTranslationTargetLanguage") private var articleTranslationTargetLanguage = ""
+    @State private var translationLanguages: [Locale.Language] = []
     @AppStorage(ReadingBrowserService.preferenceKey) private var readingBrowserBundleIdentifier = ReadingBrowserService.systemDefaultIdentifier
     @AppStorage("readingContentWidth") private var readingContentWidth: Double = 750
     @AppStorage("showSidebarUnreadPills") private var showSidebarUnreadPills: Bool = true
@@ -293,6 +296,19 @@ struct SettingsView: View {
                                 }
                             }
                             .pickerStyle(.menu)
+
+                            Picker("Translate articles into", selection: $articleTranslationTargetLanguage) {
+                                Text("Mac preferred language").tag("")
+                                ForEach(translationLanguages, id: \.minimalIdentifier) { language in
+                                    Text(Locale.current.localizedString(forIdentifier: language.minimalIdentifier) ?? language.minimalIdentifier)
+                                        .tag(language.minimalIdentifier)
+                                }
+                            }
+                            .pickerStyle(.menu)
+
+                            Text("macOS may ask to download language models the first time you translate.")
+                                .font(PrecisTypography.metadata)
+                                .foregroundStyle(PrecisDesignSystem.marginalia)
 
                             Picker("Article font", selection: $readingTypefaceRawValue) {
                                 ForEach(ReadingTypeface.allCases) { typeface in
@@ -696,6 +712,12 @@ struct SettingsView: View {
         .preferredColorScheme(selectedTheme.colorScheme)
         .tint(selectedTheme.accent)
         .task {
+            let availableTranslationLanguages = await LanguageAvailability().supportedLanguages
+            translationLanguages = availableTranslationLanguages.sorted(by: { (left: Locale.Language, right: Locale.Language) in
+                let first = Locale.current.localizedString(forIdentifier: left.minimalIdentifier) ?? left.minimalIdentifier
+                let second = Locale.current.localizedString(forIdentifier: right.minimalIdentifier) ?? right.minimalIdentifier
+                return first.localizedCaseInsensitiveCompare(second) == .orderedAscending
+            })
             loadDesktopPanelSources()
             let credentials = await FeedbinCredentialStore.load()
             feedbinUsername = credentials?.username ?? savedFeedbinUsername

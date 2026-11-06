@@ -50,6 +50,11 @@ struct MainWindowLayout: View {
     /// Sidebar "categories" — `FolderRecord`s since the category→folder
     /// migration (kept under the old name to match the sidebar section).
     @State private var categories: [FolderRecord] = []
+    @State private var collapsedCategoryIDs: Set<UUID> = []
+    @State private var collapsedSmartCategoryIDs: Set<UUID> = []
+    @State private var isUncategorizedFeedsExpanded = true
+    @State private var isFeedbinExpanded = true
+    @State private var isOldReaderExpanded = true
     @State private var isAddingCategory = false
     @State private var newCategoryName = ""
     @State private var editingCategoryID: UUID?
@@ -811,9 +816,26 @@ struct MainWindowLayout: View {
         if !smartCategoryStore.categories.filter({ !$0.isDeleted }).isEmpty {
             SidebarSection(title: "Smart Categories")
             ForEach(smartCategoryStore.categories.filter({ !$0.isDeleted })) { smartCategory in
-                SidebarItem(title: smartCategory.name, icon: "sparkles", badge: sidebarCount(viewModel.unreadCount(inSmartCategory: smartCategory.id)), badgeNextToTitle: true, tint: smartCategory.colorHex.flatMap { PrecisDesignSystem.color(hex: $0) }, active: viewModel.selectedSidebarFilter == .smartCategory(smartCategory.id)) {
-                    selectedSidebarItem = smartCategory.name
-                    viewModel.selectedSidebarFilter = .smartCategory(smartCategory.id)
+                let isExpanded = !collapsedSmartCategoryIDs.contains(smartCategory.id)
+                let matchingArticleIDs = viewModel.smartCategoryArticleIDs(for: smartCategory.id) ?? []
+                let matchingFeedIDs = Set(viewModel.items.filter { matchingArticleIDs.contains($0.id) }.compactMap(\.feedID))
+                let matchingFeeds = importedFeeds.filter { matchingFeedIDs.contains($0.id) }
+                HStack(spacing: 2) {
+                    Button {
+                        if isExpanded { collapsedSmartCategoryIDs.insert(smartCategory.id) }
+                        else { collapsedSmartCategoryIDs.remove(smartCategory.id) }
+                    } label: {
+                        Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(PrecisDesignSystem.marginalia)
+                            .frame(width: 18, height: 24)
+                    }
+                    .buttonStyle(.plain)
+                    .help(isExpanded ? "Collapse smart category feeds" : "Expand smart category feeds")
+                    SidebarItem(title: smartCategory.name, icon: "sparkles", badge: sidebarCount(viewModel.unreadCount(inSmartCategory: smartCategory.id)), badgeNextToTitle: true, tint: smartCategory.colorHex.flatMap { PrecisDesignSystem.color(hex: $0) }, active: viewModel.selectedSidebarFilter == .smartCategory(smartCategory.id)) {
+                        selectedSidebarItem = smartCategory.name
+                        viewModel.selectedSidebarFilter = .smartCategory(smartCategory.id)
+                    }
                 }
                 .symbolEffect(.breathe, isActive: !reduceMotion)
                 .contextMenu {
@@ -838,6 +860,12 @@ struct MainWindowLayout: View {
                 .popover(isPresented: smartCategoryColorPopoverIsPresented(for: smartCategory.id)) {
                     smartCategoryColorPopover(for: smartCategory)
                 }
+                if isExpanded {
+                    ForEach(matchingFeeds) { feed in
+                        sidebarFeedRow(feed, indent: 32, compact: true, group: matchingFeeds)
+                            .id("smart-\(smartCategory.id)-\(feed.id)")
+                    }
+                }
             }
         }
     }
@@ -851,6 +879,16 @@ struct MainWindowLayout: View {
         }
         if hasFeedbinCredentials {
             HStack(spacing: 2) {
+                Button {
+                    isFeedbinExpanded.toggle()
+                } label: {
+                    Image(systemName: isFeedbinExpanded ? "chevron.down" : "chevron.right")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(PrecisDesignSystem.marginalia)
+                        .frame(width: 18, height: 26)
+                }
+                .buttonStyle(.plain)
+                .help(isFeedbinExpanded ? "Collapse Feedbin feeds" : "Expand Feedbin feeds")
                 feedbinAllFeedsRow(feeds: feeds)
                 Button {
                     Task { await refreshFeedbinFeeds() }
@@ -872,6 +910,7 @@ struct MainWindowLayout: View {
                 .help("Sync and refresh Feedbin feeds")
                 .accessibilityLabel("Sync and refresh Feedbin feeds")
             }
+            if isFeedbinExpanded {
             ForEach(Array(Set(feeds.flatMap { $0.feedbinTagNames ?? [] })).sorted(), id: \.self) { tag in
                 let taggedFeeds = feeds.filter { $0.feedbinTagNames?.contains(tag) == true }
                 FeedbinTagSidebarRow(
@@ -906,6 +945,7 @@ struct MainWindowLayout: View {
                     sidebarFeedRow(feed, indent: 32, compact: true, group: untagged)
                         .id("feedbin-untagged-\(feed.id)")
                 }
+            }
             }
         }
     }
@@ -954,8 +994,10 @@ struct MainWindowLayout: View {
                 .help("Sync and refresh The Old Reader feeds")
                 .accessibilityLabel("Sync and refresh The Old Reader feeds")
             }
-            oldReaderFolderSections(feeds: feeds)
-            oldReaderUnfiledSection(feeds: feeds)
+            if isOldReaderExpanded {
+                oldReaderFolderSections(feeds: feeds)
+                oldReaderUnfiledSection(feeds: feeds)
+            }
         }
     }
 
@@ -1911,6 +1953,25 @@ struct MainWindowLayout: View {
         }
     }
 
+    private var allFeedGroupsExpanded: Bool {
+        collapsedCategoryIDs.isEmpty
+            && collapsedSmartCategoryIDs.isEmpty
+            && isUncategorizedFeedsExpanded
+            && isFeedbinExpanded
+            && isOldReaderExpanded
+    }
+
+    private func toggleAllFeedGroups() {
+        let shouldExpand = !allFeedGroupsExpanded
+        collapsedCategoryIDs = shouldExpand ? [] : Set(categories.map(\.id))
+        collapsedSmartCategoryIDs = shouldExpand
+            ? []
+            : Set(smartCategoryStore.categories.filter { !$0.isDeleted }.map(\.id))
+        isUncategorizedFeedsExpanded = shouldExpand
+        isFeedbinExpanded = shouldExpand
+        isOldReaderExpanded = shouldExpand
+    }
+
     private var sidebarView: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
@@ -1945,6 +2006,15 @@ struct MainWindowLayout: View {
                 .onHover { isHoveringAddFeeds = $0 }
                 .animation(.easeOut(duration: 0.15), value: isHoveringAddFeeds)
                 .help("Add feed")
+
+                Button(action: toggleAllFeedGroups) {
+                    Image(systemName: allFeedGroupsExpanded ? "chevron.down.square" : "chevron.up.square")
+                        .font(.system(size: 15, weight: .regular))
+                        .foregroundStyle(PrecisDesignSystem.marginalia)
+                }
+                .buttonStyle(.plain)
+                .help(allFeedGroupsExpanded ? "Collapse all feeds" : "Expand all feeds")
+                .accessibilityLabel(allFeedGroupsExpanded ? "Collapse all feeds" : "Expand all feeds")
 
                 Spacer()
 
@@ -2048,6 +2118,22 @@ struct MainWindowLayout: View {
                         let categoryIconColor = customTint ?? (isCategorySelected ? Color.accentColor : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.6))
                         let categoryTextColor = customTint ?? (isCategorySelected ? Color.accentColor : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.75))
                         HStack(spacing: 10) {
+                            Button {
+                                if collapsedCategoryIDs.contains(category.id) {
+                                    collapsedCategoryIDs.remove(category.id)
+                                } else {
+                                    collapsedCategoryIDs.insert(category.id)
+                                }
+                            } label: {
+                                Image(systemName: collapsedCategoryIDs.contains(category.id) ? "chevron.right" : "chevron.down")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundStyle(PrecisDesignSystem.marginalia)
+                                    .frame(width: 14, height: 18)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .help(collapsedCategoryIDs.contains(category.id) ? "Expand category feeds" : "Collapse category feeds")
+
                             if isCategorySelected {
                                 Capsule()
                                     .frame(width: 4, height: 18)
@@ -2205,9 +2291,11 @@ struct MainWindowLayout: View {
                     // on section + feed + selection forces a fresh row whenever
                     // any of those change.
                     let categoryFeeds = feeds(in: category)
-                    ForEach(categoryFeeds) { feed in
-                        sidebarFeedRow(feed, indent: 32, compact: true, group: categoryFeeds)
-                            .id("cat-\(category.id)-\(feed.id)-\(selectedFeedIDs.contains(feed.id))")
+                    if !collapsedCategoryIDs.contains(category.id) {
+                        ForEach(categoryFeeds) { feed in
+                            sidebarFeedRow(feed, indent: 32, compact: true, group: categoryFeeds)
+                                .id("cat-\(category.id)-\(feed.id)-\(selectedFeedIDs.contains(feed.id))")
+                        }
                     }
                 }
 
@@ -2215,12 +2303,27 @@ struct MainWindowLayout: View {
 
                 // Feeds not assigned to a category
                 if !uncategorizedFeeds.isEmpty {
-                    SidebarSection(title: "Feeds")
+                    HStack(spacing: 4) {
+                        Button {
+                            isUncategorizedFeedsExpanded.toggle()
+                        } label: {
+                            Image(systemName: isUncategorizedFeedsExpanded ? "chevron.down" : "chevron.right")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(PrecisDesignSystem.marginalia)
+                                .frame(width: 18, height: 22)
+                        }
+                        .buttonStyle(.plain)
+                        .help(isUncategorizedFeedsExpanded ? "Collapse feeds" : "Expand feeds")
+                        SidebarSection(title: "Feeds")
+                            .onTapGesture { isUncategorizedFeedsExpanded.toggle() }
+                    }
                 }
 
-                ForEach(uncategorizedFeeds) { feed in
-                    sidebarFeedRow(feed, group: uncategorizedFeeds)
-                        .id("uncat-\(feed.id)-\(selectedFeedIDs.contains(feed.id))")
+                if isUncategorizedFeedsExpanded {
+                    ForEach(uncategorizedFeeds) { feed in
+                        sidebarFeedRow(feed, group: uncategorizedFeeds)
+                            .id("uncat-\(feed.id)-\(selectedFeedIDs.contains(feed.id))")
+                    }
                 }
 
                 feedbinSidebarSection

@@ -226,7 +226,7 @@ struct ArticleListView: View {
                         // Lazy: a full-window layout pass (first context-menu open
                         // triggers one) must only measure visible rows — the eager
                         // VStack measured every article and stalled the main thread.
-                        LazyVStack(alignment: .leading, spacing: 0) {
+                        LazyVStack(alignment: .leading, spacing: PrecisSpacing.sm * 0.7) {
                             ForEach(viewModel.filteredItems) { item in
                                 VStack(alignment: .leading, spacing: 0) {
                                     ArticleListRow(
@@ -496,17 +496,21 @@ private struct ArticleListRow: View, Equatable {
         }
         .padding(PrecisSpacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, PrecisSpacing.xs)
         // The whole row is tappable, so ONE press anywhere on it selects the
         // article and (via the view model) marks it read.
         .contentShape(Rectangle())
         .onTapGesture(perform: onSelect)
         // Highlight the selected row with a subtle tint only.
-        .background(isSelected ? Color.accentColor.opacity(0.10) : Color.clear)
+        .background {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(isSelected
+                    ? Color.accentColor.opacity(colorScheme == .dark ? 0.18 : 0.08)
+                    : Color(nsColor: .controlBackgroundColor))
+        }
         .overlay(
-            Rectangle()
-                .frame(height: 1)
-                .foregroundStyle(PrecisDesignSystem.rule(for: colorScheme)),
-            alignment: .bottom
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(PrecisDesignSystem.rule(for: colorScheme).opacity(0.85), lineWidth: 1)
         )
     }
 
