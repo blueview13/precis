@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import SwiftData
+import AVFoundation
 
 @MainActor
 private final class DesktopPanelColorPanelController: NSObject {
@@ -114,6 +115,7 @@ struct SettingsView: View {
     @AppStorage(PrecisTheme.storageKey) private var selectedThemeRawValue = PrecisTheme.standard.rawValue
     @AppStorage("readingFontSize") private var readingFontSize: Double = 15
     @AppStorage("readingTypeface") private var readingTypefaceRawValue = ReadingTypeface.system.rawValue
+    @AppStorage(TextToSpeechService.voicePreferenceKey) private var readingSpeechVoiceIdentifier = ""
     @AppStorage(ReadingBrowserService.preferenceKey) private var readingBrowserBundleIdentifier = ReadingBrowserService.systemDefaultIdentifier
     @AppStorage("readingContentWidth") private var readingContentWidth: Double = 750
     @AppStorage("showSidebarUnreadPills") private var showSidebarUnreadPills: Bool = true
@@ -280,6 +282,14 @@ struct SettingsView: View {
                                     $0.bundleIdentifier != ReadingBrowserService.systemDefaultBrowser?.bundleIdentifier
                                 }) { browser in
                                     Text(browser.name).tag(browser.bundleIdentifier)
+                                }
+                            }
+                            .pickerStyle(.menu)
+
+                            Picker("Read aloud voice", selection: $readingSpeechVoiceIdentifier) {
+                                Text("System Default").tag("")
+                                ForEach(TextToSpeechService.availableVoices, id: \.identifier) { voice in
+                                    Text("\(voice.name) (\(voice.language))").tag(voice.identifier)
                                 }
                             }
                             .pickerStyle(.menu)

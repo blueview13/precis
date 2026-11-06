@@ -57,6 +57,8 @@ struct ReadingPaneView: View {
     /// judder. Cleared on release, which lets the column flex and wrap again.
     @State private var frozenColumnWidth: CGFloat?
     @State private var isDigestExpanded = true
+    @State private var speechService = TextToSpeechService()
+    @State private var isReadingAloud = false
     /// Hover state for the card's generate button — the accent wash deepens
     /// the same way the sidebar's "Add Feeds" pill does.
     @State private var isHoveringGenerate = false
@@ -407,15 +409,30 @@ struct ReadingPaneView: View {
 
                     Spacer()
 
-                    if item != nil, let onOpenInBrowser {
+                    if item != nil {
                         HStack(spacing: 8) {
-                            Button(action: { onOpenInBrowser() }) {
-                                Image(systemName: "arrow.up.forward.app")
-                                    .font(.title3)
+                            Button {
+                                if isReadingAloud {
+                                    speechService.stop()
+                                    isReadingAloud = false
+                                } else {
+                                    speechService.speak("\(item?.title ?? ""). \(articleText)")
+                                    isReadingAloud = true
+                                }
+                            } label: {
+                                Label(isReadingAloud ? "Stop" : "Read", systemImage: isReadingAloud ? "stop.fill" : "speaker.wave.2.fill")
                             }
                             .buttonStyle(.bordered)
-                            .help("Open in Browser")
+                            .help(isReadingAloud ? "Stop Reading" : "Read Article Aloud")
 
+                            if let onOpenInBrowser {
+                                Button(action: { onOpenInBrowser() }) {
+                                    Image(systemName: "arrow.up.forward.app")
+                                        .font(.title3)
+                                }
+                                .buttonStyle(.bordered)
+                                .help("Open in Browser")
+                            }
                         }
                     }
                 }
