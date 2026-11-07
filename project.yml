@@ -44,6 +44,7 @@ targets:
     resources:
       - path: Precis/Assets.xcassets
         optional: true
+      - path: Precis/AppIcon.icon
       - path: Precis/Resources/Localizable.xcstrings
       - path: Precis/Help
     dependencies:

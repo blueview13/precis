@@ -91,6 +91,7 @@
 		EF6F5BBC4C212CCBF3549F7E /* ArticleRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5384198C4F53F0A026E513FF /* ArticleRepository.swift */; };
 		F0222230C45898535751FDC5 /* ArticleHTMLSanitizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF91E74599DAC751DEEEBD09 /* ArticleHTMLSanitizer.swift */; };
 		F2063ABFCD5F3415774767ED /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7879467182D9B853FA61E89C /* Assets.xcassets */; };
+		A3A433B1F0934EB59D38AD01 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = A3A433B1F0934EB59D38AD02 /* AppIcon.icon */; };
 		F214BC56B316371D5E695C6C /* GettingStarted.md in Resources */ = {isa = PBXBuildFile; fileRef = 54A65C1848B2C441A3B28B32 /* GettingStarted.md */; };
 		F48FEAC045F490DC03A0ABB1 /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A90E81A5F7896A7691E030F /* PersistenceController.swift */; };
 		F6F370BC5965758C032FB054 /* FeedDiscoveryResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA4E430DC7A18B1E777031C /* FeedDiscoveryResult.swift */; };
@@ -119,6 +120,7 @@
 		1254875E2D14EAD4651CFA6A /* AppRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRootView.swift; sourceTree = "<group>"; };
 		15D5D1F40C12D445E4433C46 /* CategoryToFolderMigrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryToFolderMigrationTests.swift; sourceTree = "<group>"; };
 		16089681870BBF9A6388D3CD /* gen_icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = gen_icon.png; sourceTree = "<group>"; };
+		A3A433B1F0934EB59D38AD02 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = com.apple.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		17F61A4AF13EAF1574520CAD /* FeedService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedService.swift; sourceTree = "<group>"; };
 		1853DF5D99D4EF2EB973F7EC /* RefreshScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RefreshScheduler.swift; sourceTree = "<group>"; };
 		19997E120C8B861F88198AD2 /* Summary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Summary.swift; sourceTree = "<group>"; };
@@ -258,6 +260,7 @@
 		4DA99377E3B64FF9A8F019E0 /* Precis */ = {
 			isa = PBXGroup;
 			children = (
+				A3A433B1F0934EB59D38AD02 /* AppIcon.icon */,
 				7879467182D9B853FA61E89C /* Assets.xcassets */,
 				F3627A15C4B94350D2597305 /* ContentView.swift */,
 				571BA157782E317361A4FC10 /* gen_icon_transparent.png */,
@@ -544,6 +547,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F2063ABFCD5F3415774767ED /* Assets.xcassets in Resources */,
+				A3A433B1F0934EB59D38AD01 /* AppIcon.icon in Resources */,
 				F214BC56B316371D5E695C6C /* GettingStarted.md in Resources */,
 				C785CF2371609D9935888030 /* HeaderIcons.md in Resources */,
 				6FA2DA2F6FD5A691CAA0054C /* KeyboardShortcuts.md in Resources */,

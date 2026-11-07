@@ -4,6 +4,7 @@ import AppKit
 
 @main
 struct PrecisApp: App {
+    @NSApplicationDelegateAdaptor(PrecisApplicationDelegate.self) private var appDelegate
     @AppStorage(PrecisTheme.storageKey) private var selectedThemeRawValue = PrecisTheme.standard.rawValue
     @AppStorage("interfaceLanguage") private var interfaceLanguage = "en"
 
@@ -94,6 +95,18 @@ struct PrecisApp: App {
                 .keyboardShortcut("?", modifiers: .command)
             }
         }
+    }
+}
+
+@MainActor
+final class PrecisApplicationDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        guard let iconURL = Bundle.main.url(forResource: "AppIcon", withExtension: "icns"),
+              let icon = NSImage(contentsOf: iconURL) else {
+            return
+        }
+
+        NSApp.applicationIconImage = icon
     }
 }
 
