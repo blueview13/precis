@@ -19,6 +19,22 @@ struct PrecisApp: App {
         PrecisTheme(rawValue: selectedThemeRawValue) ?? .standard
     }
 
+    private var helpWindowTitle: LocalizedStringKey {
+        let title: String
+        switch interfaceLanguage {
+        case "de": title = "Hilfe"
+        case "zh-Hans": title = "帮助"
+        case "hi": title = "सहायता"
+        case "es": title = "Ayuda"
+        case "ar": title = "المساعدة"
+        case "fr": title = "Aide"
+        case "bn": title = "সহায়তা"
+        case "pt-BR": title = "Ajuda"
+        default: title = "Help"
+        }
+        return LocalizedStringKey(title)
+    }
+
     var body: some Scene {
         WindowGroup(id: "main") {
             MainWindowLayout()
@@ -47,8 +63,10 @@ struct PrecisApp: App {
         }
         .defaultSize(width: 480, height: 560)
 
-        Window("Help", id: "help") {
+        Window(helpWindowTitle, id: "help") {
             HelpWindowView()
+                .environment(\.locale, Locale(identifier: interfaceLanguage))
+                .environment(\.layoutDirection, interfaceLanguage == "ar" ? .rightToLeft : .leftToRight)
                 .preferredColorScheme(selectedTheme.colorScheme)
                 .tint(selectedTheme.accent)
         }
