@@ -680,11 +680,12 @@ enum NewspaperPDFRenderer {
             context.strokePath()
 
             let fullBody = bodyText(from: story.html)
+            let (leadParagraph, continuationBody) = splitLeadingParagraph(from: fullBody)
             let byline = story.author?.trimmingCharacters(in: .whitespacesAndNewlines)
             let meta = [byline, story.publishedDate.formatted(date: .abbreviated, time: .omitted)]
                 .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: "  ·  ")
 
-            let deck = attributed(deckText(from: fullBody), fontName: bodyFontName, size: 9, bold: false,
+            let deck = attributed(leadParagraph, fontName: bodyFontName, size: 9, bold: false,
                                   italic: true, alignment: .left, paragraphSpacing: 0)
             let deckHeight = deck.length > 0 ? measuredHeight(of: deck, width: columnWidth) : 0
             let metaHeight: CGFloat = meta.isEmpty ? 0 : 12
@@ -726,7 +727,7 @@ enum NewspaperPDFRenderer {
             column = 0
             columnTop = coverBodyTop
             cursorY = coverBodyTop
-            let body = attributed(fullBody, fontName: bodyFontName, size: bodyFontSize,
+            let body = attributed(continuationBody, fontName: bodyFontName, size: bodyFontSize,
                                   bold: false, alignment: .justified, paragraphSpacing: 3)
             let framesetter = CTFramesetterCreateWithAttributedString(body)
             var offset = 0
@@ -740,7 +741,13 @@ enum NewspaperPDFRenderer {
                                                      CGPath(rect: rect, transform: nil), nil)
                 let range = CTFrameGetVisibleStringRange(frame)
                 guard range.length > 0 else {
-                    advanceColumn()
+                    let fallback = drawFallbackLine(body, from: offset, x: rect.minX, top: cursorY,
+                                                    width: rect.width, context: context)
+                    offset += max(1, fallback.length)
+                    if fallback.height > 0 {
+                        cursorY -= fallback.height + 1
+                    }
+                    if offset < body.length { advanceColumn() }
                     continue
                 }
                 CTFrameDraw(frame, context)
@@ -757,10 +764,13 @@ enum NewspaperPDFRenderer {
 
         startCoverPage()
         printContentsIndex(x: pageMargin + 2 * (columnWidth + columnGap), maxBottom: coverBandBottom + 7)
-        let remainingStories: ArraySlice<NewspaperPDFService.PreparedStory>
+        let remainingStories: [(story: NewspaperPDFService.PreparedStory, bodyText: String)]
         if let lead = stories.first {
             drawCoverFeature(lead)
-            remainingStories = stories.dropFirst()
+            remainingStories = stories.dropFirst().compactMap { story in
+                let text = bodyText(from: story.html)
+                return text.isEmpty ? nil : (story: story, bodyText: text)
+            }
             if !remainingStories.isEmpty {
                 context.endPDFPage()
                 startInteriorPage()
@@ -773,12 +783,12 @@ enum NewspaperPDFRenderer {
             remainingStories = []
         }
 
-        for (storyIndex, story) in remainingStories.enumerated() {
+        for (storyIndex, prepared) in remainingStories.enumerated() {
             // Counting the cover lead as the first story: the index here is the
             // number of stories already laid out.
             await reportProgress(storyIndex + 1)
-            let bodyText = bodyText(from: story.html)
-            guard !bodyText.isEmpty else { continue }
+            let story = prepared.story
+            let bodyText = prepared.bodyText
             let body = attributed(
                 bodyText,
                 fontName: bodyFontName,
@@ -806,31 +816,47 @@ enum NewspaperPDFRenderer {
             var titleSize: CGFloat = 17
             var title = attributed(story.title, fontName: headingFontName, size: titleSize, bold: true,
                                    alignment: .left, paragraphSpacing: 0)
-            while measuredHeight(of: title, width: columnWidth) > maximumTitleHeight, titleSize > 12 {
+            while measuredHeight(of: title, width: columnWidth) > maximumTitleHeight, titleSize > 10 {
                 titleSize -= 1
                 title = attributed(story.title, fontName: headingFontName, size: titleSize, bold: true,
                                    alignment: .left, paragraphSpacing: 0)
             }
-            let titleHeight = max(20, min(maximumTitleHeight, measuredHeight(of: title, width: columnWidth) + 4))
-            let titleFramesetter = CTFramesetterCreateWithAttributedString(title)
-            let headingHeightWithoutImage = titleHeight + (byline.isEmpty ? 0 : 16) + 14
+            let preferredTitleSize = titleSize
+            let preferredTitle = title
+            let preferredTitleHeight = max(20, min(maximumTitleHeight, measuredHeight(of: title, width: columnWidth) + 4))
 
             var bodyOffset = 0
             var needsHeading = true
             while bodyOffset < body.length {
                 let rect = columnRect()
                 if needsHeading {
-                    let includeImage = imageHeight > 0 && rect.height >= headingHeightWithoutImage + imageHeight + 40
-                    let headingHeight = headingHeightWithoutImage + (includeImage ? imageHeight : 0)
-                    guard rect.height >= headingHeight + 40 else {
+                    let minimumBodyHeight: CGFloat = 28
+                    var fittedTitleSize = preferredTitleSize
+                    var fittedTitle = preferredTitle
+                    var fittedTitleHeight = preferredTitleHeight
+                    var headingHeightWithoutImage = fittedTitleHeight + (byline.isEmpty ? 0 : 16) + 14
+                    var includeImage = imageHeight > 0
+                        && rect.height >= headingHeightWithoutImage + imageHeight + minimumBodyHeight
+                    var headingHeight = headingHeightWithoutImage + (includeImage ? imageHeight : 0)
+                    while rect.height < headingHeight + minimumBodyHeight, fittedTitleSize > 10 {
+                        fittedTitleSize -= 1
+                        fittedTitle = attributed(story.title, fontName: headingFontName, size: fittedTitleSize, bold: true,
+                                                 alignment: .left, paragraphSpacing: 0)
+                        fittedTitleHeight = max(20, min(maximumTitleHeight, measuredHeight(of: fittedTitle, width: columnWidth) + 4))
+                        headingHeightWithoutImage = fittedTitleHeight + (byline.isEmpty ? 0 : 16) + 14
+                        includeImage = imageHeight > 0
+                            && rect.height >= headingHeightWithoutImage + imageHeight + minimumBodyHeight
+                        headingHeight = headingHeightWithoutImage + (includeImage ? imageHeight : 0)
+                    }
+                    guard rect.height >= headingHeight + minimumBodyHeight else {
                         advanceColumn()
                         continue
                     }
                     let x = rect.minX
-                    let titleRect = CGRect(x: x, y: cursorY - titleHeight, width: columnWidth, height: titleHeight)
-                    drawFrame(titleFramesetter, range: CFRange(location: 0, length: title.length),
+                    let titleRect = CGRect(x: x, y: cursorY - fittedTitleHeight, width: columnWidth, height: fittedTitleHeight)
+                    drawFrame(CTFramesetterCreateWithAttributedString(fittedTitle), range: CFRange(location: 0, length: fittedTitle.length),
                               in: titleRect, context: context)
-                    cursorY -= titleHeight + 3
+                    cursorY -= fittedTitleHeight + 3
                     if !byline.isEmpty {
                         drawLine(byline, fontName: bodyFontName, size: 7.5, bold: false, alignment: .left,
                                  in: CGRect(x: x, y: cursorY - 11, width: columnWidth, height: 12),
@@ -860,7 +886,13 @@ enum NewspaperPDFRenderer {
                 let frame = CTFramesetterCreateFrame(bodyFramesetter, CFRange(location: bodyOffset, length: 0), path, nil)
                 let visibleRange = CTFrameGetVisibleStringRange(frame)
                 guard visibleRange.length > 0 else {
-                    advanceColumn()
+                    let fallback = drawFallbackLine(body, from: bodyOffset, x: textRect.minX, top: cursorY,
+                                                    width: textRect.width, context: context)
+                    bodyOffset += max(1, fallback.length)
+                    if fallback.height > 0 {
+                        cursorY -= fallback.height + 1
+                    }
+                    if bodyOffset < body.length { advanceColumn() }
                     continue
                 }
                 CTFrameDraw(frame, context)
@@ -872,11 +904,7 @@ enum NewspaperPDFRenderer {
                 }
             }
             if storyIndex < remainingStories.count - 1 {
-                if cursorY - bodyBottom < 72 {
-                    advanceColumn()
-                } else {
-                    cursorY -= 14
-                }
+                cursorY -= 14
             }
         }
 
@@ -963,7 +991,13 @@ enum NewspaperPDFRenderer {
             return ArticleHTMLSanitizer.plainText(fromHTML: cleanedHTML)
         }
 
-        let lines = imported.string
+        let invisibleCharacters = CharacterSet(charactersIn: "\u{00AD}\u{200B}\u{200C}\u{200D}\u{2060}\u{FEFF}\u{FFFC}")
+        let normalized = String(imported.string.unicodeScalars.filter { scalar in
+            if invisibleCharacters.contains(scalar) { return false }
+            return !CharacterSet.controlCharacters.contains(scalar)
+                || scalar == "\n" || scalar == "\r" || scalar == "\t"
+        })
+        let lines = normalized
             .replacingOccurrences(of: "\u{FFFC}", with: "")
             .replacingOccurrences(of: "\r", with: "\n")
             .components(separatedBy: .newlines)
@@ -973,22 +1007,42 @@ enum NewspaperPDFRenderer {
         return lines.joined(separator: "\n\n")
     }
 
-    /// First sentence of the body, used as the band's standfirst.
-    private static func deckText(from body: String) -> String {
+    /// Separates the cover standfirst from the lead's continuation so the
+    /// opening paragraph is printed once, in the feature band.
+    private static func splitLeadingParagraph(from body: String) -> (String, String) {
         let text = body.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard text.count > 40 else { return "" }
-        let head = String(text.prefix(240))
-        let endings = [". ", "? ", "! ", "\n"]
-        if let cut = endings.compactMap({ head.range(of: $0)?.lowerBound }).min(),
-           String(head[..<cut]).count >= 40 {
-            let sentence = String(head[..<cut]).trimmingCharacters(in: .whitespaces)
-            return head[cut] == "\n" ? sentence : sentence + String(head[cut])
-        }
-        let truncated = String(head.prefix(160))
-        if let lastSpace = truncated.lastIndex(of: " ") {
-            return String(truncated[..<lastSpace]) + "…"
-        }
-        return truncated + "…"
+        guard let separator = text.range(of: "\n\n") else { return (text, "") }
+        let lead = text[..<separator.lowerBound].trimmingCharacters(in: .whitespacesAndNewlines)
+        let continuation = text[separator.upperBound...].trimmingCharacters(in: .whitespacesAndNewlines)
+        return (String(lead), String(continuation))
+    }
+
+    /// Ensures an unbreakable or otherwise malformed run cannot make the
+    /// layout loop advance through empty columns forever.
+    private static func drawFallbackLine(
+        _ text: NSAttributedString,
+        from offset: Int,
+        x: CGFloat,
+        top: CGFloat,
+        width: CGFloat,
+        context: CGContext
+    ) -> (length: Int, height: CGFloat) {
+        let typesetter = CTTypesetterCreateWithAttributedString(text)
+        let suggestedLength = CTTypesetterSuggestLineBreak(typesetter, offset, Double(width))
+        let length = suggestedLength > 0
+            ? suggestedLength
+            : CTTypesetterSuggestClusterBreak(typesetter, offset, Double(width))
+        guard length > 0 else { return (0, 0) }
+
+        let line = CTTypesetterCreateLine(typesetter, CFRange(location: offset, length: length))
+        var ascent: CGFloat = 0
+        var descent: CGFloat = 0
+        var leading: CGFloat = 0
+        _ = CTLineGetTypographicBounds(line, &ascent, &descent, &leading)
+        let height = max(1, ascent + descent + leading)
+        context.textPosition = CGPoint(x: x, y: top - ascent)
+        CTLineDraw(line, context)
+        return (length, height)
     }
 
     private static func attributed(

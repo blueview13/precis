@@ -973,6 +973,16 @@ struct MainWindowLayout: View {
         }
         if hasOldReaderCredentials {
             HStack(spacing: 2) {
+                Button {
+                    isOldReaderExpanded.toggle()
+                } label: {
+                    Image(systemName: isOldReaderExpanded ? "chevron.down" : "chevron.right")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(PrecisDesignSystem.marginalia)
+                        .frame(width: 18, height: 26)
+                }
+                .buttonStyle(.plain)
+                .help(isOldReaderExpanded ? "Collapse Oldreader feeds" : "Expand Oldreader feeds")
                 oldReaderAllFeedsRow(feeds: feeds)
                 Button {
                     Task { await refreshOldReaderFeeds() }
@@ -991,8 +1001,8 @@ struct MainWindowLayout: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(isRefreshingOldReader || isRefreshingFeedbin || isRefreshingAll)
-                .help("Sync and refresh The Old Reader feeds")
-                .accessibilityLabel("Sync and refresh The Old Reader feeds")
+                .help("Sync and refresh Oldreader feeds")
+                .accessibilityLabel("Sync and refresh Oldreader feeds")
             }
             if isOldReaderExpanded {
                 oldReaderFolderSections(feeds: feeds)
@@ -1003,13 +1013,13 @@ struct MainWindowLayout: View {
 
     private func oldReaderAllFeedsRow(feeds: [FeedRecord]) -> some View {
         SidebarItem(
-            title: "All Old Reader Feeds",
+            title: "All Oldreader Feeds",
             icon: "books.vertical",
             badge: sidebarCount(viewModel.unreadCount(forFeedIDs: Set(feeds.map(\.id)))),
             uppercase: true,
             active: viewModel.selectedSidebarFilter == .oldReader
         ) {
-            selectedSidebarItem = "All Old Reader Feeds"
+            selectedSidebarItem = "All Oldreader Feeds"
             viewModel.selectedSidebarFilter = .oldReader
         }
     }
