@@ -21,6 +21,7 @@ struct HelpWindowView: View {
             case .rightClickMenus: "contextmenu"
             case .headerIcons: "toolbar"
             case .keyboardShortcuts: "keyboard"
+            case .settingsAndLanguages: "slider.horizontal.3"
             }
         }
 
