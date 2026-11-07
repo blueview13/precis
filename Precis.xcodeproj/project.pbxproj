@@ -80,6 +80,7 @@
 		CBDACAB8857700DF05540842 /* PasteboardFeedSuggestionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9D378749E6F7F88C1513102 /* PasteboardFeedSuggestionTests.swift */; };
 		D60ED8ADFCAAFAEE996AD017 /* TopChromeRevealTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADA8B70578FF6127D26EBA59 /* TopChromeRevealTests.swift */; };
 		DA597B7A17A76B4FC8F7F7A1 /* AlphaFeedInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBC773C2146407A65A512DFD /* AlphaFeedInputView.swift */; };
+		DEEAA51A32E958A3572BCD2B /* SettingsAndLanguages.md in Resources */ = {isa = PBXBuildFile; fileRef = F79066ED05CA73DF44BBA5EA /* SettingsAndLanguages.md */; };
 		E2609D131D1A3D22F0DC998B /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACFE1ACFD7574320B2DBAF7A /* DesignSystem.swift */; };
 		E3DA620B787E3CF3F4DBAD1E /* FeedKit in Frameworks */ = {isa = PBXBuildFile; productRef = E866CBD8782989BEE12DFA8A /* FeedKit */; };
 		E6FC1896A54B3AA4C953CBEE /* SmartCategoryEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E10A5ED14CE2C5C9D0717141 /* SmartCategoryEditorView.swift */; };
@@ -198,6 +199,7 @@
 		F0E28DB3045FBE05C16FE426 /* FeedStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedStore.swift; sourceTree = "<group>"; };
 		F3627A15C4B94350D2597305 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		F5A2799FFE85E43D8A34F768 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		F79066ED05CA73DF44BBA5EA /* SettingsAndLanguages.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SettingsAndLanguages.md; sourceTree = "<group>"; };
 		F8488966E1231C546CF3FC75 /* FeedbinService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbinService.swift; sourceTree = "<group>"; };
 		FB6C8A40AC2E8923DABA5499 /* FaviconService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaviconService.swift; sourceTree = "<group>"; };
 		FB6ECC711E8AE2EDE52BD5A6 /* DesktopFeedPanelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesktopFeedPanelTests.swift; sourceTree = "<group>"; };
@@ -286,6 +288,7 @@
 				38E411D73E02E1951625BE44 /* HeaderIcons.md */,
 				6128BACA66D4BC4D18178BBF /* KeyboardShortcuts.md */,
 				7E8E732F9F523E7352E4E966 /* RightClickMenus.md */,
+				F79066ED05CA73DF44BBA5EA /* SettingsAndLanguages.md */,
 			);
 			path = Help;
 			sourceTree = "<group>";
@@ -511,6 +514,7 @@
 				Base,
 				ar,
 				bn,
+				de,
 				en,
 				es,
 				fr,
@@ -546,6 +550,7 @@
 				85ED6991E344316195DEEA9F /* Localizable.xcstrings in Resources */,
 				B9C5A5C8065AD4ADA04483EC /* MercuryParser-LICENSE.txt in Resources */,
 				2D08198F56A89355F5F35D3A /* RightClickMenus.md in Resources */,
+				DEEAA51A32E958A3572BCD2B /* SettingsAndLanguages.md in Resources */,
 				B164D3A7B5AA9B27D4051749 /* gen_icon.png in Resources */,
 				10DA0B22C6D5A6AE515FF053 /* gen_icon_transparent.png in Resources */,
 				3A650989B546BEA64E35F661 /* mercury.web.js in Resources */,

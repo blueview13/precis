@@ -11,6 +11,7 @@ struct HelpWindowView: View {
         case rightClickMenus = "Right-Click Menus"
         case headerIcons = "Header Icons"
         case keyboardShortcuts = "Keyboard Shortcuts"
+        case settingsAndLanguages = "Settings & Languages"
 
         var id: String { rawValue }
 
@@ -29,24 +30,31 @@ struct HelpWindowView: View {
             case .rightClickMenus: "RightClickMenus"
             case .headerIcons: "HeaderIcons"
             case .keyboardShortcuts: "KeyboardShortcuts"
+            case .settingsAndLanguages: "SettingsAndLanguages"
             }
         }
 
         /// Loads the article from the bundle. Handles both a flat copy in
         /// `Resources` and a folder-reference copy under `Resources/Help`.
-        var markdown: String {
+        func markdown(language: String) -> String {
             let name = resourceName
             let url = Bundle.main.url(forResource: name, withExtension: "md")
                 ?? Bundle.main.url(forResource: name, withExtension: "md", subdirectory: "Help")
             guard let url, let text = try? String(contentsOf: url, encoding: .utf8) else {
                 return "# \(rawValue)\n\nThis help article is missing."
             }
-            return text
+            guard language != "en",
+                  let localizationPath = Bundle.main.path(forResource: language, ofType: "lproj"),
+                  let localizationBundle = Bundle(path: localizationPath) else {
+                return text
+            }
+            return localizationBundle.localizedString(forKey: text, value: text, table: nil)
         }
     }
 
     @State private var selectedArticle: Article? = .gettingStarted
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage("interfaceLanguage") private var interfaceLanguage = "en"
 
     var body: some View {
         HStack(spacing: 0) {
@@ -59,7 +67,7 @@ struct HelpWindowView: View {
 
     private var sidebar: some View {
         List(Article.allCases, selection: $selectedArticle) { article in
-            Label(article.rawValue, systemImage: article.symbol)
+            Label(LocalizedStringKey(article.rawValue), systemImage: article.symbol)
                 .tag(article)
         }
         .listStyle(.sidebar)
@@ -69,7 +77,7 @@ struct HelpWindowView: View {
 
     private var detail: some View {
         ScrollView {
-            HelpMarkdownView(text: (selectedArticle ?? .gettingStarted).markdown)
+            HelpMarkdownView(text: (selectedArticle ?? .gettingStarted).markdown(language: interfaceLanguage))
                 .padding(PrecisSpacing.lg)
                 .frame(maxWidth: 760, alignment: .leading)
                 .frame(maxWidth: .infinity, alignment: .leading)

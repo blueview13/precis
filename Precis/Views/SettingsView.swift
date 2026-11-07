@@ -104,6 +104,7 @@ struct SettingsView: View {
 
     private static let interfaceLanguages = [
         InterfaceLanguage(code: "en", name: "English"),
+        InterfaceLanguage(code: "de", name: "Deutsch"),
         InterfaceLanguage(code: "zh-Hans", name: "简体中文"),
         InterfaceLanguage(code: "hi", name: "हिन्दी"),
         InterfaceLanguage(code: "es", name: "Español"),

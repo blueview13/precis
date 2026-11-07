@@ -1,40 +1,17 @@
 # Right-Click Menus
 
-## Feeds (sidebar)
+## Feeds
 
-Right-click any feed row:
+Right-click a feed to refresh or rename it, create a newspaper PDF of its articles from the last 24 hours, move it to a category, or delete it with its articles. With multiple feeds selected, move or delete the whole selection.
 
-- **Refresh Feed** — check this feed for new articles now.
-- **Rename Feed…** — edit the name shown in the sidebar.
-- **Create Newspaper** — makes a PDF of this feed's articles from the last 24 hours and asks where to save it.
-- **Move to Category** — submenu: pick a category, or **No Category** to ungroup it. With several feeds selected it reads *Move N Feeds to Category* and moves the whole selection.
-- **Delete Feed…** — remove the feed and its articles after a confirmation. With several feeds selected it reads *Delete N feeds…*.
+For Feedbin feeds, manage tags or unsubscribe from Feedbin. Unsubscribing leaves the feed and its articles in Precis.
 
-Feedbin feeds only (when a Feedbin account is connected):
+## Categories
 
-- **Feedbin Tags** — submenu: tick tags on or off, or **Add New Tag…** to create one.
-- **Unsubscribe from Feedbin** — unsubscribe on Feedbin; the feed stays in Precis.
+Right-click a category to rename it, change its text and icon color, or create a newspaper PDF. You can move its feeds to the top level, delete all feeds inside it, or delete the category while keeping its feeds.
 
-## Categories (sidebar)
+## Smart Categories
 
-Right-click any category row:
+Right-click a Smart Category to edit its rules, rename it, change its color, create a newspaper PDF, or delete it. Deleting a Smart Category does not delete feeds.
 
-- **Rename…** — type a new name in place.
-- **Change Color…** — pick a text and icon tint for the category.
-- **Create Newspaper** — makes a PDF of this category's articles from the last 24 hours and asks where to save it.
-- **Remove from Category** — move its feeds back to the top level; nothing is deleted.
-- **Delete All Feeds in Category** — delete every feed inside, after a confirmation.
-- **Delete Category** — delete the category itself; its feeds move to the top level.
-
-## Smart Categories (sidebar)
-
-Right-click any Smart Category:
-
-- **Edit Smart Category…** — open the rules editor.
-- **Rename…** — open the rules editor (same as Edit Smart Category…).
-- **Change Color…** — pick a tint for the row.
-- **Create Newspaper** — makes a PDF of this Smart Category's articles from the last 24 hours and asks where to save it.
-- **New Smart Category…** — create another Smart Category.
-- **Delete Smart Category** — remove it; feeds are untouched.
-
-The headline list and the reading pane don't have right-click menus — use the buttons in their header bars instead.
+The headline list and reading pane have no right-click menus; use their header buttons.
