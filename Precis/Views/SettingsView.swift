@@ -94,6 +94,24 @@ private struct WindowWillCloseObserver: NSViewRepresentable {
 }
 
 struct SettingsView: View {
+    private struct InterfaceLanguage: Identifiable {
+        let code: String
+        let name: String
+        var id: String { code }
+    }
+
+    @AppStorage("interfaceLanguage") private var interfaceLanguage = "en"
+
+    private static let interfaceLanguages = [
+        InterfaceLanguage(code: "en", name: "English"),
+        InterfaceLanguage(code: "zh-Hans", name: "简体中文"),
+        InterfaceLanguage(code: "hi", name: "हिन्दी"),
+        InterfaceLanguage(code: "es", name: "Español"),
+        InterfaceLanguage(code: "ar", name: "العربية"),
+        InterfaceLanguage(code: "fr", name: "Français"),
+        InterfaceLanguage(code: "bn", name: "বাংলা"),
+        InterfaceLanguage(code: "pt-BR", name: "Português")
+    ]
     private enum SettingsTab: String, CaseIterable, Identifiable {
         case appearance = "Appearance"
         case reading = "Reading"
@@ -208,7 +226,7 @@ struct SettingsView: View {
                         VStack(spacing: 7) {
                             Image(systemName: tab.symbol)
                                 .font(.system(size: 14.25, weight: .medium))
-                            Text(tab.rawValue)
+                            Text(LocalizedStringKey(tab.rawValue))
                                 .font(PrecisTypography.metadata)
                         }
                         .foregroundStyle(selectedSettingsTab == tab ? PrecisDesignSystem.marginalia : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.68))
@@ -235,7 +253,14 @@ struct SettingsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: PrecisSpacing.lg) {
                     settingsSection(title: "Appearance") {
-                        VStack(spacing: PrecisSpacing.xs) {
+                        VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
+                            Picker("Interface language", selection: $interfaceLanguage) {
+                                ForEach(Self.interfaceLanguages) { language in
+                                    Text(language.name).tag(language.code)
+                                }
+                            }
+                            .pickerStyle(.menu)
+
                             ForEach(PrecisTheme.allCases) { theme in
                                 Button {
                                     selectedThemeRawValue = theme.rawValue
@@ -244,10 +269,10 @@ struct SettingsView: View {
                                         themePreview(theme)
 
                                         VStack(alignment: .leading, spacing: 3) {
-                                            Text(theme.name)
+                                            Text(LocalizedStringKey(theme.name))
                                                 .font(PrecisTypography.body.weight(.medium))
                                                 .foregroundStyle(selectedTheme.foreground)
-                                            Text(theme.detail)
+                                            Text(LocalizedStringKey(theme.detail))
                                                 .font(PrecisTypography.caption)
                                                 .foregroundStyle(selectedTheme.foreground.opacity(0.65))
                                         }
@@ -312,7 +337,7 @@ struct SettingsView: View {
 
                             Picker("Article font", selection: $readingTypefaceRawValue) {
                                 ForEach(ReadingTypeface.allCases) { typeface in
-                                    Text(typeface.name)
+                                    Text(LocalizedStringKey(typeface.name))
                                         .font(typeface.previewFontName.map { .custom($0, size: 13) } ?? .system(size: 13))
                                         .tag(typeface.rawValue)
                                 }
@@ -371,7 +396,7 @@ struct SettingsView: View {
 
                                 Picker("", selection: $defaultSortOrder) {
                                     ForEach(sortOptions, id: \.self) { option in
-                                        Text(option.capitalized).tag(option)
+                                        Text(LocalizedStringKey(option.capitalized)).tag(option)
                                     }
                                 }
                                 .pickerStyle(.menu)
@@ -1083,10 +1108,11 @@ struct SettingsView: View {
     private func settingsSection<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
         if selectedSettingsTab == settingsTab(for: title) {
         VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
-            Text(title.uppercased())
+            Text(LocalizedStringKey(title))
                 .font(PrecisTypography.caption)
                 .foregroundStyle(PrecisDesignSystem.marginalia)
                 .tracking(1.2)
+                .textCase(.uppercase)
 
             Divider()
                 .background(PrecisDesignSystem.rule(for: colorScheme))
@@ -1147,7 +1173,7 @@ struct SettingsView: View {
                         .disabled(busy)
                 }
             } else {
-                Text(description)
+                Text(LocalizedStringKey(description))
                     .font(PrecisTypography.caption)
                     .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.68))
                 fields()

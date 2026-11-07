@@ -2791,7 +2791,7 @@ private struct SidebarSection: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Text(title)
+            Text(LocalizedStringKey(title))
                 .font(PrecisTypography.caption)
                 .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.6))
                 .textCase(.uppercase)
@@ -2870,7 +2870,7 @@ private struct FeedbinTagSidebarRow: View {
                         .font(.body)
                         .frame(width: 18)
                         .foregroundStyle(active ? PrecisDesignSystem.flag : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.6))
-                    Text(title)
+                    Text(LocalizedStringKey(title))
                         .font(PrecisTypography.body)
                         .foregroundStyle(active ? PrecisDesignSystem.foreground(for: colorScheme) : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.75))
                     Spacer(minLength: 4)
@@ -2946,7 +2946,7 @@ private struct SidebarItem: View {
                         .foregroundStyle(tint ?? (active ? PrecisDesignSystem.flag : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.6)))
                 }
 
-                Text(title)
+                Text(LocalizedStringKey(title))
                     .font(uppercase ? PrecisTypography.caption : PrecisTypography.body)
                     .foregroundStyle(tint ?? (active ? PrecisDesignSystem.foreground(for: colorScheme) : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.75)))
                     .textCase(uppercase ? .uppercase : .none)

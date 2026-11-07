@@ -5,6 +5,7 @@ import AppKit
 @main
 struct PrecisApp: App {
     @AppStorage(PrecisTheme.storageKey) private var selectedThemeRawValue = PrecisTheme.standard.rawValue
+    @AppStorage("interfaceLanguage") private var interfaceLanguage = "en"
 
     private let modelContainer: ModelContainer = {
         do {
@@ -22,6 +23,8 @@ struct PrecisApp: App {
         WindowGroup(id: "main") {
             MainWindowLayout()
                 .modelContainer(modelContainer)
+                .environment(\.locale, Locale(identifier: interfaceLanguage))
+                .environment(\.layoutDirection, interfaceLanguage == "ar" ? .rightToLeft : .leftToRight)
                 .preferredColorScheme(selectedTheme.colorScheme)
                 .tint(selectedTheme.accent)
                 .onAppear {
@@ -36,6 +39,8 @@ struct PrecisApp: App {
                 hasFeeds: false
             )
             .modelContainer(modelContainer)
+            .environment(\.locale, Locale(identifier: interfaceLanguage))
+            .environment(\.layoutDirection, interfaceLanguage == "ar" ? .rightToLeft : .leftToRight)
             .frame(width: 480, height: 560)
             .preferredColorScheme(selectedTheme.colorScheme)
             .tint(selectedTheme.accent)

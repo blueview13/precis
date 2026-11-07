@@ -52,6 +52,7 @@
 		7E1D586977823BBD3157786E /* MercuryArticleParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD13EF6706119A60C71A0691 /* MercuryArticleParser.swift */; };
 		7F729304DD4AE7A4523B7EA7 /* MainWindowLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3351B93914DB35818903B24D /* MainWindowLayout.swift */; };
 		818DB03E5B7F8EEA3658334A /* FeedImportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D4763C848017EA801B958A1 /* FeedImportService.swift */; };
+		85ED6991E344316195DEEA9F /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = F5A2799FFE85E43D8A34F768 /* Localizable.xcstrings */; };
 		870CECEF8E89EAE443ADF28C /* ModelContainerProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C79457B2DC238DB0B8C2D07 /* ModelContainerProvider.swift */; };
 		89940DC3938D9621A69332F4 /* SmartCategoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CA6D5B9276EF6302D41C8DD /* SmartCategoryStore.swift */; };
 		89D326B2FAEC83761CD1C9AA /* SmartCategoryEvaluator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D52848B0C6FF1044C279CA51 /* SmartCategoryEvaluator.swift */; };
@@ -196,6 +197,7 @@
 		EF30D7165BEF9EF7B18CEB81 /* FeedRefreshService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedRefreshService.swift; sourceTree = "<group>"; };
 		F0E28DB3045FBE05C16FE426 /* FeedStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedStore.swift; sourceTree = "<group>"; };
 		F3627A15C4B94350D2597305 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		F5A2799FFE85E43D8A34F768 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		F8488966E1231C546CF3FC75 /* FeedbinService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbinService.swift; sourceTree = "<group>"; };
 		FB6C8A40AC2E8923DABA5499 /* FaviconService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaviconService.swift; sourceTree = "<group>"; };
 		FB6ECC711E8AE2EDE52BD5A6 /* DesktopFeedPanelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesktopFeedPanelTests.swift; sourceTree = "<group>"; };
@@ -373,6 +375,7 @@
 		8107472236A3C221862BA0F0 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				F5A2799FFE85E43D8A34F768 /* Localizable.xcstrings */,
 				E1F5043DA1E386CA42962643 /* mercury.web.js */,
 				D77DA7D913C6EB9FA7CD8959 /* MercuryParser-LICENSE.txt */,
 			);
@@ -506,7 +509,14 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				Base,
+				ar,
+				bn,
 				en,
+				es,
+				fr,
+				hi,
+				"pt-BR",
+				"zh-Hans",
 			);
 			mainGroup = F9A42285C6E9C2A61B24C211;
 			minimizedProjectReferenceProxies = 1;
@@ -533,6 +543,7 @@
 				F214BC56B316371D5E695C6C /* GettingStarted.md in Resources */,
 				C785CF2371609D9935888030 /* HeaderIcons.md in Resources */,
 				6FA2DA2F6FD5A691CAA0054C /* KeyboardShortcuts.md in Resources */,
+				85ED6991E344316195DEEA9F /* Localizable.xcstrings in Resources */,
 				B9C5A5C8065AD4ADA04483EC /* MercuryParser-LICENSE.txt in Resources */,
 				2D08198F56A89355F5F35D3A /* RightClickMenus.md in Resources */,
 				B164D3A7B5AA9B27D4051749 /* gen_icon.png in Resources */,
@@ -686,10 +697,10 @@
 				CODE_SIGN_ENTITLEMENTS = Precis/Precis.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = "";
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -844,10 +855,10 @@
 				CODE_SIGN_ENTITLEMENTS = Precis/Precis.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = "";
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
