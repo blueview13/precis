@@ -139,6 +139,7 @@ struct SettingsView: View {
     @AppStorage("articleTranslationTargetLanguage") private var articleTranslationTargetLanguage = ""
     @State private var translationLanguages: [Locale.Language] = []
     @AppStorage(ReadingBrowserService.preferenceKey) private var readingBrowserBundleIdentifier = ReadingBrowserService.systemDefaultIdentifier
+    @AppStorage("browserAutoAcceptCookies") private var browserAutoAcceptCookies = true
     @AppStorage("readingContentWidth") private var readingContentWidth: Double = 750
     @AppStorage("showSidebarUnreadPills") private var showSidebarUnreadPills: Bool = true
     // Default On, matching the launch behaviour it gates — users opt out.
@@ -305,6 +306,7 @@ struct SettingsView: View {
                     settingsSection(title: "Reading") {
                         VStack(alignment: .leading, spacing: PrecisSpacing.md) {
                             Picker("Web browser", selection: $readingBrowserBundleIdentifier) {
+                                Text("Precis In-App Browser").tag(ReadingBrowserService.inAppIdentifier)
                                 Text("System Default (\(ReadingBrowserService.systemDefaultBrowser?.name ?? "Default Browser"))")
                                     .tag(ReadingBrowserService.systemDefaultIdentifier)
                                 ForEach(ReadingBrowserService.installedBrowsers.filter {
@@ -314,6 +316,11 @@ struct SettingsView: View {
                                 }
                             }
                             .pickerStyle(.menu)
+
+                            Toggle("Auto-dismiss cookie banners", isOn: $browserAutoAcceptCookies)
+                            Text("Attempts to accept common cookie banners in Precis’s in-app browser. Some sites may still require a choice.")
+                                .font(PrecisTypography.metadata)
+                                .foregroundStyle(PrecisDesignSystem.marginalia)
 
                             Picker("Read aloud voice", selection: $readingSpeechVoiceIdentifier) {
                                 Text("System Default").tag("")

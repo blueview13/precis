@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 
 struct ReadingBrowserOption: Identifiable, Hashable {
     let bundleIdentifier: String
@@ -11,6 +12,7 @@ struct ReadingBrowserOption: Identifiable, Hashable {
 enum ReadingBrowserService {
     static let preferenceKey = "readingBrowserBundleIdentifier"
     static let systemDefaultIdentifier = "__system_default__"
+    static let inAppIdentifier = "__precis_in_app__"
 
     /// Representative URL used to query the system for applications registered to open web pages.
     private static let webURLProbe = URL(string: "https://example.com")!
@@ -39,18 +41,49 @@ enum ReadingBrowserService {
     }
 
     static func open(_ url: URL) {
-        guard let identifier = UserDefaults.standard.string(forKey: preferenceKey),
-              identifier != systemDefaultIdentifier,
-              let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: identifier) else {
-            NSWorkspace.shared.open(url)
+        let identifier = UserDefaults.standard.string(forKey: preferenceKey)
+        if identifier == inAppIdentifier {
+            PrecisBrowserWindowController.shared.open(url)
             return
         }
-        NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: NSWorkspace.OpenConfiguration())
+        if let identifier,
+           identifier != systemDefaultIdentifier,
+           let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: identifier) {
+            NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: NSWorkspace.OpenConfiguration())
+        } else {
+            NSWorkspace.shared.open(url)
+        }
     }
 
     private static func appName(at url: URL) -> String? {
         guard let bundle = Bundle(url: url) else { return nil }
         return (bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String)
             ?? (bundle.object(forInfoDictionaryKey: "CFBundleName") as? String)
+    }
+}
+
+@MainActor
+private final class PrecisBrowserWindowController: NSObject, NSWindowDelegate {
+    static let shared = PrecisBrowserWindowController()
+    private var windows: [NSWindow] = []
+
+    func open(_ url: URL) {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 1000, height: 720),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = url.host ?? "Precis Browser"
+        window.delegate = self
+        window.contentViewController = NSHostingController(rootView: BrowserView(url: url))
+        window.center()
+        windows.append(window)
+        window.makeKeyAndOrderFront(nil)
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow else { return }
+        windows.removeAll { $0 === window }
     }
 }

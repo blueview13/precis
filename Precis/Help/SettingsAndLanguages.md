@@ -8,7 +8,8 @@ Choose a theme and interface language. Theme changes apply to the reader and Set
 
 ## Reading
 
-- Choose which browser opens article links.
+- Choose Precis’s in-app browser, the macOS default browser, or another installed browser for article links.
+- In Precis’s in-app browser, optionally attempt to accept common cookie banners automatically. Some sites may still require a manual choice.
 - Choose a macOS voice for **Read Aloud**.
 - Choose a target language for **Translate Article**. macOS may download language models the first time you use translation.
 - Set the article font, reading-pane font size and width, and whether to show reading-time estimates.
