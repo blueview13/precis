@@ -220,6 +220,61 @@ final class NewspaperPDFServiceTests: XCTestCase {
         XCTAssertTrue(extractedText.contains("News content continues"))
     }
 
+    @MainActor
+    func testFollowingStoryFillsShortLeadContinuationPage() async throws {
+        let now = Date(timeIntervalSince1970: 1_794_355_200)
+        let fixture = try carryoverFixture()
+        let imageData = try onePixelPNG()
+        let lead = NewspaperPDFService.PreparedStory(
+            id: UUID(), title: fixture.title, author: nil, feedTitle: "SkySports | News", publishedDate: now,
+            html: fixture.html + "<p>CARRYOVERENDMARKER.</p>", imageData: imageData
+        )
+        let leadData = try await NewspaperPDFRenderer.render(stories: [lead], scopeTitle: "Test3", issueDate: now)
+        let leadDocument = try XCTUnwrap(PDFDocument(data: leadData))
+        XCTAssertEqual(leadDocument.pageCount, 2, "The supplied lead must reproduce a short spill onto page 2")
+        let continuationIndex = leadDocument.pageCount - 1
+        let continuationText = try XCTUnwrap(leadDocument.page(at: continuationIndex)?.string)
+        XCTAssertTrue(continuationText.contains("CARRYOVERENDMARKER"))
+        XCTAssertLessThan(continuationText.count, 700, "Fixture should reproduce the almost-empty continuation page")
+
+        let following = NewspaperPDFService.PreparedStory(
+            id: UUID(), title: "Following article", author: "Test Reporter", feedTitle: "The Test Gazette", publishedDate: now,
+            html: "<p>FOLLOWINGBODYMARKER. \(String(repeating: "Further reporting fills the available newspaper columns. ", count: 65)) FOLLOWINGENDMARKER.</p>", imageData: imageData
+        )
+        let data = try await NewspaperPDFRenderer.render(stories: [lead, following], scopeTitle: "Test3", issueDate: now)
+        if let preview = ProcessInfo.processInfo.environment["PRECIS_PAGINATION_PREVIEW"] {
+            try data.write(to: URL(fileURLWithPath: preview))
+        }
+        let document = try XCTUnwrap(PDFDocument(data: data))
+        let page = try XCTUnwrap(document.page(at: continuationIndex))
+        let text = try XCTUnwrap(page.string)
+        XCTAssertTrue(text.contains("CARRYOVERENDMARKER"))
+        XCTAssertTrue(text.contains("FOLLOWINGBODYMARKER"), "Following articles must use the lead's continuation page")
+        XCTAssertTrue(text.contains("FOLLOWINGENDMARKER"), "The whole following article fits in the available page")
+        XCTAssertGreaterThan(text.count, 2_000)
+        XCTAssertEqual(document.pageCount, 2, "A lead continuation must not force a nearly empty extra page")
+        let nsText = text as NSString
+        if let end = page.selection(for: nsText.range(of: "CARRYOVERENDMARKER")),
+           let next = page.selection(for: nsText.range(of: "FOLLOWINGBODYMARKER")) {
+            XCTAssertFalse(end.bounds(for: page).intersects(next.bounds(for: page)), "The following article must not overlap the lead")
+        }
+    }
+
+    @MainActor
+    func testShortLeadAllowsFollowingStoriesToFillCoverColumns() async throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let imageData = try onePixelPNG()
+        let stories = ["LEADBODYMARKER", "SECONDBODYMARKER", "THIRDBODYMARKER"].enumerated().map { index, marker in
+            NewspaperPDFService.PreparedStory(id: UUID(), title: "Article \(index)", author: nil, feedTitle: "The Test Gazette", publishedDate: now,
+                                              html: "<p>\(marker). Short article with room for the next story.</p>", imageData: imageData)
+        }
+        let data = try await NewspaperPDFRenderer.render(stories: stories, scopeTitle: "Test", issueDate: now)
+        let document = try XCTUnwrap(PDFDocument(data: data))
+        XCTAssertEqual(document.pageCount, 1)
+        let text = document.page(at: 0)?.string ?? ""
+        for marker in ["LEADBODYMARKER", "SECONDBODYMARKER", "THIRDBODYMARKER"] { XCTAssertTrue(text.contains(marker)) }
+    }
+
     func testPDFRendererUsesRemainingColumnSpaceWithoutAnImage() async throws {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         let imageData = try onePixelPNG()
@@ -230,7 +285,7 @@ final class NewspaperPDFServiceTests: XCTestCase {
                 author: nil,
                 feedTitle: "The Test Gazette",
                 publishedDate: now,
-                html: "<p>Cover story body.</p>",
+                html: try carryoverFixture().html,
                 imageData: imageData
             ),
             NewspaperPDFService.PreparedStory(
@@ -283,7 +338,7 @@ final class NewspaperPDFServiceTests: XCTestCase {
             author: "Cover Reporter",
             feedTitle: "The Daily Feed",
             publishedDate: now,
-            html: "<p>\(String(repeating: "Cover story full text. ", count: 30))</p>",
+            html: try carryoverFixture().html,
             imageData: imageData
         )
         let interiorStory = NewspaperPDFService.PreparedStory(
@@ -561,6 +616,17 @@ final class NewspaperPDFServiceTests: XCTestCase {
             visibleTextLength: textLength,
             isStarred: starred
         )
+    }
+
+    private func carryoverFixture() throws -> (title: String, html: String) {
+        let url = URL(fileURLWithPath: #filePath).deletingLastPathComponent().appendingPathComponent("Fixtures/NewspaperCarryoverLead.json")
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+        let body = try XCTUnwrap(object["body"] as? String)
+        let paragraphs = body.components(separatedBy: "\n\n").map {
+            "<p>" + $0.replacingOccurrences(of: "&", with: "&amp;")
+                .replacingOccurrences(of: "<", with: "&lt;").replacingOccurrences(of: ">", with: "&gt;") + "</p>"
+        }
+        return (try XCTUnwrap(object["title"] as? String), paragraphs.joined())
     }
 
     private func onePixelPNG() throws -> Data {

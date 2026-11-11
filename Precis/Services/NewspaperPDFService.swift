@@ -828,10 +828,10 @@ enum NewspaperPDFRenderer {
                 let text = bodyText(from: story.html)
                 return text.isEmpty ? nil : (story: story, bodyText: text)
             }
-            if !remainingStories.isEmpty {
-                context.endPDFPage()
-                startInteriorPage()
-            }
+            // Continue at the lead's final cursor, even if it spilled onto an
+            // interior page. A forced page break here stranded short lead
+            // continuations on otherwise empty pages. Normal column fitting
+            // below decides when the next article needs a fresh column/page.
         } else {
             drawLine("NO ARTICLES AVAILABLE", fontName: headingFontName, size: 16, bold: true,
                      alignment: .center,
