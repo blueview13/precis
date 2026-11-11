@@ -3,6 +3,7 @@
 .xcuserstate
 xcuserdata/
 DerivedData/
+.build/
 build/
 *.xcworkspace/xcuserdata
 *.xcodeproj/project.xcworkspace/xcuserdata

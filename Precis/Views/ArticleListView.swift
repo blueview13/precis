@@ -469,6 +469,7 @@ private struct ArticleListRow: View, Equatable {
     var onToggleStoryExpansion: () -> Void = {}
     @AppStorage("showReadingTime") private var showReadingTime: Bool = true
     @Environment(\.colorScheme) private var colorScheme
+    @State private var isHovered = false
     /// Three-column layout: the thumbnail sits ABOVE the headline and
     /// summary at the full column width. The stacked layout keeps the
     /// side-by-side row (thumbnail left of the text) — unchanged.
@@ -514,12 +515,18 @@ private struct ArticleListRow: View, Equatable {
         // article and (via the view model) marks it read.
         .contentShape(Rectangle())
         .onTapGesture(perform: onSelect)
-        // Highlight the selected row with a subtle tint only.
+        .onHover { isHovered = $0 }
+        // Keep the selection tint visible beneath the neutral hover wash.
         .background {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(isSelected
                     ? Color.accentColor.opacity(colorScheme == .dark ? 0.18 : 0.08)
                     : Color(nsColor: .controlBackgroundColor))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(Color.gray.opacity(isHovered ? (colorScheme == .dark ? 0.16 : 0.08) : 0))
+                        .animation(.easeInOut(duration: 0.15), value: isHovered)
+                }
         }
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
