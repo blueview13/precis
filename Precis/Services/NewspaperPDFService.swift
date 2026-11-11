@@ -764,7 +764,8 @@ enum NewspaperPDFRenderer {
                          in: CGRect(x: blockX, y: y - 10, width: columnWidth, height: 10), context: context)
                 y -= 14
             }
-            if deck.length > 0, y - deckHeight >= coverBandBottom + 6 {
+            let deckFits = deck.length > 0 && y - deckHeight >= coverBandBottom + 6
+            if deckFits {
                 _ = drawWrappedText(deck, x: blockX, top: y, width: columnWidth,
                                     maximumHeight: deckHeight, context: context)
             }
@@ -781,7 +782,9 @@ enum NewspaperPDFRenderer {
             column = 0
             columnTop = coverBodyTop
             cursorY = coverBodyTop
-            let body = attributed(continuationBody, fontName: bodyFontName, size: bodyFontSize,
+            // If the opening paragraph cannot fit in the band, print it with
+            // the body instead of dropping it from the newspaper entirely.
+            let body = attributed(deckFits ? continuationBody : fullBody, fontName: bodyFontName, size: bodyFontSize,
                                   bold: false, alignment: .justified, paragraphSpacing: 3)
             let framesetter = CTFramesetterCreateWithAttributedString(body)
             var offset = 0

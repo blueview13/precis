@@ -11,6 +11,46 @@ import Testing
 /// injected `URLSession`, so this suite stays fast and deterministic.
 struct FeedDiscoveryServiceTests {
 
+    @Test("Article URL deduplication ignores tracking and fragments")
+    func canonicalArticleURLRemovesTracking() throws {
+        let first = try #require(URL(string: "https://EXAMPLE.com/story?id=42&utm_source=feed#section"))
+        let second = try #require(URL(string: "https://example.com/story?id=42"))
+        #expect(DeduplicationPipeline.canonicalURL(first) == DeduplicationPipeline.canonicalURL(second))
+    }
+
+    @Test("Article URL deduplication preserves case-sensitive paths")
+    func canonicalArticleURLDistinguishesPathCase() throws {
+        let first = try #require(URL(string: "https://example.com/News/Story"))
+        let second = try #require(URL(string: "https://example.com/news/story"))
+        #expect(DeduplicationPipeline.canonicalURL(first) != DeduplicationPipeline.canonicalURL(second))
+    }
+
+    @Test("Article URL deduplication preserves case-sensitive query values")
+    func canonicalArticleURLDistinguishesQueryValueCase() throws {
+        let first = try #require(URL(string: "https://example.com/story?id=ABC"))
+        let second = try #require(URL(string: "https://example.com/story?id=abc"))
+        #expect(DeduplicationPipeline.canonicalURL(first) != DeduplicationPipeline.canonicalURL(second))
+    }
+
+    @Test("Previously stored URL keys are rebuilt without changing URL case")
+    func migratesLegacyArticleURLs() throws {
+        let schema = ModelContainerProvider.schema
+        let config = ModelConfiguration("URLMigrationTests", schema: schema, isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: schema, configurations: config)
+        let context = ModelContext(container)
+        let record = ArticleRecord(title: "Example", cleanURL: "https://example.com/story?id=abc",
+                                   link: "https://example.com/Story?id=ABC&utm_source=feed")
+        context.insert(record)
+        try context.save()
+        let suite = "URLMigrationTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        try ModelContainerProvider.migrateArticleURLsIfNeeded(context: context, defaults: defaults)
+        #expect(record.cleanURL == "https://example.com/Story?id=ABC")
+        #expect(defaults.bool(forKey: "articleURLCaseNormalizationMigrated"))
+    }
+
     // MARK: - URL normalization
 
     @Test("A bare host is normalized to https with a root path")

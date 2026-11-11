@@ -23,6 +23,25 @@ public enum ModelContainerProvider {
         if converted > 0 {
             PrecisLogger.info("Converted \(converted) categor\(converted == 1 ? "y" : "ies") to folders")
         }
+        try migrateArticleURLsIfNeeded(context: ModelContext(container))
         return container
+    }
+
+    /// Rebuild legacy keys which lowercased case-sensitive URL paths and queries.
+    static func migrateArticleURLsIfNeeded(context: ModelContext, defaults: UserDefaults = .standard) throws {
+        let key = "articleURLCaseNormalizationMigrated"
+        guard !defaults.bool(forKey: key) else { return }
+        let records = try context.fetch(FetchDescriptor<ArticleRecord>())
+        var changed = false
+        for record in records {
+            guard let link = record.link, let url = URL(string: link) else { continue }
+            let normalized = DeduplicationPipeline.canonicalURL(url)
+            if record.cleanURL != normalized {
+                record.cleanURL = normalized
+                changed = true
+            }
+        }
+        if changed { try context.save() }
+        defaults.set(true, forKey: key)
     }
 }

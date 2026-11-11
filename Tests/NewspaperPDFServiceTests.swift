@@ -6,6 +6,23 @@ import XCTest
 @testable import Precis
 
 final class NewspaperPDFServiceTests: XCTestCase {
+    func testRecentArticleSelectionIncludesExactDayBoundaryAndExcludesFuture() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let feed = UUID()
+        let boundary = NewspaperArticleReference(id: UUID(), feedID: feed, publishedDate: now.addingTimeInterval(-86_400))
+        let tooOld = NewspaperArticleReference(id: UUID(), feedID: feed, publishedDate: now.addingTimeInterval(-86_401))
+        let future = NewspaperArticleReference(id: UUID(), feedID: feed, publishedDate: now.addingTimeInterval(1))
+        let result = NewspaperArticleSelection.recent([tooOld, boundary, future], scope: .init(feedIDs: [feed]), now: now)
+        XCTAssertEqual(result, [boundary])
+    }
+
+    func testRecentArticleSelectionWithEmptyArticleScopeReturnsNothing() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let feed = UUID()
+        let article = NewspaperArticleReference(id: UUID(), feedID: feed, publishedDate: now)
+        XCTAssertTrue(NewspaperArticleSelection.recent([article], scope: .init(feedIDs: [feed], articleIDs: []), now: now).isEmpty)
+    }
+
     func testRecentArticleSelectionUsesRollingDayAndFeedScope() {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         let selectedFeed = UUID()

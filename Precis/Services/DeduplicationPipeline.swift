@@ -7,15 +7,17 @@ import SwiftData
 public enum DeduplicationPipeline {
     public static func canonicalURL(_ url: URL) -> String {
         guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
-            return url.absoluteString.lowercased()
+            return url.absoluteString
         }
+        components.scheme = components.scheme?.lowercased()
+        components.host = components.host?.lowercased()
         components.fragment = nil
         components.queryItems = components.queryItems?.filter { item in
             let key = item.name.lowercased()
             return !key.hasPrefix("utm_") && key != "ref" && key != "source"
         }
         if components.queryItems?.isEmpty == true { components.queryItems = nil }
-        return (components.string ?? url.absoluteString).lowercased()
+        return components.string ?? url.absoluteString
     }
 
     public static func titleHash(_ title: String) -> String {
