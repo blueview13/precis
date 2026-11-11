@@ -862,11 +862,7 @@ struct MainWindowLayout: View {
                 }
                 if isExpanded {
                     ForEach(matchingFeeds) { feed in
-                        // Align child feeds with the category label. The
-                        // category row reserves space for its disclosure,
-                        // selection marker, and icon, so the old 32 pt child
-                        // inset left feeds visually outdented beneath it.
-                        sidebarFeedRow(feed, indent: 100, compact: true, group: matchingFeeds)
+                        sidebarFeedRow(feed, indent: 32, compact: true, group: matchingFeeds)
                             .id("smart-\(smartCategory.id)-\(feed.id)")
                     }
                 }
@@ -2307,7 +2303,7 @@ struct MainWindowLayout: View {
                     let categoryFeeds = feeds(in: category)
                     if !collapsedCategoryIDs.contains(category.id) {
                         ForEach(categoryFeeds) { feed in
-                            sidebarFeedRow(feed, indent: 100, compact: true, group: categoryFeeds)
+                            sidebarFeedRow(feed, indent: 32, compact: true, group: categoryFeeds)
                                 .id("cat-\(category.id)-\(feed.id)-\(selectedFeedIDs.contains(feed.id))")
                         }
                     }
