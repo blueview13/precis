@@ -5,7 +5,10 @@ import SwiftUI
 @MainActor
 public final class ArticleListViewModel: ObservableObject {
     @Published public var items: [ArticleListItem] {
-        didSet { invalidateSmartCategoryCaches() }
+        didSet {
+            invalidateSmartCategoryCaches()
+            scheduleStoryMatching()
+        }
     }
     @Published public var selectedItemID: UUID? {
         // The Unread filter keeps the selected row visible, so the filtered
@@ -13,7 +16,7 @@ public final class ArticleListViewModel: ObservableObject {
         didSet { invalidateDerivedState() }
     }
     @Published public var selectedFeedID: UUID?
-    @Published private var storyAIResults: [String: Bool] = [:] {
+    @Published private var storyGroups: [UUID: UUID] = [:] {
         didSet { invalidateDerivedState() }
     }
     @Published public var searchText: String = "" {
@@ -240,14 +243,13 @@ public final class ArticleListViewModel: ObservableObject {
             if firstRoot != secondRoot { parents[secondRoot] = firstRoot }
         }
 
-        var firstIndexByHash: [String: Int] = [:]
+        var indicesByHash: [String: [Int]] = [:]
         var firstIndexByURL: [String: Int] = [:]
         for (index, item) in sorted.enumerated() {
-            if let first = firstIndexByHash[item.titleHash] {
+            if let first = indicesByHash[item.titleHash]?.first(where: { StoryMatching.isExactDuplicate(sorted[$0], item) }) {
                 join(first, index)
-            } else {
-                firstIndexByHash[item.titleHash] = index
             }
+            indicesByHash[item.titleHash, default: []].append(index)
             if let cleanURL = item.cleanURL, !cleanURL.isEmpty {
                 if let first = firstIndexByURL[cleanURL] {
                     join(first, index)
@@ -258,52 +260,14 @@ public final class ArticleListViewModel: ObservableObject {
         }
 
         if UserDefaults.standard.object(forKey: "stackRelatedStories") as? Bool ?? true {
-            // Cluster across the archive, not only the last three days from
-            // today. Story candidates still need to have appeared within a
-            // 72-hour span of each other.
-            let dated = sorted.indices.filter { sorted[$0].publishedDate != nil }.sorted {
-                (sorted[$0].publishedDate ?? .distantPast) > (sorted[$1].publishedDate ?? .distantPast)
-            }.prefix(800)
-            let termsByIndex = Dictionary(uniqueKeysWithValues: dated.map { ($0, StoryMatching.storyTerms(sorted[$0].title)) })
-            var unknownCandidates: [(first: Int, second: Int, key: String, overlap: Int)] = []
-            for offset in dated.indices {
-                let firstIndex = dated[offset]
-                var laterOffset = offset + 1
-                var compared = 0
-                while laterOffset < dated.count && compared < 180 {
-                    let later = dated[laterOffset]
-                    let firstDate = sorted[firstIndex].publishedDate ?? .distantPast
-                    let laterDate = sorted[later].publishedDate ?? .distantPast
-                    if firstDate.timeIntervalSince(laterDate) > 72 * 60 * 60 { break }
-                    compared += 1
-                    let first = sorted[firstIndex]
-                    let second = sorted[later]
-                    laterOffset += 1
-                    guard first.feedID != second.feedID else { continue }
-                    let firstTerms = termsByIndex[firstIndex] ?? []
-                    let secondTerms = termsByIndex[later] ?? []
-                    let overlap = firstTerms.intersection(secondTerms).count
-                    guard overlap > 0 else { continue }
-                    let key = storyPairKey(first.id, second.id)
-                    if let decision = storyAIResults[key] {
-                        if decision, root(of: firstIndex) == firstIndex, root(of: later) == later {
-                            join(firstIndex, later)
-                        }
-                    } else {
-                        // The local title comparison is immediate while the
-                        // on-device model reviews this candidate asynchronously.
-                        if StoryMatching.sharesSameStory(firstTerms, secondTerms),
-                           root(of: firstIndex) == firstIndex,
-                           root(of: later) == later {
-                            join(firstIndex, later)
-                        }
-                        if !storyAIPairsInFlight.contains(key) {
-                            unknownCandidates.append((firstIndex, later, key, overlap))
-                        }
-                    }
-                }
+            // Groups are computed across the library when article content changes.
+            // Filtering changes which members are visible, not their classification.
+            var firstIndexByGroup: [UUID: Int] = [:]
+            for (index, item) in sorted.enumerated() {
+                guard let group = storyGroups[item.id] else { continue }
+                if let first = firstIndexByGroup[group] { join(first, index) }
+                else { firstIndexByGroup[group] = index }
             }
-            scheduleStoryAIReviews(unknownCandidates, sorted: sorted)
         }
 
         var memberIndicesByRoot: [Int: [Int]] = [:]
@@ -354,45 +318,39 @@ public final class ArticleListViewModel: ObservableObject {
         return result
     }
 
-    private func storyPairKey(_ first: UUID, _ second: UUID) -> String {
-        [first.uuidString, second.uuidString].sorted().joined(separator: ":")
-    }
-
-    private func scheduleStoryAIReviews(
-        _ candidates: [(first: Int, second: Int, key: String, overlap: Int)],
-        sorted: [ArticleListItem]
-    ) {
-        let next = candidates
-            .sorted { $0.overlap > $1.overlap }
-            .filter { !storyAIPairsInFlight.contains($0.key) && !storyAIPairsAttempted.contains($0.key) }
-            .prefix(min(10, max(0, 30 - storyAIPairsAttempted.count)))
-        guard !next.isEmpty else { return }
-        for candidate in next {
-            storyAIPairsInFlight.insert(candidate.key)
-            storyAIPairsAttempted.insert(candidate.key)
-        }
-
-        Task { @MainActor [weak self] in
+    private func scheduleStoryMatching() {
+        // Content changes trigger reviews; read/star/selection changes reuse the cache.
+        let snapshot = StoryMatching.recentArticles(items)
+        let signature = snapshot.map { "\($0.id)|\($0.feedID?.uuidString ?? "")|\($0.publishedDate?.timeIntervalSince1970 ?? 0)|\(StoryMatching.reviewText($0))" }
+        guard signature != storyMatchingSignature else { return }
+        storyMatchingSignature = signature
+        storyMatchingTask?.cancel()
+        storyGroups = [:]
+        storyMatchingTask = Task { @MainActor [weak self] in
             guard let self else { return }
-            guard await storySimilarityService.availability() else {
-                for candidate in next { storyAIPairsInFlight.remove(candidate.key) }
-                return
-            }
-            for candidate in next {
-                let first = sorted[candidate.first]
-                let second = sorted[candidate.second]
-                let firstText = "\(first.title). \(first.cleanSnippet.prefix(240))"
-                let secondText = "\(second.title). \(second.cleanSnippet.prefix(240))"
-                let decision = await storySimilarityService.areSameStory(firstText, secondText)
-                storyAIPairsInFlight.remove(candidate.key)
-                if let decision { storyAIResults[candidate.key] = decision }
+            let features = await storySimilarityService.candidateFeatures(for: snapshot)
+            guard !Task.isCancelled else { return }
+            var groups: [UUID: UUID] = [:]
+            var primaries: [ArticleListItem] = []
+            for article in snapshot {
+                guard !Task.isCancelled else { return }
+                let primaryID = await StoryMatching.primary(for: article, among: primaries, features: features) { [service = storySimilarityService] first, second in
+                    await service.areSameStory(first, second)
+                }
+                guard !Task.isCancelled else { return }
+                groups[article.id] = primaryID
+                if primaryID == article.id { primaries.append(article) }
+                // Publish progress so a large archive does not hold back all stacks.
+                if primaryID != article.id || groups.count % 25 == 0 || groups.count == snapshot.count {
+                    storyGroups = groups
+                    await Task.yield()
+                }
             }
         }
     }
 
     private func sharesDuplicateKey(_ lhs: ArticleListItem, _ rhs: ArticleListItem) -> Bool {
-        lhs.titleHash == rhs.titleHash
-            || (lhs.cleanURL != nil && lhs.cleanURL == rhs.cleanURL)
+        StoryMatching.isExactDuplicate(lhs, rhs)
     }
 
     /// Settings → "Default sort order". Stored (not re-read on each access) so
@@ -583,8 +541,8 @@ public final class ArticleListViewModel: ObservableObject {
 
     private let articleRepository: ArticleRepositoryProtocol
     private let storySimilarityService = StorySimilarityService()
-    private var storyAIPairsInFlight: Set<String> = []
-    private var storyAIPairsAttempted: Set<String> = []
+    private var storyMatchingTask: Task<Void, Never>?
+    private var storyMatchingSignature: [String] = []
 
     public init(
         items: [ArticleListItem] = [
@@ -619,6 +577,7 @@ public final class ArticleListViewModel: ObservableObject {
         self.selectedItemID = items.first?.id
         self.selectedFeedID = nil
         self.articleRepository = articleRepository
+        scheduleStoryMatching()
 
         // The Settings window writes "defaultSortOrder" from another window —
         // observe it and republish so the list re-sorts the moment it changes
@@ -640,6 +599,7 @@ public final class ArticleListViewModel: ObservableObject {
     }
 
     deinit {
+        storyMatchingTask?.cancel()
         if let sortObserver {
             NotificationCenter.default.removeObserver(sortObserver)
         }
@@ -1294,20 +1254,88 @@ public final class ArticleListViewModel: ObservableObject {
 
 // Shared local headline matching for the article list and newspaper.
 enum StoryMatching {
+    struct CandidateFeatures: Sendable {
+        let title: Set<String>
+        let opening: Set<String>
+        init(_ article: ArticleListItem) {
+            title = StoryEvidence.terms(article.title)
+            opening = StoryEvidence.terms(String(article.articleBody.prefix(900)))
+        }
+    }
+
+    static func isExactDuplicate(_ a: ArticleListItem, _ b: ArticleListItem) -> Bool {
+        if let url = a.cleanURL, !url.isEmpty, url == b.cleanURL { return true }
+        guard a.titleHash == b.titleHash,
+              let first = a.publishedDate, let second = b.publishedDate,
+              abs(first.timeIntervalSince(second)) <= 72 * 3600 else { return false }
+        return !StoryEvidence.conflictingSports(a, b)
+    }
+
+    static func reviewText(_ article: ArticleListItem) -> String {
+        "Headline: \(article.title)\nOpening: \(article.articleBody.prefix(900))\nURL: \(article.link ?? "")"
+    }
+
+    static func recentArticles(_ items: [ArticleListItem]) -> [ArticleListItem] {
+        Array(items.filter { $0.publishedDate != nil }.sorted {
+            if $0.publishedDate == $1.publishedDate { return $0.id.uuidString < $1.id.uuidString }
+            return ($0.publishedDate ?? .distantPast) > ($1.publishedDate ?? .distantPast)
+        }.prefix(800))
+    }
+
+    /// Only primary articles are compared: A→B and B→C never imply A→C.
+    static func primary(
+        for article: ArticleListItem,
+        among primaries: [ArticleListItem],
+        features: [UUID: CandidateFeatures] = [:],
+        review: @Sendable (ArticleListItem, ArticleListItem) async -> Bool
+    ) async -> UUID {
+        for primary in primaries {
+            guard !Task.isCancelled else { return article.id }
+            guard isCandidate(primary, article, firstFeatures: features[primary.id], secondFeatures: features[article.id]) else { continue }
+            if await review(primary, article) { return primary.id }
+        }
+        return article.id
+    }
+
+    static func isCandidate(_ a: ArticleListItem, _ b: ArticleListItem, firstFeatures: CandidateFeatures? = nil, secondFeatures: CandidateFeatures? = nil) -> Bool {
+        guard let firstFeed = a.feedID, let secondFeed = b.feedID, firstFeed != secondFeed,
+              let firstDate = a.publishedDate, let secondDate = b.publishedDate,
+              abs(firstDate.timeIntervalSince(secondDate)) <= 72 * 60 * 60 else { return false }
+        let first = firstFeatures ?? CandidateFeatures(a), second = secondFeatures ?? CandidateFeatures(b)
+        let shared = first.title.intersection(second.title)
+        if shared.count >= 2 { return true }
+        // A single distinctive subject needs independent summary corroboration.
+        guard shared.contains(where: { $0.count >= 6 }) else { return false }
+        let summaryShared = first.opening.intersection(second.opening)
+            .subtracting(shared)
+        return summaryShared.count >= 3
+    }
+
+    static func isNearDuplicate(_ a: String, _ b: String) -> Bool {
+        let first = storyTerms(a), second = storyTerms(b)
+        let shared = first.intersection(second).count
+        return shared >= 4 && Double(shared) / Double(max(1, first.union(second).count)) >= 0.90
+    }
+
     static func sharesSameStory(_ a: Set<String>, _ b: Set<String>) -> Bool {
-        guard a.count >= 3, b.count >= 3 else { return false }
+        guard !a.isEmpty, !b.isEmpty else { return false }
         let overlap = a.intersection(b).count
+        // Legacy headline comparison used by newspaper coverage grouping.
         return overlap >= 2 && Double(overlap) / Double(min(a.count, b.count)) >= 0.65
     }
 
     static func storyTerms(_ text: String) -> Set<String> {
         let ignored: Set<String> = [
-            "the", "and", "for", "with", "from", "that", "this", "after", "over", "into", "says", "said", "about", "how", "why", "what", "has", "have", "will", "are", "its",
+            "could", "would", "should", "really", "best", "players", "player", "football", "sport", "sports", "one", "named", "which", "been", "was", "were", "not", "but", "his", "her", "their", "than", "who", "can", "the", "and", "for", "with", "from", "that", "this", "after", "over", "into", "says", "said", "about", "how", "why", "what", "has", "have", "will", "are", "its",
             "news", "update", "updates", "latest", "live", "breaking", "report", "reports", "today", "new", "announces", "announce", "announced",
             "tour", "tours", "dates", "date", "shows", "show", "spring", "summer", "autumn", "fall", "winter", "european", "world", "leg", "legs", "2027"
         ]
-        return Set(text.lowercased().split { !$0.isLetter && !$0.isNumber }
-            .map(String.init).filter { $0.count > 2 && !$0.allSatisfy(\.isNumber) && !ignored.contains($0) })
+        let normalized = text.lowercased()
+            .replacingOccurrences(of: "manchester united", with: "manutd")
+            .replacingOccurrences(of: "man utd", with: "manutd")
+        let terms = normalized.split { !$0.isLetter && !$0.isNumber }
+            .map(String.init).filter { $0.count > 2 && !$0.allSatisfy(\.isNumber) && !ignored.contains($0) }
+        return Set(terms)
     }
 
 }

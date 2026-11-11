@@ -1,0 +1,2473 @@
+{
+  "captured": "2026-11-11",
+  "feeds": [
+    "https://feeds.bbci.co.uk/sport/rss.xml",
+    "https://www.skysports.com/rss/12040",
+    "https://feeds.bbci.co.uk/news/rss.xml",
+    "https://feeds.skynews.com/feeds/rss/home.xml"
+  ],
+  "articles": [
+    {
+      "source": "bbcSport",
+      "title": "Pochettino ready to accept Man Utd offer to replace Carrick",
+      "summary": "Mauricio Pochettino is ready to accept an offer from Manchester United to become their next head coach.",
+      "url": "https://www.bbc.co.uk/sport/football/articles/cqvg25pj36mvo?at_medium=RSS&at_campaign=rss",
+      "date": "Wed, 11 Nov 2026 16:03:02 GMT",
+      "id": "pochettino-bbc",
+      "timestamp": 1794412982.0,
+      "event": "pochettino",
+      "split": "development"
+    },
+    {
+      "source": "skySport",
+      "title": "Man Utd strike Pochettino agreement with Carrick set to depart",
+      "summary": "Manchester United have reached a verbal agreement in principle with Mauricio Pochettino to take over as head coach.",
+      "url": "https://www.skysports.com/football/news/12040/13610949/mauricio-pochettino-man-utd-strike-agreement-with-michael-carricks-potential-successor",
+      "date": "Wed, 11 Nov 2026 17:00:00 GMT",
+      "id": "pochettino-sky",
+      "timestamp": 1794416400.0,
+      "event": "pochettino",
+      "split": "development"
+    },
+    {
+      "source": "bbcSport",
+      "title": "Raducanu to return at January's United Cup after injury lay-off",
+      "summary": "Emma Raducanu will make her return to tennis in the United Cup team competition in Australia in the first week of 2027.",
+      "url": "https://www.bbc.co.uk/sport/tennis/articles/cmwyvgvlv2qwo?at_medium=RSS&at_campaign=rss",
+      "date": "Wed, 11 Nov 2026 18:05:25 GMT",
+      "id": "raducanu-bbc",
+      "timestamp": 1794420325.0,
+      "event": "raducanu",
+      "split": "development"
+    },
+    {
+      "source": "skySport",
+      "title": "Raducanu's tennis return confirmed for January at United Cup",
+      "summary": "",
+      "url": "https://www.skysports.com/tennis/live-blog/12040/13525472/emma-raducanu-tennis-schedule-next-match-ranking-latest-results-video-and-how-to-watch-live-on-sky-sports-tennis",
+      "date": "Mon, 09 Nov 2026 14:00:00 GMT",
+      "id": "raducanu-sky",
+      "timestamp": 1794232800.0,
+      "event": "raducanu",
+      "split": "development"
+    },
+    {
+      "source": "bbcSport",
+      "title": "Japan want 'the sky to fall in' at Twickenham - Jones",
+      "summary": "Eddie Jones says Japan are drawing inspiration from Italy as they chase their own landmark win over England on Saturday.",
+      "url": "https://www.bbc.co.uk/sport/rugby-union/articles/c60mdnld8gvzo?at_medium=RSS&at_campaign=rss",
+      "date": "Wed, 11 Nov 2026 14:57:42 GMT",
+      "id": "japan-bbc",
+      "timestamp": 1794409062.0,
+      "event": "japan",
+      "split": "development"
+    },
+    {
+      "source": "skySport",
+      "title": "Jones: Japan aiming to 'make Twickenham sky fall in on distracted England'",
+      "summary": "Former England head coach Eddie Jones has said his Japan side are aiming to \"make the Twickenham sky fall in on\" Steve Borthwick's \"distracted\" charges in Saturday's Nations Championship Test.",
+      "url": "https://www.skysports.com/rugby-union/news/12040/13611167/eddie-jones-former-england-coach-says-japan-aiming-to-make-twickenham-sky-fall-in-on-steve-borthwicks-distracted-charges",
+      "date": "Wed, 11 Nov 2026 16:48:00 GMT",
+      "id": "japan-sky",
+      "timestamp": 1794415680.0,
+      "event": "japan",
+      "split": "development"
+    },
+    {
+      "source": "bbcSport",
+      "title": "Welsh Grand National-winning jockey O'Brien dies aged 39",
+      "summary": "Tom O'Brien, the nephew of trainer Aidan, rode more than 1,000 winners and won the Welsh Grand National twice.",
+      "url": "https://www.bbc.co.uk/sport/horse-racing/articles/c3pw48qyjz2ko?at_medium=RSS&at_campaign=rss",
+      "date": "Wed, 11 Nov 2026 13:29:41 GMT",
+      "id": "obrien-bbc",
+      "timestamp": 1794403781.0,
+      "event": "obrien",
+      "split": "development"
+    },
+    {
+      "source": "skySport",
+      "title": "Cheltenham Festival-winning jockey O'Brien dies",
+      "summary": "Multiple Grade One-winning jockey Tom O&#8217;Brien has died at the age of 39.",
+      "url": "https://www.skysports.com/racing/news/12040/13610855/tom-obrien-cheltenham-festival-winning-jockey-dies-aged-39",
+      "date": "Wed, 11 Nov 2026 10:31:00 GMT",
+      "id": "obrien-sky",
+      "timestamp": 1794393060.0,
+      "event": "obrien",
+      "split": "development"
+    },
+    {
+      "source": "bbcSport",
+      "title": "England cancel Windies Test in favour of home Ashes warm-ups",
+      "summary": "England cancel their scheduled Test in the West Indies in April and will instead prepare for the Women's Ashes with red-ball matches in the UK.",
+      "url": "https://www.bbc.co.uk/sport/cricket/articles/c5zjrympwrlmo?at_medium=RSS&at_campaign=rss",
+      "date": "Wed, 11 Nov 2026 14:46:29 GMT",
+      "id": "ashes-bbc",
+      "timestamp": 1794408389.0,
+      "event": "ashes",
+      "split": "development"
+    },
+    {
+      "source": "skySport",
+      "title": "England scrap West Indies Test for red-ball Ashes prep at home",
+      "summary": "England have scrapped a women's Test match in West Indies this spring with the majority of their red-ball preparations ahead of the 2027 Ashes to take place at home.",
+      "url": "https://www.skysports.com/cricket/news/12040/13611025/england-scrap-west-indies-test-match-with-red-ball-preparation-ahead-of-womens-ashes-to-take-place-at-home",
+      "date": "Wed, 11 Nov 2026 13:40:00 GMT",
+      "id": "ashes-sky",
+      "timestamp": 1794404400.0,
+      "event": "ashes",
+      "split": "development"
+    },
+    {
+      "source": "bbcSport",
+      "title": "Bethell out of Australia trip and doubt for SA",
+      "summary": "Jacob Bethell is ruled out of England’s white-ball tour of Australia and is a huge doubt for the Test tour of South Africa following the recurrence of a knee injury.",
+      "url": "https://www.bbc.co.uk/sport/cricket/articles/ckvg25q0n61jo?at_medium=RSS&at_campaign=rss",
+      "date": "Wed, 11 Nov 2026 10:00:23 GMT",
+      "id": "bethell-bbc",
+      "timestamp": 1794391223.0,
+      "event": "bethell",
+      "split": "development"
+    },
+    {
+      "source": "skySport",
+      "title": "England's Bethell out of Australia tour and a doubt for South Africa Tests",
+      "summary": "Jacob Bethell has been ruled out of England's entire white-ball tour of Australia after suffering a setback on his return from injury and could now be a doubt for the Tests in South Africa.",
+      "url": "https://www.skysports.com/cricket/news/12040/13610898/jacob-bethell-england-batter-out-of-australia-white-ball-tour-and-doubt-for-test-series-in-south-africa",
+      "date": "Wed, 11 Nov 2026 10:17:00 GMT",
+      "id": "bethell-sky",
+      "timestamp": 1794392220.0,
+      "event": "bethell",
+      "split": "development"
+    },
+    {
+      "source": "bbcSport",
+      "title": "Super League approves expansion to 15 teams",
+      "summary": "Super League says its shareholders have agreed to expand the league from 14 clubs to 15 for the 2027 season.",
+      "url": "https://www.bbc.co.uk/sport/rugby-league/articles/cm0l384nz4r6o?at_medium=RSS&at_campaign=rss",
+      "date": "Wed, 11 Nov 2026 13:10:14 GMT",
+      "id": "league-bbc",
+      "timestamp": 1794402614.0,
+      "event": "league",
+      "split": "development"
+    },
+    {
+      "source": "skySport",
+      "title": "Super League clubs vote to expand to 15 teams",
+      "summary": "The Super League has announced that its 14 clubs have voted in favour of a motion to expand to 15 teams for the 2027 season.",
+      "url": "https://www.skysports.com/rugby-league/news/12040/13610912/super-league-clubs-vote-to-expand-league-to-15-teams-for-2027-season",
+      "date": "Wed, 11 Nov 2026 10:45:00 GMT",
+      "id": "league-sky",
+      "timestamp": 1794393900.0,
+      "event": "league",
+      "split": "development"
+    },
+    {
+      "source": "bbcNews",
+      "title": "Police helped remove Russell Brand after 'violent incident' at Jemima Goldsmith's home",
+      "summary": "Police confirm they asked Brand to leave his ex-girlfriend's house after she reported an alleged assault.",
+      "url": "https://www.bbc.co.uk/news/articles/cqde1yddwk17o?at_medium=RSS&at_campaign=rss",
+      "date": "Wed, 11 Nov 2026 10:26:25 GMT",
+      "id": "brand-bbc",
+      "timestamp": 1794392785.0,
+      "event": "brand",
+      "split": "development"
+    },
+    {
+      "source": "skyNews",
+      "title": "Police address 'violent incident' claim against Russell Brand made by Jemima Goldsmith",
+      "summary": "Police have addressed an alleged \"violent incident\" involving Russell Brand after claims made his then-girlfriend Jemima Goldsmith.",
+      "url": "https://news.sky.com/story/police-made-russell-brand-leave-home-of-his-then-girlfriend-after-violent-incident-13610872",
+      "date": "Wed, 11 Nov 2026 09:15:00 +0000",
+      "id": "brand-sky",
+      "timestamp": 1794388500.0,
+      "event": "brand",
+      "split": "development"
+    },
+    {
+      "source": "bbcNews",
+      "title": "Thousands of schools in Italy, Scotland and Northern Ireland hit by threats in suspected bomb hoax",
+      "summary": "More than 6,000 Italian schools received a threat. Authorities in all three countries say there appears to be no risk to the public. It is not known if the incidents are linked.",
+      "url": "https://www.bbc.co.uk/news/articles/cwz0k79pr8z2o?at_medium=RSS&at_campaign=rss",
+      "date": "Wed, 11 Nov 2026 18:38:45 GMT",
+      "id": "schools-bbc",
+      "timestamp": 1794422325.0,
+      "event": "schools",
+      "split": "development"
+    },
+    {
+      "source": "skyNews",
+      "title": "Threatening emails sent to thousands of schools across UK, Ireland and Italy treated as hoaxes",
+      "summary": "Threatening emails sent to thousands of schools across the UK, Ireland and Italy are being treated as hoaxes.",
+      "url": "https://news.sky.com/story/threatening-emails-sent-to-hundreds-of-schools-in-northern-ireland-and-scotland-treated-as-hoaxes-police-say-13610920",
+      "date": "Wed, 11 Nov 2026 10:47:00 +0000",
+      "id": "schools-sky",
+      "timestamp": 1794394020.0,
+      "event": "schools",
+      "split": "development"
+    },
+    {
+      "source": "bbcSport",
+      "title": "Robinson unfazed by Pochettino departure talk",
+      "summary": "Defender Antonee Robinson says speculation over USA manager Mauricio Pochettino's future has not affected the team's preparations for their Concacaf Nations League campaign.",
+      "url": "https://www.bbc.co.uk/sport/football/videos/cm3vgx55kp3ro?at_medium=RSS&at_campaign=rss",
+      "date": "Wed, 11 Nov 2026 09:54:38 GMT",
+      "id": "robinson-bbc",
+      "timestamp": 1794390878.0,
+      "event": "robinson",
+      "split": "development"
+    },
+    {
+      "source": "skySport",
+      "title": "Could King really become 'one of the best players in the world'?",
+      "summary": "Josh King was always one of the best players in his age group. \"Nationally,\" clarifies Charlie Turnbull, his coach in Fulham's academy for five seasons between his U10 and U14 years, to <em>Sky Sports</em>. But there was another quality that set him apart.",
+      "url": "https://www.skysports.com/football/news/12040/13611079/josh-king-the-making-of-the-rising-star-tipped-to-become-one-of-worlds-best-players-after-england-call-up",
+      "date": "Wed, 11 Nov 2026 17:22:00 GMT",
+      "id": "king-sky",
+      "timestamp": 1794417720.0,
+      "event": "king",
+      "split": "development"
+    },
+    {
+      "source": "bbcSport",
+      "title": "Assessing the reasons for Man City's decline in form under Maresca",
+      "summary": "The ongoing international break gives manager Enzo Maresca much-needed time to fix the growing issues in his Man City squad.",
+      "url": "https://www.bbc.co.uk/sport/football/articles/cw30e0yz0p04o?at_medium=RSS&at_campaign=rss",
+      "date": "Wed, 11 Nov 2026 11:47:09 GMT",
+      "id": "city-bbc",
+      "timestamp": 1794397629.0,
+      "event": "city",
+      "split": "development"
+    },
+    {
+      "source": "bbcSport",
+      "title": "Man City thrash Inter to claim first CL win of season",
+      "summary": "Manchester City come from behind to beat Inter Milan in style for their first Champions League win of the season.",
+      "url": "https://www.bbc.co.uk/sport/football/videos/cwzd6d9zrlz7o?at_medium=RSS&at_campaign=rss",
+      "date": "Tue, 10 Nov 2026 22:05:15 GMT",
+      "id": "city-result-bbc",
+      "timestamp": 1794348315.0,
+      "event": "city-result",
+      "split": "development"
+    },
+    {
+      "source": "bbcSport",
+      "title": "England hammer Australia to reach final",
+      "summary": "Rob Hawkins scores five tries as England hammer Australia 86-18 to reach the Wheelchair Rugby League World Cup final.",
+      "url": "https://www.bbc.co.uk/sport/rugby-league/videos/cm5ynyez127xo?at_medium=RSS&at_campaign=rss",
+      "date": "Tue, 10 Nov 2026 16:32:17 GMT",
+      "id": "england-result-bbc",
+      "timestamp": 1794328337.0,
+      "event": "england-result",
+      "split": "development"
+    },
+    {
+      "source": "bbcSport",
+      "title": "Four 'huge mistakes' that show Man Utd's defensive problems",
+      "summary": "After Manchester United consed four preventable goal against Aston Villa in the Premier League Dion Dublin and Leon Osman brake down what is going wrong on Match of the Day.",
+      "url": "https://www.bbc.co.uk/sport/football/videos/c64g1n1wezvyo?at_medium=RSS&at_campaign=rss",
+      "date": "Sun, 08 Nov 2026 23:53:20 GMT",
+      "id": "united-defence-bbc",
+      "timestamp": 1794182000.0,
+      "event": "united-defence",
+      "split": "development"
+    },
+    {
+      "source": "skySport",
+      "title": "Kane targets biggest team prizes ahead of record-breaking England cap",
+      "summary": "Harry Kane will become England's record appearance maker on Thursday night - but the Ballon d'Or winner now has his sights set on the biggest team trophies in football.&#160;",
+      "url": "https://www.skysports.com/football/news/12040/13610856/england-harry-kane-targets-european-championships-world-cup-and-champions-league-to-add-biggest-team-prizes-to-ballon-dor",
+      "date": "Wed, 11 Nov 2026 15:29:00 GMT",
+      "id": "kane-sky",
+      "timestamp": 1794410940.0,
+      "event": "kane",
+      "split": "development"
+    },
+    {
+      "source": "bbcNews",
+      "title": "Author says there were 'real concerns' about David Walliams within publishing industry",
+      "summary": "The comedian denies allegations of sexual misconduct, inappropriate behaviour and abusing his power more than 10 years ago.",
+      "url": "https://www.bbc.co.uk/news/articles/c95y15830k77o?at_medium=RSS&at_campaign=rss",
+      "date": "Wed, 11 Nov 2026 18:24:08 GMT",
+      "id": "walliams-bbc",
+      "timestamp": 1794421448.0,
+      "event": "walliams",
+      "split": "development"
+    },
+    {
+      "source": "skyNews",
+      "title": "Poundland bosses meet to decide firm's future ahead of midnight deadline",
+      "summary": "The directors of Poundland are holding a board meeting tonight to decide the company's future, Sky News has been told.",
+      "url": "https://news.sky.com/story/poundland-directors-to-meet-tonight-to-decide-companys-future-sky-news-told-13610213",
+      "date": "Wed, 11 Nov 2026 15:47:00 +0000",
+      "id": "poundland-sky",
+      "timestamp": 1794412020.0,
+      "event": "poundland",
+      "split": "development"
+    },
+    {
+      "source": "skySport",
+      "title": "Carney: Super League dancing to NRL chief's tune",
+      "summary": "Brian Carney says the Super League is dancing to NRL chief Peter V'landys tune after clubs voted to expand the league to 15 teams for the 2027 season.",
+      "url": "https://www.skysports.com/rugby-league/news/12040/13611034/super-league-expansion-brian-carney-says-super-league-dancing-to-peter-vlandys-tune-after-vote-to-expand-competition",
+      "date": "Wed, 11 Nov 2026 13:51:00 GMT",
+      "id": "carney-sky",
+      "timestamp": 1794405060.0,
+      "event": "carney",
+      "split": "development"
+    },
+    {
+      "source": "skySport",
+      "title": "Australia dredge up past blunders as England learn from theirs",
+      "summary": "As Australia dredge up the past, England seem determined to learn from theirs.",
+      "url": "https://www.skysports.com/cricket/news/12040/13610678/england-learn-from-ashes-mistakes-ahead-of-odis-vs-australia-side-engulfed-by-usman-khawaja-sandpapergate-claims",
+      "date": "Wed, 11 Nov 2026 17:00:00 GMT",
+      "id": "england-analysis-sky",
+      "timestamp": 1794416400.0,
+      "event": "england-analysis",
+      "split": "development"
+    },
+    {
+      "source": "bbcUK",
+      "title": "Three Iran-backed suspects plotted attacks including RAF Fairford incident, US says",
+      "summary": "The US Department of Justice says the men were involved in a string of plots, including a major incident near the UK airbase that is used by US armed forces.",
+      "url": "https://www.bbc.co.uk/news/articles/c3rryrryk59zo?at_medium=RSS&at_campaign=rss",
+      "date": "Wed, 11 Nov 2026 16:59:34 GMT",
+      "id": "fairford-bbc",
+      "timestamp": 1794416374.0,
+      "event": "fairford",
+      "split": "holdout"
+    },
+    {
+      "source": "skyUK",
+      "title": "US accuses three men of 'campaign of terror' against Jewish targets and plot against RAF Fairford",
+      "summary": "The US has accused three men linked to Iran of masterminding a \"campaign of terror\" against Jewish targets in the UK and Europe, as well as a thwarted plot at RAF Fairford.",
+      "url": "https://news.sky.com/story/us-charges-three-men-allegedly-linked-to-raf-fairford-incident-13610779",
+      "date": "Wed, 11 Nov 2026 02:45:00 +0000",
+      "id": "fairford-sky",
+      "timestamp": 1794365100.0,
+      "event": "fairford",
+      "split": "holdout"
+    },
+    {
+      "source": "bbcBusiness",
+      "title": "Trump says FBI investigating Nvidia boss's affair with alleged Chinese spy",
+      "summary": "The US president said he spoke with Jensen Huang on Monday and asked him about the affair with the alleged spy.",
+      "url": "https://www.bbc.co.uk/news/articles/cqg7x7dpvym8o?at_medium=RSS&at_campaign=rss",
+      "date": "Tue, 10 Nov 2026 08:23:21 GMT",
+      "id": "nvidia-fbi-bbc",
+      "timestamp": 1794299001.0,
+      "event": "nvidia-fbi",
+      "split": "holdout"
+    },
+    {
+      "source": "skyBusiness",
+      "title": "FBI investigating Nvidia CEO over affair with alleged Chinese spy ",
+      "summary": "Donald Trump has said the FBI is looking into Nvidia CEO Jensen Huang's affair with an alleged Chinese spy - but insisted he is a \"very honourable man\". ",
+      "url": "https://news.sky.com/story/fbi-to-investigate-nvidia-ceo-over-affair-with-alleged-chinese-spy-trump-says-13610382",
+      "date": "Tue, 10 Nov 2026 02:06:00 +0000",
+      "id": "nvidia-fbi-sky",
+      "timestamp": 1794276360.0,
+      "event": "nvidia-fbi",
+      "split": "holdout"
+    },
+    {
+      "source": "bbcBusiness",
+      "title": "Nvidia shares tumble over investigation into Huang's affair with alleged Chinese spy",
+      "summary": "The share price dropped wiped hundreds of billions of dollars from the value of Nvidia. ",
+      "url": "https://www.bbc.co.uk/news/articles/c6zxjx01vyleo?at_medium=RSS&at_campaign=rss",
+      "date": "Mon, 09 Nov 2026 19:58:01 GMT",
+      "id": "nvidia-shares-bbc",
+      "timestamp": 1794254281.0,
+      "event": "nvidia-shares",
+      "split": "holdout"
+    },
+    {
+      "source": "skyBusiness",
+      "title": "Nvidia's value plummets $430bn in two days, as CEO urged to quit",
+      "summary": "Nvidia's market value has plummeted by about $430bn (£322bn) in two days after its CEO, Jensen Huang, admitted to having an affair with a woman alleged to be a Chinese spy. ",
+      "url": "https://news.sky.com/story/jensen-huang-nvidias-value-plummets-430bn-in-two-days-as-ceo-urged-to-quit-13610814",
+      "date": "Wed, 11 Nov 2026 03:04:00 +0000",
+      "id": "nvidia-shares-sky",
+      "timestamp": 1794366240.0,
+      "event": "nvidia-shares",
+      "split": "holdout"
+    },
+    {
+      "source": "bbcBusiness",
+      "title": "Claude chatbot maker set for $1.3tn stock market debut despite 'catastrophic' AI warning",
+      "summary": "The AI company behind the Claude chatbot will offer its shares at between $70 and $78, which is lower than what was expected.",
+      "url": "https://www.bbc.co.uk/news/articles/crpdgd723x2zo?at_medium=RSS&at_campaign=rss",
+      "date": "Tue, 10 Nov 2026 17:56:12 GMT",
+      "id": "anthropic-listing-bbc",
+      "timestamp": 1794333372.0,
+      "event": "anthropic-listing",
+      "split": "holdout"
+    },
+    {
+      "source": "skyBusiness",
+      "title": "Anthropic seeks $1.4trn valuation amid worry over AI investment",
+      "summary": "AI chatbot maker Anthropic is seeking a stock market valuation of up to $1.4trn (£1trn).",
+      "url": "https://news.sky.com/story/claude-maker-anthropic-seeks-14trn-valuation-amid-worry-over-ai-investment-13610628",
+      "date": "Tue, 10 Nov 2026 12:43:00 +0000",
+      "id": "anthropic-listing-sky",
+      "timestamp": 1794314580.0,
+      "event": "anthropic-listing",
+      "split": "holdout"
+    }
+  ],
+  "pairs": [
+    {
+      "first": "pochettino-bbc",
+      "second": "pochettino-sky",
+      "sameEvent": true,
+      "split": "development"
+    },
+    {
+      "first": "pochettino-bbc",
+      "second": "raducanu-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "pochettino-bbc",
+      "second": "japan-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "pochettino-bbc",
+      "second": "obrien-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "pochettino-bbc",
+      "second": "ashes-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "pochettino-bbc",
+      "second": "bethell-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "pochettino-bbc",
+      "second": "league-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "pochettino-bbc",
+      "second": "brand-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "pochettino-bbc",
+      "second": "schools-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "pochettino-bbc",
+      "second": "king-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "pochettino-bbc",
+      "second": "kane-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "pochettino-bbc",
+      "second": "poundland-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "pochettino-bbc",
+      "second": "carney-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "pochettino-bbc",
+      "second": "england-analysis-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "pochettino-bbc",
+      "second": "fairford-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "pochettino-bbc",
+      "second": "nvidia-fbi-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "pochettino-bbc",
+      "second": "nvidia-shares-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "pochettino-bbc",
+      "second": "anthropic-listing-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "pochettino-sky",
+      "second": "raducanu-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "pochettino-sky",
+      "second": "japan-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "pochettino-sky",
+      "second": "obrien-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "pochettino-sky",
+      "second": "ashes-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "pochettino-sky",
+      "second": "bethell-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "pochettino-sky",
+      "second": "league-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "pochettino-sky",
+      "second": "brand-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "pochettino-sky",
+      "second": "schools-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "pochettino-sky",
+      "second": "robinson-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "pochettino-sky",
+      "second": "city-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "pochettino-sky",
+      "second": "city-result-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "pochettino-sky",
+      "second": "england-result-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "pochettino-sky",
+      "second": "united-defence-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "pochettino-sky",
+      "second": "walliams-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "pochettino-sky",
+      "second": "fairford-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "pochettino-sky",
+      "second": "nvidia-fbi-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "pochettino-sky",
+      "second": "nvidia-shares-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "pochettino-sky",
+      "second": "anthropic-listing-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "raducanu-bbc",
+      "second": "raducanu-sky",
+      "sameEvent": true,
+      "split": "development"
+    },
+    {
+      "first": "raducanu-bbc",
+      "second": "japan-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "raducanu-bbc",
+      "second": "obrien-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "raducanu-bbc",
+      "second": "ashes-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "raducanu-bbc",
+      "second": "bethell-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "raducanu-bbc",
+      "second": "league-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "raducanu-bbc",
+      "second": "brand-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "raducanu-bbc",
+      "second": "schools-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "raducanu-bbc",
+      "second": "king-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "raducanu-bbc",
+      "second": "kane-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "raducanu-bbc",
+      "second": "poundland-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "raducanu-bbc",
+      "second": "carney-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "raducanu-bbc",
+      "second": "england-analysis-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "raducanu-bbc",
+      "second": "fairford-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "raducanu-bbc",
+      "second": "nvidia-fbi-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "raducanu-bbc",
+      "second": "nvidia-shares-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "raducanu-bbc",
+      "second": "anthropic-listing-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "raducanu-sky",
+      "second": "japan-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "raducanu-sky",
+      "second": "obrien-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "raducanu-sky",
+      "second": "ashes-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "raducanu-sky",
+      "second": "bethell-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "raducanu-sky",
+      "second": "league-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "raducanu-sky",
+      "second": "brand-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "raducanu-sky",
+      "second": "schools-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "raducanu-sky",
+      "second": "robinson-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "raducanu-sky",
+      "second": "city-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "raducanu-sky",
+      "second": "city-result-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "raducanu-sky",
+      "second": "england-result-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "raducanu-sky",
+      "second": "united-defence-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "raducanu-sky",
+      "second": "walliams-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "raducanu-sky",
+      "second": "fairford-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "raducanu-sky",
+      "second": "nvidia-fbi-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "raducanu-sky",
+      "second": "nvidia-shares-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "raducanu-sky",
+      "second": "anthropic-listing-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "japan-bbc",
+      "second": "japan-sky",
+      "sameEvent": true,
+      "split": "development"
+    },
+    {
+      "first": "japan-bbc",
+      "second": "obrien-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "japan-bbc",
+      "second": "ashes-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "japan-bbc",
+      "second": "bethell-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "japan-bbc",
+      "second": "league-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "japan-bbc",
+      "second": "brand-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "japan-bbc",
+      "second": "schools-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "japan-bbc",
+      "second": "king-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "japan-bbc",
+      "second": "kane-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "japan-bbc",
+      "second": "poundland-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "japan-bbc",
+      "second": "carney-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "japan-bbc",
+      "second": "england-analysis-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "japan-bbc",
+      "second": "fairford-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "japan-bbc",
+      "second": "nvidia-fbi-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "japan-bbc",
+      "second": "nvidia-shares-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "japan-bbc",
+      "second": "anthropic-listing-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "japan-sky",
+      "second": "obrien-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "japan-sky",
+      "second": "ashes-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "japan-sky",
+      "second": "bethell-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "japan-sky",
+      "second": "league-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "japan-sky",
+      "second": "brand-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "japan-sky",
+      "second": "schools-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "japan-sky",
+      "second": "robinson-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "japan-sky",
+      "second": "city-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "japan-sky",
+      "second": "city-result-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "japan-sky",
+      "second": "england-result-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "japan-sky",
+      "second": "united-defence-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "japan-sky",
+      "second": "walliams-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "japan-sky",
+      "second": "fairford-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "japan-sky",
+      "second": "nvidia-fbi-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "japan-sky",
+      "second": "nvidia-shares-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "japan-sky",
+      "second": "anthropic-listing-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "obrien-bbc",
+      "second": "obrien-sky",
+      "sameEvent": true,
+      "split": "development"
+    },
+    {
+      "first": "obrien-bbc",
+      "second": "ashes-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "obrien-bbc",
+      "second": "bethell-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "obrien-bbc",
+      "second": "league-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "obrien-bbc",
+      "second": "brand-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "obrien-bbc",
+      "second": "schools-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "obrien-bbc",
+      "second": "king-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "obrien-bbc",
+      "second": "kane-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "obrien-bbc",
+      "second": "poundland-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "obrien-bbc",
+      "second": "carney-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "obrien-bbc",
+      "second": "england-analysis-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "obrien-bbc",
+      "second": "fairford-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "obrien-bbc",
+      "second": "nvidia-fbi-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "obrien-bbc",
+      "second": "nvidia-shares-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "obrien-bbc",
+      "second": "anthropic-listing-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "obrien-sky",
+      "second": "ashes-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "obrien-sky",
+      "second": "bethell-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "obrien-sky",
+      "second": "league-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "obrien-sky",
+      "second": "brand-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "obrien-sky",
+      "second": "schools-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "obrien-sky",
+      "second": "robinson-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "obrien-sky",
+      "second": "city-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "obrien-sky",
+      "second": "city-result-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "obrien-sky",
+      "second": "england-result-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "obrien-sky",
+      "second": "united-defence-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "obrien-sky",
+      "second": "walliams-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "obrien-sky",
+      "second": "fairford-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "obrien-sky",
+      "second": "nvidia-fbi-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "obrien-sky",
+      "second": "nvidia-shares-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "obrien-sky",
+      "second": "anthropic-listing-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ashes-bbc",
+      "second": "ashes-sky",
+      "sameEvent": true,
+      "split": "development"
+    },
+    {
+      "first": "ashes-bbc",
+      "second": "bethell-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ashes-bbc",
+      "second": "league-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ashes-bbc",
+      "second": "brand-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ashes-bbc",
+      "second": "schools-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ashes-bbc",
+      "second": "king-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ashes-bbc",
+      "second": "kane-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ashes-bbc",
+      "second": "poundland-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ashes-bbc",
+      "second": "carney-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ashes-bbc",
+      "second": "england-analysis-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ashes-bbc",
+      "second": "fairford-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ashes-bbc",
+      "second": "nvidia-fbi-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ashes-bbc",
+      "second": "nvidia-shares-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ashes-bbc",
+      "second": "anthropic-listing-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ashes-sky",
+      "second": "bethell-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ashes-sky",
+      "second": "league-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ashes-sky",
+      "second": "brand-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ashes-sky",
+      "second": "schools-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ashes-sky",
+      "second": "robinson-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ashes-sky",
+      "second": "city-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ashes-sky",
+      "second": "city-result-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ashes-sky",
+      "second": "england-result-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ashes-sky",
+      "second": "united-defence-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ashes-sky",
+      "second": "walliams-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ashes-sky",
+      "second": "fairford-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ashes-sky",
+      "second": "nvidia-fbi-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ashes-sky",
+      "second": "nvidia-shares-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ashes-sky",
+      "second": "anthropic-listing-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bethell-bbc",
+      "second": "bethell-sky",
+      "sameEvent": true,
+      "split": "development"
+    },
+    {
+      "first": "bethell-bbc",
+      "second": "league-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bethell-bbc",
+      "second": "brand-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bethell-bbc",
+      "second": "schools-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bethell-bbc",
+      "second": "king-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bethell-bbc",
+      "second": "kane-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bethell-bbc",
+      "second": "poundland-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bethell-bbc",
+      "second": "carney-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bethell-bbc",
+      "second": "england-analysis-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bethell-bbc",
+      "second": "fairford-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bethell-bbc",
+      "second": "nvidia-fbi-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bethell-bbc",
+      "second": "nvidia-shares-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bethell-bbc",
+      "second": "anthropic-listing-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bethell-sky",
+      "second": "league-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bethell-sky",
+      "second": "brand-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bethell-sky",
+      "second": "schools-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bethell-sky",
+      "second": "robinson-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bethell-sky",
+      "second": "city-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bethell-sky",
+      "second": "city-result-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bethell-sky",
+      "second": "england-result-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bethell-sky",
+      "second": "united-defence-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bethell-sky",
+      "second": "walliams-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bethell-sky",
+      "second": "fairford-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bethell-sky",
+      "second": "nvidia-fbi-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bethell-sky",
+      "second": "nvidia-shares-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bethell-sky",
+      "second": "anthropic-listing-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "league-bbc",
+      "second": "league-sky",
+      "sameEvent": true,
+      "split": "development"
+    },
+    {
+      "first": "league-bbc",
+      "second": "brand-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "league-bbc",
+      "second": "schools-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "league-bbc",
+      "second": "king-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "league-bbc",
+      "second": "kane-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "league-bbc",
+      "second": "poundland-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "league-bbc",
+      "second": "carney-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "league-bbc",
+      "second": "england-analysis-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "league-bbc",
+      "second": "fairford-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "league-bbc",
+      "second": "nvidia-fbi-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "league-bbc",
+      "second": "nvidia-shares-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "league-bbc",
+      "second": "anthropic-listing-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "league-sky",
+      "second": "brand-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "league-sky",
+      "second": "schools-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "league-sky",
+      "second": "robinson-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "league-sky",
+      "second": "city-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "league-sky",
+      "second": "city-result-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "league-sky",
+      "second": "england-result-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "league-sky",
+      "second": "united-defence-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "league-sky",
+      "second": "walliams-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "league-sky",
+      "second": "fairford-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "league-sky",
+      "second": "nvidia-fbi-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "league-sky",
+      "second": "nvidia-shares-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "league-sky",
+      "second": "anthropic-listing-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "brand-bbc",
+      "second": "brand-sky",
+      "sameEvent": true,
+      "split": "development"
+    },
+    {
+      "first": "brand-bbc",
+      "second": "schools-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "brand-bbc",
+      "second": "king-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "brand-bbc",
+      "second": "kane-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "brand-bbc",
+      "second": "poundland-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "brand-bbc",
+      "second": "carney-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "brand-bbc",
+      "second": "england-analysis-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "brand-bbc",
+      "second": "fairford-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "brand-bbc",
+      "second": "nvidia-fbi-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "brand-bbc",
+      "second": "nvidia-shares-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "brand-bbc",
+      "second": "anthropic-listing-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "brand-sky",
+      "second": "schools-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "brand-sky",
+      "second": "robinson-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "brand-sky",
+      "second": "city-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "brand-sky",
+      "second": "city-result-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "brand-sky",
+      "second": "england-result-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "brand-sky",
+      "second": "united-defence-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "brand-sky",
+      "second": "walliams-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "brand-sky",
+      "second": "fairford-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "brand-sky",
+      "second": "nvidia-fbi-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "brand-sky",
+      "second": "nvidia-shares-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "brand-sky",
+      "second": "anthropic-listing-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "schools-bbc",
+      "second": "schools-sky",
+      "sameEvent": true,
+      "split": "development"
+    },
+    {
+      "first": "schools-bbc",
+      "second": "king-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "schools-bbc",
+      "second": "kane-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "schools-bbc",
+      "second": "poundland-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "schools-bbc",
+      "second": "carney-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "schools-bbc",
+      "second": "england-analysis-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "schools-bbc",
+      "second": "fairford-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "schools-bbc",
+      "second": "nvidia-fbi-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "schools-bbc",
+      "second": "nvidia-shares-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "schools-bbc",
+      "second": "anthropic-listing-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "schools-sky",
+      "second": "robinson-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "schools-sky",
+      "second": "city-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "schools-sky",
+      "second": "city-result-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "schools-sky",
+      "second": "england-result-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "schools-sky",
+      "second": "united-defence-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "schools-sky",
+      "second": "walliams-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "schools-sky",
+      "second": "fairford-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "schools-sky",
+      "second": "nvidia-fbi-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "schools-sky",
+      "second": "nvidia-shares-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "schools-sky",
+      "second": "anthropic-listing-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "robinson-bbc",
+      "second": "king-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "robinson-bbc",
+      "second": "kane-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "robinson-bbc",
+      "second": "poundland-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "robinson-bbc",
+      "second": "carney-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "robinson-bbc",
+      "second": "england-analysis-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "robinson-bbc",
+      "second": "fairford-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "robinson-bbc",
+      "second": "nvidia-fbi-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "robinson-bbc",
+      "second": "nvidia-shares-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "robinson-bbc",
+      "second": "anthropic-listing-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "king-sky",
+      "second": "city-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "king-sky",
+      "second": "city-result-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "king-sky",
+      "second": "england-result-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "king-sky",
+      "second": "united-defence-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "king-sky",
+      "second": "walliams-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "king-sky",
+      "second": "fairford-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "king-sky",
+      "second": "nvidia-fbi-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "king-sky",
+      "second": "nvidia-shares-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "king-sky",
+      "second": "anthropic-listing-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "city-bbc",
+      "second": "kane-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "city-bbc",
+      "second": "poundland-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "city-bbc",
+      "second": "carney-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "city-bbc",
+      "second": "england-analysis-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "city-bbc",
+      "second": "fairford-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "city-bbc",
+      "second": "nvidia-fbi-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "city-bbc",
+      "second": "nvidia-shares-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "city-bbc",
+      "second": "anthropic-listing-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "city-result-bbc",
+      "second": "kane-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "city-result-bbc",
+      "second": "poundland-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "city-result-bbc",
+      "second": "carney-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "city-result-bbc",
+      "second": "england-analysis-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "city-result-bbc",
+      "second": "fairford-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "city-result-bbc",
+      "second": "nvidia-fbi-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "city-result-bbc",
+      "second": "nvidia-shares-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "city-result-bbc",
+      "second": "anthropic-listing-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "england-result-bbc",
+      "second": "kane-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "england-result-bbc",
+      "second": "poundland-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "england-result-bbc",
+      "second": "carney-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "england-result-bbc",
+      "second": "england-analysis-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "england-result-bbc",
+      "second": "fairford-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "england-result-bbc",
+      "second": "nvidia-fbi-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "england-result-bbc",
+      "second": "nvidia-shares-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "england-result-bbc",
+      "second": "anthropic-listing-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "united-defence-bbc",
+      "second": "kane-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "united-defence-bbc",
+      "second": "poundland-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "united-defence-bbc",
+      "second": "carney-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "united-defence-bbc",
+      "second": "england-analysis-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "united-defence-bbc",
+      "second": "fairford-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "united-defence-bbc",
+      "second": "nvidia-fbi-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "united-defence-bbc",
+      "second": "nvidia-shares-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "united-defence-bbc",
+      "second": "anthropic-listing-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "kane-sky",
+      "second": "walliams-bbc",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kane-sky",
+      "second": "fairford-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "kane-sky",
+      "second": "nvidia-fbi-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "kane-sky",
+      "second": "nvidia-shares-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "kane-sky",
+      "second": "anthropic-listing-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "walliams-bbc",
+      "second": "poundland-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "walliams-bbc",
+      "second": "carney-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "walliams-bbc",
+      "second": "england-analysis-sky",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "walliams-bbc",
+      "second": "fairford-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "walliams-bbc",
+      "second": "nvidia-fbi-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "walliams-bbc",
+      "second": "nvidia-shares-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "walliams-bbc",
+      "second": "anthropic-listing-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "poundland-sky",
+      "second": "fairford-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "poundland-sky",
+      "second": "nvidia-fbi-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "poundland-sky",
+      "second": "nvidia-shares-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "poundland-sky",
+      "second": "anthropic-listing-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "carney-sky",
+      "second": "fairford-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "carney-sky",
+      "second": "nvidia-fbi-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "carney-sky",
+      "second": "nvidia-shares-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "carney-sky",
+      "second": "anthropic-listing-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "england-analysis-sky",
+      "second": "fairford-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "england-analysis-sky",
+      "second": "nvidia-fbi-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "england-analysis-sky",
+      "second": "nvidia-shares-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "england-analysis-sky",
+      "second": "anthropic-listing-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "fairford-bbc",
+      "second": "fairford-sky",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "fairford-bbc",
+      "second": "nvidia-fbi-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "fairford-bbc",
+      "second": "nvidia-shares-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "fairford-bbc",
+      "second": "anthropic-listing-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "fairford-sky",
+      "second": "nvidia-fbi-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "fairford-sky",
+      "second": "nvidia-shares-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "fairford-sky",
+      "second": "anthropic-listing-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "nvidia-fbi-bbc",
+      "second": "nvidia-fbi-sky",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "nvidia-fbi-bbc",
+      "second": "nvidia-shares-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "nvidia-fbi-bbc",
+      "second": "anthropic-listing-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "nvidia-fbi-sky",
+      "second": "nvidia-shares-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "nvidia-fbi-sky",
+      "second": "anthropic-listing-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "nvidia-shares-bbc",
+      "second": "nvidia-shares-sky",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "nvidia-shares-bbc",
+      "second": "anthropic-listing-sky",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "nvidia-shares-sky",
+      "second": "anthropic-listing-bbc",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "anthropic-listing-bbc",
+      "second": "anthropic-listing-sky",
+      "sameEvent": true,
+      "split": "holdout"
+    }
+  ],
+  "labelPolicy": "Stack reports of the same specific development. Profiles, commentary and reactions are separate from the initiating announcement; an investigation and a resulting share-price fall are distinct developments."
+}

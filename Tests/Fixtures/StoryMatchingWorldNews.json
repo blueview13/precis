@@ -1,0 +1,5346 @@
+{
+  "captured": "2026-11-11",
+  "labelPolicy": "Same specific announcement, action, or round of talks. Reports of the same decision may emphasise different details. Different investigations, stock-price consequences, memorials versus political rallies, reactions, and analysis are separate. Ambiguous stories such as an animal attack versus a later cull were left out of the corpus.",
+  "splitPolicy": "Event-level random split using seed 7206, frozen before baseline evaluation.",
+  "articles": [
+    {
+      "source": "guardianWorld",
+      "title": "Millions join Spain’s first general strike in 14 years in protest at housing costs",
+      "summary": "<p>Twenty-four-hour stoppage draws high participation weeks before election in which far right could gain power</p><p>Millions of people across Spain have joined the country’s first general strike in 14 years, setting up picket lines to protest against soaring housing prices before an election in which the far right could be catapulted into power.</p><p>At the centre of Wednesday’s nationwide 24-hour stoppage, singularly called for by tenants’ associations and later backed by workers’ unions, is a pushback against Spain’s deepening housing crisis.</p> <a href=\"https://www.theguardian.com/world/2026/nov/11/spain-general-strike-housing-costs\">Continue reading...</a>",
+      "url": "https://www.theguardian.com/world/2026/nov/11/spain-general-strike-housing-costs",
+      "date": "Wed, 11 Nov 2026 18:51:02 GMT",
+      "event": "spain-strike",
+      "id": "spain-strike-guardianWorld",
+      "split": "holdout",
+      "timestamp": 1794423062.0
+    },
+    {
+      "source": "nprWorld",
+      "title": "Spain's workers hold a general strike over housing costs before national election",
+      "summary": "Millions of Spanish workers have shut down businesses and disrupted transportation in a protest over housing costs. The strike on Wednesday was the first general strike in Spain in 14 years, culminating in huge marches of tens of thousands of workers and average citizens in downtown Barcelona and Madrid, along with gatherings in other cities.",
+      "url": "https://www.npr.org/2026/11/11/nx-s1-6037314/spain-general-strike",
+      "date": "Wed, 11 Nov 2026 04:54:54 -0500",
+      "event": "spain-strike",
+      "id": "spain-strike-nprWorld",
+      "split": "holdout",
+      "timestamp": 1794390894.0
+    },
+    {
+      "source": "aljazeera",
+      "title": "Spain faces nationwide protests over soaring housing costs",
+      "summary": "Spain faces nationwide protests over soaring housing costs",
+      "url": "https://www.aljazeera.com/video/newsfeed/2026/11/11/spain-faces-nationwide-protests-over-soaring-housing-costs?traffic_source=rss",
+      "date": "Wed, 11 Nov 2026 17:49:03 +0000",
+      "event": "spain-strike",
+      "id": "spain-strike-aljazeera",
+      "split": "holdout",
+      "timestamp": 1794419343.0
+    },
+    {
+      "source": "france24",
+      "title": "General strike over housing brings out tens of thousands in Spain",
+      "summary": "\nTens of thousands of protesters marched across Spain on Wednesday during a general strike over housing affordability and purchasing power just weeks before an early general election. Unions reported a significant response in some sectors in Spain's first nationwide 24-hour stoppage since 2012, but business leaders played down the participation. Braving heavy rain, tens of thousands of demonstrators marched through central Madrid carrying placards shaped like houses and chanting \"We have no home\" as they called for more affordable housing. FRANCE 24's Sarah Morris reports from Madrid.\n",
+      "url": "https://www.france24.com/en/general-strike-over-housing-brings-out-tens-of-thousands-in-spain",
+      "date": "Wed, 11 Nov 2026 19:37:21 GMT",
+      "event": "spain-strike",
+      "id": "spain-strike-france24",
+      "split": "holdout",
+      "timestamp": 1794425841.0
+    },
+    {
+      "source": "bbcWorld",
+      "title": "Russia-Ukraine talks turn to post-war security but end without breakthrough",
+      "summary": "Talks in Abu Dhabi centred around Europe's security framework, with US envoys due to meet Putin and Zelensky on Thursday.",
+      "url": "https://www.bbc.co.uk/news/articles/ck792we7zrz4o?at_medium=RSS&at_campaign=rss",
+      "date": "Wed, 11 Nov 2026 18:04:58 GMT",
+      "event": "ukraine-talks",
+      "id": "ukraine-talks-bbcWorld",
+      "split": "development",
+      "timestamp": 1794420298.0
+    },
+    {
+      "source": "guardianWorld",
+      "title": "Ukraine talks in Abu Dhabi bring progress on prisoners but not on peace",
+      "summary": "<p>US envoys to visit Moscow and Dublin on Thursday for talks with Vladimir Putin and Volodymyr Zelenskyy respectively</p><p>Russia and Ukraine have agreed to the “largest prisoner exchange” of the war at their first US-brokered talks since February but made little progress towards a broader peace agreement.</p><p>Both sides sent senior delegations to the two-day talks, led by Donald Trump’s envoys Jared Kushner and Steve Witkoff, in an effort to find a solution to end the nearly-five-year war.</p> <a href=\"https://www.theguardian.com/world/2026/nov/11/ukraine-talks-in-abu-dhabi-bring-progress-on-prisoners-but-not-on-peace\">Continue reading...</a>",
+      "url": "https://www.theguardian.com/world/2026/nov/11/ukraine-talks-in-abu-dhabi-bring-progress-on-prisoners-but-not-on-peace",
+      "date": "Wed, 11 Nov 2026 17:03:43 GMT",
+      "event": "ukraine-talks",
+      "id": "ukraine-talks-guardianWorld",
+      "split": "development",
+      "timestamp": 1794416623.0
+    },
+    {
+      "source": "nprWorld",
+      "title": "Russia and Ukraine agree to a prisoner exchange as talks end with no big breakthrough",
+      "summary": "Russia and Ukraine have agreed to a large exchange of prisoners of war. U.S.-mediated talks in Abu Dhabi led to this decision, marking the biggest humanitarian release since the war began in 2022.",
+      "url": "https://www.npr.org/2026/11/11/g-s1-152954/russia-ukraine-war-talks",
+      "date": "Wed, 11 Nov 2026 08:30:00 -0500",
+      "event": "ukraine-talks",
+      "id": "ukraine-talks-nprWorld",
+      "split": "development",
+      "timestamp": 1794403800.0
+    },
+    {
+      "source": "aljazeera",
+      "title": "Russia-Ukraine talks in UAE secure major prisoner exchange deal",
+      "summary": "Russia and Ukraine have agreed to a major prisoner exchange following two days of US-mediated talks in Abu Dhabi",
+      "url": "https://www.aljazeera.com/video/newsfeed/2026/11/11/russia-ukraine-talks-in-uae-secure-major-prisoner-exchange-deal?traffic_source=rss",
+      "date": "Wed, 11 Nov 2026 16:58:32 +0000",
+      "event": "ukraine-talks",
+      "id": "ukraine-talks-aljazeera",
+      "split": "development",
+      "timestamp": 1794416312.0
+    },
+    {
+      "source": "bbcWorld",
+      "title": "Kenya discharges last Ebola patient in major milestone towards virus-free status",
+      "summary": "The country begins a 42-day countdown to being declared Ebola-free, provided no new cases are recorded.",
+      "url": "https://www.bbc.co.uk/news/articles/cwe9kzv0g0v7o?at_medium=RSS&at_campaign=rss",
+      "date": "Wed, 11 Nov 2026 12:53:11 GMT",
+      "event": "kenya-ebola-discharge",
+      "id": "kenya-ebola-discharge-bbcWorld",
+      "split": "development",
+      "timestamp": 1794401591.0
+    },
+    {
+      "source": "aljazeera",
+      "title": "Kenya discharges last Ebola patient, awaits disease-free status",
+      "summary": "Health Minister Aden Duale says Kenya will continue to exercise prevention measures until December 23.",
+      "url": "https://www.aljazeera.com/news/2026/11/11/kenya-discharges-last-ebola-patient?traffic_source=rss",
+      "date": "Wed, 11 Nov 2026 15:34:00 +0000",
+      "event": "kenya-ebola-discharge",
+      "id": "kenya-ebola-discharge-aljazeera",
+      "split": "development",
+      "timestamp": 1794411240.0
+    },
+    {
+      "source": "bbcWorld",
+      "title": "Indonesia's vice president resigns amid signs ruling alliance is fraying",
+      "summary": "The news comes at a turbulent time for Prabowo, who faces a growing rift with his predecessor Joko Widodo.",
+      "url": "https://www.bbc.co.uk/news/articles/cmvgxgz87qqro?at_medium=RSS&at_campaign=rss",
+      "date": "Wed, 11 Nov 2026 16:38:07 GMT",
+      "event": "indonesia-resignation",
+      "id": "indonesia-resignation-bbcWorld",
+      "split": "development",
+      "timestamp": 1794415087.0
+    },
+    {
+      "source": "nprWorld",
+      "title": "Indonesia's VP offers resignation as questions mount over his eligibility",
+      "summary": "His resignation offer comes amid a widening political rift between Prabowo and Widodo and a separate investigation into allegations that senior police officials wiretapped the president.",
+      "url": "https://www.npr.org/2026/11/10/g-s1-152788/indonesias-vp-offers-resignation-as-questions-mount-over-his-eligibility",
+      "date": "Tue, 10 Nov 2026 09:01:14 -0500",
+      "event": "indonesia-resignation",
+      "id": "indonesia-resignation-nprWorld",
+      "split": "development",
+      "timestamp": 1794319274.0
+    },
+    {
+      "source": "bbcWorld",
+      "title": "Kidnapper, 74, escapes from house arrest in Argentina by abseiling from balcony",
+      "summary": "Leonardo Bertulazzi, a former member of the Marxist guerrilla group the Red Brigades, was about to be extradited to his home country of Italy.",
+      "url": "https://www.bbc.co.uk/news/articles/c933gn6710lyo?at_medium=RSS&at_campaign=rss",
+      "date": "Wed, 11 Nov 2026 14:56:11 GMT",
+      "event": "argentina-escape",
+      "id": "argentina-escape-bbcWorld",
+      "split": "development",
+      "timestamp": 1794408971.0
+    },
+    {
+      "source": "guardianWorld",
+      "title": "Ex-member of radical Marxist group scales balcony, escapes house arrest in Argentina",
+      "summary": "<p>74-year-old Leonardo Bertulazzi, awaiting extradition to Italy, reportedly used harness to flee custody</p><p>A 74-year-old former member of <a href=\"https://www.theguardian.com/world/italy\">Italy</a>’s radical Marxist group the Red Brigades has escaped from house arrest in <a href=\"https://www.theguardian.com/world/argentina\">Argentina</a>, the country’s security ministry confirmed on Wednesday, after he reportedly hid his ankle monitor inside a tube of pork and lowered himself from a fifth-floor balcony.</p><p>Authorities placed Leonardo Bertulazzi under house arrest in Buenos Aires in 2024, prior to his extradition to Italy to serve a 27-year prison sentence. He had received the sentence in 1987 for joining a subversive association and belonging to an armed group.</p> <a href=\"https://www.theguardian.com/world/2026/nov/11/red-brigades-leonardo-bertulazzi-escapes-house-arrest-argentina\">Continue reading...</a>",
+      "url": "https://www.theguardian.com/world/2026/nov/11/red-brigades-leonardo-bertulazzi-escapes-house-arrest-argentina",
+      "date": "Wed, 11 Nov 2026 19:00:33 GMT",
+      "event": "argentina-escape",
+      "id": "argentina-escape-guardianWorld",
+      "split": "development",
+      "timestamp": 1794423633.0
+    },
+    {
+      "source": "bbcWorld",
+      "title": "US Treasury Secretary Scott Bessent relocated after alleged Iranian threats",
+      "summary": "Bessent is now one of several Trump administration officials to live on military bases due to safety concerns. ",
+      "url": "https://www.bbc.co.uk/news/articles/cqr7gr0010r2o?at_medium=RSS&at_campaign=rss",
+      "date": "Wed, 11 Nov 2026 16:45:11 GMT",
+      "event": "bessent-relocation",
+      "id": "bessent-relocation-bbcWorld",
+      "split": "development",
+      "timestamp": 1794415511.0
+    },
+    {
+      "source": "guardianWorld",
+      "title": "US Treasury chief Scott Bessent is reportedly latest Trump official to move to military base",
+      "summary": "<p>Bessent, driving force behind US push to cripple Iran’s economy, relocates over alleged threat to his life</p><p>The US Treasury secretary, Scott Bessent, has relocated from his home in the Washington area to a military base after an Iranian threat against his life, <a href=\"https://www.nytimes.com/2026/11/10/us/politics/bessent-moved-base-iran-threats.html\">the New York Times has reported</a>.</p><p>Bessent has spearheaded a US push to cripple Iran’s economy since the start of the Middle East war, vowing “economic asphyxiation” of the Islamic republic through a web of sanctions.</p> <a href=\"https://www.theguardian.com/us-news/2026/nov/11/us-treasury-chief-scott-bessent-moves-military-base-iran-threats\">Continue reading...</a>",
+      "url": "https://www.theguardian.com/us-news/2026/nov/11/us-treasury-chief-scott-bessent-moves-military-base-iran-threats",
+      "date": "Wed, 11 Nov 2026 09:11:31 GMT",
+      "event": "bessent-relocation",
+      "id": "bessent-relocation-guardianWorld",
+      "split": "development",
+      "timestamp": 1794388291.0
+    },
+    {
+      "source": "skyWorld",
+      "title": "UK court overturns Trinidad and Tobago law criminalising homosexual sex",
+      "summary": "‌Trinidad and Tobago's ‌law criminalising consensual sexual ​relations between male same-sex couples has been overturned ‌by a ​UK court.",
+      "url": "https://news.sky.com/story/uk-court-overturns-trinidad-and-tobago-law-criminalising-homosexual-sex-13610702",
+      "date": "Tue, 10 Nov 2026 16:26:00 +0000",
+      "event": "gay-law-ruling",
+      "id": "gay-law-ruling-skyWorld",
+      "split": "development",
+      "timestamp": 1794327960.0
+    },
+    {
+      "source": "dwWorld",
+      "title": "UK Privy Council overrules Trinidad and Tobago gay sex law",
+      "summary": "A London court has overturned a Trinidad and Tobago law criminalizing consensual sexual relations between male same-sex couples. As a result of the colonial legacy, it is the independent country's last court of appeal.",
+      "url": "https://www.dw.com/en/uk-privy-council-overrules-trinidad-and-tobago-gay-sex-law/a-79912163?maca=en-rss-en-world-4025-rdf",
+      "date": "2026-11-10T19:21:00Z",
+      "event": "gay-law-ruling",
+      "id": "gay-law-ruling-dwWorld",
+      "split": "development",
+      "timestamp": 1794338460.0
+    },
+    {
+      "source": "dwWorld",
+      "title": "Brazil electoral court fines Meta, sees no deliberate election bias",
+      "summary": "The fine came after President Lula's coalition filed a complaint. The court said there was no evidence of intent to influence the election. Meta said it will defend itself against \"false allegations.\"",
+      "url": "https://www.dw.com/en/brazil-electoral-court-fines-meta-sees-no-deliberate-election-bias/a-79920780?maca=en-rss-en-world-4025-rdf",
+      "date": "2026-11-11T15:17:00Z",
+      "event": "meta-election-fine",
+      "id": "meta-election-fine-dwWorld",
+      "split": "development",
+      "timestamp": 1794410220.0
+    },
+    {
+      "source": "france24",
+      "title": "Brazil electoral court fines Meta $1.3 MN, sees no deliberate election bias",
+      "summary": "\nJan Onoszko, our correspondent in Rio, has more.\n",
+      "url": "https://www.france24.com/en/brazil-electoral-court-fines-meta-1-3-mn-sees-no-deliberate-election-bias",
+      "date": "Wed, 11 Nov 2026 16:08:22 GMT",
+      "event": "meta-election-fine",
+      "id": "meta-election-fine-france24",
+      "split": "development",
+      "timestamp": 1794413302.0
+    },
+    {
+      "source": "aljazeera",
+      "title": "Russia bans two French lawmakers, two journalists in tit-for-tat move",
+      "summary": "Kremlin spokeswoman says ban responds to the expulsion of a Russian commentator who used to head RT France.",
+      "url": "https://www.aljazeera.com/news/2026/11/11/russia-bans-two-french-lawmakers-two-journalists-in-tit-for-tat-move?traffic_source=rss",
+      "date": "Wed, 11 Nov 2026 15:47:37 +0000",
+      "event": "russia-france-bans",
+      "id": "russia-france-bans-aljazeera",
+      "split": "development",
+      "timestamp": 1794412057.0
+    },
+    {
+      "source": "france24",
+      "title": "Russia bans two French lawmakers and two journalists from entry",
+      "summary": "\nMoscow on Wednesday said it was banning two French journalists and two French lawmakers from entering Russia in response to Paris's expulsion of pro-Russian TV commentator Xenia Fedorova earlier this year. \n",
+      "url": "https://www.france24.com/en/europe/20261111-russia-bans-two-french-lawmakers-and-two-journalists-from-entry",
+      "date": "Wed, 11 Nov 2026 15:58:14 GMT",
+      "event": "russia-france-bans",
+      "id": "russia-france-bans-france24",
+      "split": "development",
+      "timestamp": 1794412694.0
+    },
+    {
+      "source": "bbcWorld",
+      "title": "US House blocks bid to impeach Defence Secretary Pete Hegseth",
+      "summary": "Trump welcomes the outcome, praising Hegseth as a \"Great American Patriot\", but Democrats can try again next year.",
+      "url": "https://www.bbc.co.uk/news/articles/cxly4y5jzl0qo?at_medium=RSS&at_campaign=rss",
+      "date": "Wed, 11 Nov 2026 11:47:22 GMT",
+      "event": "hegseth-impeachment-blocked",
+      "id": "hegseth-impeachment-blocked-bbcWorld",
+      "split": "holdout",
+      "timestamp": 1794397642.0
+    },
+    {
+      "source": "france24",
+      "title": "US House votes to derail impeachment of Defense Secretary Hegseth",
+      "summary": "\nRepublicans in ​the US House ​of Representatives banded together on Tuesday ​to ‌derail ⁠aneffort to impeach ‌Defense Secretary Pete Hegseth. Fraser Jackson, our correspondant in Washington DC, has more.\n",
+      "url": "https://www.france24.com/en/us-house-votes-to-derail-impeachment-of-defense-secretary-hegseth",
+      "date": "Wed, 11 Nov 2026 12:17:22 GMT",
+      "event": "hegseth-impeachment-blocked",
+      "id": "hegseth-impeachment-blocked-france24",
+      "split": "holdout",
+      "timestamp": 1794399442.0
+    },
+    {
+      "source": "aljazeera",
+      "title": "Tens of thousands join Poland’s nationalist Independence Day march",
+      "summary": "Polish PM Donald Tusk calls for restraint, urging unity after deadly Krakow attack linked to far-right ideology.",
+      "url": "https://www.aljazeera.com/news/2026/11/11/tens-of-thousands-join-polands-nationalist-independence-day-march?traffic_source=rss",
+      "date": "Wed, 11 Nov 2026 17:38:03 +0000",
+      "event": "poland-nationalist-march",
+      "id": "poland-nationalist-march-aljazeera",
+      "split": "development",
+      "timestamp": 1794418683.0
+    },
+    {
+      "source": "france24",
+      "title": "Tens of thousands attend Polish nationalist march days after shootings",
+      "summary": "\nTens of thousands of Polish nationalist sympathisers gathered in Warsaw Wednesday for an annual Independence Day March, just days after a deadly shooting spree in Krakow that shook the country. The event is held each November 11 to commemorate the ending in 1918 of 123 years of partition by Russia, Prussia and Austria. The event is a magnet for all shades of Poland's right wing -- from conservative-nationalists aligned with its Law and Justice (PiS) party to far-right and radical groups. FRANCE 24's Carys Garland reports.\n",
+      "url": "https://www.france24.com/en/tens-of-thousands-attend-polish-nationalist-march-days-afer-shootings-1",
+      "date": "Wed, 11 Nov 2026 19:31:16 GMT",
+      "event": "poland-nationalist-march",
+      "id": "poland-nationalist-march-france24",
+      "split": "development",
+      "timestamp": 1794425476.0
+    },
+    {
+      "source": "dwWorld",
+      "title": "British counterterrorism police arrest US soldier accused of spying on behalf of Russia",
+      "summary": "A member of the US Army has been arrested near Gloucester in England. Police said he was suspected of espionage activity in connection with Russia. Investigators from the US and UK are involved in the probe.",
+      "url": "https://www.dw.com/en/british-counterterrorism-police-arrest-us-soldier-accused-of-spying-on-behalf-of-russia/a-79913240?maca=en-rss-en-world-4025-rdf",
+      "date": "2026-11-10T19:35:00Z",
+      "event": "us-soldier-spying-arrest",
+      "id": "us-soldier-spying-arrest-dwWorld",
+      "split": "development",
+      "timestamp": 1794339300.0
+    },
+    {
+      "source": "bbcUK",
+      "title": "US Army soldier suspected of spying for Russia arrested in UK",
+      "summary": "The 41-year-old senior soldier is accused of national security offences and is being questioned in London.",
+      "url": "https://www.bbc.co.uk/news/articles/c6d7q77xgw0vo?at_medium=RSS&at_campaign=rss",
+      "date": "Tue, 10 Nov 2026 20:20:04 GMT",
+      "event": "us-soldier-spying-arrest",
+      "id": "us-soldier-spying-arrest-bbcUK",
+      "split": "development",
+      "timestamp": 1794342004.0
+    },
+    {
+      "source": "guardianWorld",
+      "title": "British soldier charged with rape of army servicewoman in Cyprus",
+      "summary": "<p>L/Cpl Nicholas Horne, from 4th Battalion of Royal Regiment of Scotland, charged with one count of rape on 23 October</p><p>A British soldier has been charged with the alleged rape of a UK army servicewoman in Cyprus.</p><p>L/Cpl Nicholas Horne, who serves in the 4th Battalion of the <a href=\"https://www.theroyalregimentofscotland.org/identity/what\">Royal Regiment of Scotland</a>, also known as The Highlanders, was charged with one count of rape on 23 October, the <a href=\"https://www.gov.uk/guidance/defence-serious-crime-command-dscc#introduction\">Defence Serious Crime Command</a> (DSCC) said.</p> <a href=\"https://www.theguardian.com/uk-news/2026/nov/11/scots-soldier-charged-with-of-army-servicewoman-in-cyprus\">Continue reading...</a>",
+      "url": "https://www.theguardian.com/uk-news/2026/nov/11/scots-soldier-charged-with-of-army-servicewoman-in-cyprus",
+      "date": "Wed, 11 Nov 2026 19:06:48 GMT",
+      "event": "cyprus-soldier-charged",
+      "id": "cyprus-soldier-charged-guardianWorld",
+      "split": "holdout",
+      "timestamp": 1794424008.0
+    },
+    {
+      "source": "skyUK",
+      "title": "British soldier charged with rape of woman in Cyprus",
+      "summary": "A British soldier has been charged with the rape of a woman serving with UK forces in Cyprus.",
+      "url": "https://news.sky.com/story/british-soldier-charged-with-rape-of-woman-in-cyprus-13611160",
+      "date": "Wed, 11 Nov 2026 16:16:00 +0000",
+      "event": "cyprus-soldier-charged",
+      "id": "cyprus-soldier-charged-skyUK",
+      "split": "holdout",
+      "timestamp": 1794413760.0
+    },
+    {
+      "source": "nprWorld",
+      "title": "Ebola tops 11,000 cases in Congo's deadliest outbreak",
+      "summary": "Congo's Ebola outbreak has topped 11,000 cases, the government said Wednesday, a stark figure that underscores the severity of the situation as the country grapples with the relentless spread of the disease.",
+      "url": "https://www.npr.org/2026/11/11/nx-s1-6037304/ebola-congo-outbreak",
+      "date": "Wed, 11 Nov 2026 04:16:01 -0500",
+      "event": "congo-ebola-cases",
+      "id": "congo-ebola-cases-nprWorld",
+      "split": "holdout",
+      "timestamp": 1794388561.0
+    },
+    {
+      "source": "bbcWorld",
+      "title": "Polish unity on show as thousands join silent march for Krakow shooting victims",
+      "summary": "Fiercely proud of its reputation for safety, Poland has been profoundly shaken by Saturday's attack, writes Sarah Rainsford.",
+      "url": "https://www.bbc.co.uk/news/articles/cqkg5gm4nr4no?at_medium=RSS&at_campaign=rss",
+      "date": "Tue, 10 Nov 2026 05:38:53 GMT",
+      "event": "poland-victims-march",
+      "id": "poland-victims-march-bbcWorld",
+      "split": "holdout",
+      "timestamp": 1794289133.0
+    },
+    {
+      "source": "aljazeera",
+      "title": "Bessent’s relocation: From US to EU, is Iran bringing war to Western soil?",
+      "summary": "A deliberate expansion of Iran’s campaign of retaliation beyond the Middle East could be taking place, said an expert.",
+      "url": "https://www.aljazeera.com/news-analysis/2026/11/11/bessents-relocation-from-us-to-eu-is-iran-bringing-war-to-western-soil?traffic_source=rss",
+      "date": "Wed, 11 Nov 2026 15:33:38 +0000",
+      "event": "bessent-iran-policy-analysis",
+      "id": "bessent-iran-policy-analysis-aljazeera",
+      "split": "holdout",
+      "timestamp": 1794411218.0
+    },
+    {
+      "source": "guardianWorld",
+      "title": "Nvidia opens investigation after report CEO Jensen Huang was target of foreign intelligence",
+      "summary": "<p>CEO reportedly ‌had close relationship ‌with a Chinese businesswoman who passed information to ‌Beijing</p><p><a href=\"https://www.theguardian.com/technology/nvidia\">Nvidia</a> said ⁠on Sunday it “is initiating an independent investigation in light of recent reporting that founder and CEO Jensen Huang has been the <a href=\"https://www.theguardian.com/technology/2026/oct/29/nvidia-ceo-targeted-chinese-spy\">target</a> of a foreign intelligence effort”.</p><p>The <a href=\"https://www.nytimes.com/2026/10/29/us/politics/nvidia-china-jensen-huang-trump.html\">New York Times reported</a> in ​October that <a href=\"https://www.theguardian.com/us-news/donaldtrump\">Donald Trump</a> had been briefed last year on intelligence that Huang ‌had a close relationship ‌with a <a href=\"https://www.theguardian.com/world/china\">Chinese</a> businesswoman who passed information to ‌Beijing.</p> <a href=\"https://www.theguardian.com/us-news/2026/nov/08/nvidia-jensen-huang-investigation\">Continue reading...</a>",
+      "url": "https://www.theguardian.com/us-news/2026/nov/08/nvidia-jensen-huang-investigation",
+      "date": "Mon, 09 Nov 2026 00:25:28 GMT",
+      "event": "nvidia-company-investigation",
+      "id": "nvidia-company-investigation-guardianWorld",
+      "split": "development",
+      "timestamp": 1794183928.0
+    },
+    {
+      "source": "bbcBusiness",
+      "title": "Nvidia hires major US law firm to investigate alleged Chinese spy affair",
+      "summary": "The appointment was made after it emerged Jensen Huang had an affair with a woman believed to be a spy for China.",
+      "url": "https://www.bbc.co.uk/news/articles/ck1wvwwl3x0go?at_medium=RSS&at_campaign=rss",
+      "date": "Tue, 10 Nov 2026 22:52:15 GMT",
+      "event": "nvidia-company-investigation",
+      "id": "nvidia-company-investigation-bbcBusiness",
+      "split": "development",
+      "timestamp": 1794351135.0
+    },
+    {
+      "source": "skyWorld",
+      "title": "FBI investigating Nvidia CEO over affair with alleged Chinese spy ",
+      "summary": "Donald Trump has said the FBI is looking into Nvidia CEO Jensen Huang's affair with an alleged Chinese spy - but insisted he is a \"very honourable man\". ",
+      "url": "https://news.sky.com/story/fbi-to-investigate-nvidia-ceo-over-affair-with-alleged-chinese-spy-trump-says-13610382",
+      "date": "Tue, 10 Nov 2026 02:06:00 +0000",
+      "event": "nvidia-fbi-investigation",
+      "id": "nvidia-fbi-investigation-skyWorld",
+      "split": "holdout",
+      "timestamp": 1794276360.0
+    },
+    {
+      "source": "bbcBusiness",
+      "title": "Trump says FBI investigating Nvidia boss's affair with alleged Chinese spy",
+      "summary": "The US president said he spoke with Jensen Huang on Monday and asked him about the affair with the alleged spy.",
+      "url": "https://www.bbc.co.uk/news/articles/cqg7x7dpvym8o?at_medium=RSS&at_campaign=rss",
+      "date": "Tue, 10 Nov 2026 08:23:21 GMT",
+      "event": "nvidia-fbi-investigation",
+      "id": "nvidia-fbi-investigation-bbcBusiness",
+      "split": "holdout",
+      "timestamp": 1794299001.0
+    },
+    {
+      "source": "skyBusiness",
+      "title": "Nvidia's value plummets $430bn in two days, as CEO urged to quit",
+      "summary": "Nvidia's market value has plummeted by about $430bn (£322bn) in two days after its CEO, Jensen Huang, admitted to having an affair with a woman alleged to be a Chinese spy. ",
+      "url": "https://news.sky.com/story/jensen-huang-nvidias-value-plummets-430bn-in-two-days-as-ceo-urged-to-quit-13610814",
+      "date": "Wed, 11 Nov 2026 03:04:00 +0000",
+      "event": "nvidia-share-price",
+      "id": "nvidia-share-price-skyBusiness",
+      "split": "development",
+      "timestamp": 1794366240.0
+    },
+    {
+      "source": "bbcBusiness",
+      "title": "Nvidia shares tumble over investigation into Huang's affair with alleged Chinese spy",
+      "summary": "The share price dropped wiped hundreds of billions of dollars from the value of Nvidia. ",
+      "url": "https://www.bbc.co.uk/news/articles/c6zxjx01vyleo?at_medium=RSS&at_campaign=rss",
+      "date": "Mon, 09 Nov 2026 19:58:01 GMT",
+      "event": "nvidia-share-price",
+      "id": "nvidia-share-price-bbcBusiness",
+      "split": "development",
+      "timestamp": 1794254281.0
+    },
+    {
+      "source": "skyWorld",
+      "title": "France blames Iran for massive cyber attack on supermarket fridges",
+      "summary": "France has accused Iran of being behind the massive cyber attack on supermarket fridges last month.",
+      "url": "https://news.sky.com/story/france-accuses-iran-of-being-behind-massive-cyber-attack-on-supermarket-fridges-13610319",
+      "date": "Mon, 09 Nov 2026 17:04:00 +0000",
+      "event": "cyberattack-iran-attribution",
+      "id": "cyberattack-iran-attribution-skyWorld",
+      "split": "development",
+      "timestamp": 1794243840.0
+    },
+    {
+      "source": "dwWorld",
+      "title": "Iran denies role in fridge hack, France summons ambassador",
+      "summary": "France has said it rules \"nothing\" out in response to a cyberattack on supermarket refrigeration units. Iran, however, said it categorically rejected Paris' \"baseless and one-sided accusations\" of IRGC involvement.",
+      "url": "https://www.dw.com/en/iran-denies-role-in-fridge-hack-france-summons-ambassador/a-79910206?maca=en-rss-en-world-4025-rdf",
+      "date": "2026-11-10T15:57:00Z",
+      "event": "cyberattack-diplomatic-response",
+      "id": "cyberattack-diplomatic-response-dwWorld",
+      "split": "holdout",
+      "timestamp": 1794326220.0
+    },
+    {
+      "source": "france24",
+      "title": "The most hacked country in Europe? Why is France the target of so many cyberattacks",
+      "summary": "\nThe “unprecedented” hacks of French supermarket refrigerators were the latest in a series of major cyberattacks that have made the country the most hacked in Europe, according to some analysts. Cyberattacks are on the rise globally, but why is France such a ready target?  \n",
+      "url": "https://www.france24.com/en/france/20261111-the-most-hacked-country-in-europe-why-is-france-the-target-of-so-many-cyberattacks",
+      "date": "Wed, 11 Nov 2026 17:09:03 GMT",
+      "event": "france-cybersecurity-explainer",
+      "id": "france-cybersecurity-explainer-france24",
+      "split": "development",
+      "timestamp": 1794416943.0
+    },
+    {
+      "source": "bbcWorld",
+      "title": "Missing 11-month-old baby found buried alive in a crate in South Carolina",
+      "summary": "Officials say the child was found close to his father's home on Tuesday, a day after he was taken, and is being cared for in hospital. ",
+      "url": "https://www.bbc.co.uk/news/articles/c8e391xzg6z2o?at_medium=RSS&at_campaign=rss",
+      "date": "Wed, 11 Nov 2026 18:10:57 GMT",
+      "event": "child-found-alive",
+      "id": "child-found-alive-bbcWorld",
+      "split": "development",
+      "timestamp": 1794420657.0
+    },
+    {
+      "source": "skyWorld",
+      "title": "At least 12 killed in Bulgaria motorway pile-ups involving dozens of vehicles",
+      "summary": "At least 12 people have been killed in two motorway pile-ups in eastern Bulgaria, the country's health minister said.",
+      "url": "https://news.sky.com/story/at-least-12-killed-in-bulgaria-motorway-pile-ups-involving-dozens-of-vehicles-13610553",
+      "date": "Tue, 10 Nov 2026 10:36:00 +0000",
+      "event": "bulgaria-road-crash",
+      "id": "bulgaria-road-crash-skyWorld",
+      "split": "development",
+      "timestamp": 1794306960.0
+    }
+  ],
+  "pairs": [
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "spain-strike-nprWorld",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "spain-strike-aljazeera",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "spain-strike-france24",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "ukraine-talks-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "ukraine-talks-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "ukraine-talks-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "kenya-ebola-discharge-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "kenya-ebola-discharge-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "indonesia-resignation-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "indonesia-resignation-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "argentina-escape-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "bessent-relocation-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "gay-law-ruling-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "gay-law-ruling-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "meta-election-fine-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "meta-election-fine-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "russia-france-bans-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "russia-france-bans-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "hegseth-impeachment-blocked-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "hegseth-impeachment-blocked-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "poland-nationalist-march-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "poland-nationalist-march-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "us-soldier-spying-arrest-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "us-soldier-spying-arrest-bbcUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "cyprus-soldier-charged-skyUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "congo-ebola-cases-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "poland-victims-march-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "bessent-iran-policy-analysis-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "nvidia-company-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "nvidia-fbi-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "nvidia-share-price-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-guardianWorld",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "spain-strike-aljazeera",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "spain-strike-france24",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "ukraine-talks-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "ukraine-talks-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "ukraine-talks-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "kenya-ebola-discharge-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "kenya-ebola-discharge-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "indonesia-resignation-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "argentina-escape-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "argentina-escape-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "bessent-relocation-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "bessent-relocation-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "gay-law-ruling-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "gay-law-ruling-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "meta-election-fine-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "meta-election-fine-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "russia-france-bans-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "russia-france-bans-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "hegseth-impeachment-blocked-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "hegseth-impeachment-blocked-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "poland-nationalist-march-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "poland-nationalist-march-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "us-soldier-spying-arrest-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "us-soldier-spying-arrest-bbcUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "cyprus-soldier-charged-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "cyprus-soldier-charged-skyUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "poland-victims-march-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "bessent-iran-policy-analysis-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "nvidia-company-investigation-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "nvidia-company-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "nvidia-fbi-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "nvidia-share-price-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-nprWorld",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "spain-strike-france24",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "ukraine-talks-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "ukraine-talks-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "ukraine-talks-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "kenya-ebola-discharge-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "indonesia-resignation-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "indonesia-resignation-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "argentina-escape-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "argentina-escape-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "bessent-relocation-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "bessent-relocation-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "gay-law-ruling-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "gay-law-ruling-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "meta-election-fine-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "meta-election-fine-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "russia-france-bans-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "hegseth-impeachment-blocked-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "hegseth-impeachment-blocked-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "poland-nationalist-march-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "us-soldier-spying-arrest-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "us-soldier-spying-arrest-bbcUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "cyprus-soldier-charged-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "cyprus-soldier-charged-skyUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "congo-ebola-cases-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "poland-victims-march-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "nvidia-company-investigation-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "nvidia-company-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "nvidia-fbi-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "nvidia-share-price-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-aljazeera",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "ukraine-talks-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "ukraine-talks-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "ukraine-talks-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "ukraine-talks-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "kenya-ebola-discharge-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "kenya-ebola-discharge-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "indonesia-resignation-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "indonesia-resignation-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "argentina-escape-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "argentina-escape-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "bessent-relocation-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "bessent-relocation-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "gay-law-ruling-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "gay-law-ruling-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "meta-election-fine-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "russia-france-bans-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "hegseth-impeachment-blocked-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "poland-nationalist-march-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "us-soldier-spying-arrest-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "us-soldier-spying-arrest-bbcUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "cyprus-soldier-charged-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "cyprus-soldier-charged-skyUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "congo-ebola-cases-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "poland-victims-march-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "bessent-iran-policy-analysis-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "nvidia-company-investigation-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "nvidia-company-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "nvidia-fbi-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "nvidia-share-price-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "spain-strike-france24",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-bbcWorld",
+      "second": "ukraine-talks-guardianWorld",
+      "sameEvent": true,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-bbcWorld",
+      "second": "ukraine-talks-nprWorld",
+      "sameEvent": true,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-bbcWorld",
+      "second": "ukraine-talks-aljazeera",
+      "sameEvent": true,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-bbcWorld",
+      "second": "kenya-ebola-discharge-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-bbcWorld",
+      "second": "indonesia-resignation-nprWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-bbcWorld",
+      "second": "argentina-escape-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-bbcWorld",
+      "second": "bessent-relocation-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-bbcWorld",
+      "second": "gay-law-ruling-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-bbcWorld",
+      "second": "gay-law-ruling-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-bbcWorld",
+      "second": "meta-election-fine-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-bbcWorld",
+      "second": "meta-election-fine-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-bbcWorld",
+      "second": "russia-france-bans-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-bbcWorld",
+      "second": "russia-france-bans-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-bbcWorld",
+      "second": "hegseth-impeachment-blocked-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-bbcWorld",
+      "second": "poland-nationalist-march-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-bbcWorld",
+      "second": "poland-nationalist-march-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-bbcWorld",
+      "second": "us-soldier-spying-arrest-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-bbcWorld",
+      "second": "cyprus-soldier-charged-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-bbcWorld",
+      "second": "cyprus-soldier-charged-skyUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-bbcWorld",
+      "second": "congo-ebola-cases-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-bbcWorld",
+      "second": "bessent-iran-policy-analysis-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-bbcWorld",
+      "second": "nvidia-company-investigation-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-bbcWorld",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-bbcWorld",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-bbcWorld",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-bbcWorld",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-bbcWorld",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-bbcWorld",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "ukraine-talks-nprWorld",
+      "sameEvent": true,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "ukraine-talks-aljazeera",
+      "sameEvent": true,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "kenya-ebola-discharge-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "kenya-ebola-discharge-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "indonesia-resignation-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "indonesia-resignation-nprWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "argentina-escape-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "bessent-relocation-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "gay-law-ruling-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "gay-law-ruling-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "meta-election-fine-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "meta-election-fine-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "russia-france-bans-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "russia-france-bans-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "hegseth-impeachment-blocked-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "hegseth-impeachment-blocked-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "poland-nationalist-march-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "poland-nationalist-march-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "us-soldier-spying-arrest-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "us-soldier-spying-arrest-bbcUK",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "cyprus-soldier-charged-skyUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "congo-ebola-cases-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "poland-victims-march-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "bessent-iran-policy-analysis-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "nvidia-company-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "nvidia-fbi-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "nvidia-share-price-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-guardianWorld",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "ukraine-talks-aljazeera",
+      "sameEvent": true,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "kenya-ebola-discharge-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "kenya-ebola-discharge-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "indonesia-resignation-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "argentina-escape-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "argentina-escape-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "bessent-relocation-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "bessent-relocation-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "gay-law-ruling-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "gay-law-ruling-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "meta-election-fine-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "meta-election-fine-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "russia-france-bans-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "russia-france-bans-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "hegseth-impeachment-blocked-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "hegseth-impeachment-blocked-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "poland-nationalist-march-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "poland-nationalist-march-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "us-soldier-spying-arrest-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "us-soldier-spying-arrest-bbcUK",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "cyprus-soldier-charged-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "cyprus-soldier-charged-skyUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "poland-victims-march-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "bessent-iran-policy-analysis-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "nvidia-company-investigation-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "nvidia-company-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "nvidia-fbi-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "nvidia-share-price-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-nprWorld",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "kenya-ebola-discharge-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "indonesia-resignation-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "indonesia-resignation-nprWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "argentina-escape-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "argentina-escape-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "bessent-relocation-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "bessent-relocation-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "gay-law-ruling-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "gay-law-ruling-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "meta-election-fine-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "meta-election-fine-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "russia-france-bans-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "hegseth-impeachment-blocked-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "hegseth-impeachment-blocked-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "poland-nationalist-march-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "us-soldier-spying-arrest-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "us-soldier-spying-arrest-bbcUK",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "cyprus-soldier-charged-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "cyprus-soldier-charged-skyUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "congo-ebola-cases-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "poland-victims-march-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "nvidia-company-investigation-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "nvidia-company-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "nvidia-fbi-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "nvidia-share-price-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "ukraine-talks-aljazeera",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-bbcWorld",
+      "second": "kenya-ebola-discharge-aljazeera",
+      "sameEvent": true,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-bbcWorld",
+      "second": "indonesia-resignation-nprWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-bbcWorld",
+      "second": "argentina-escape-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-bbcWorld",
+      "second": "bessent-relocation-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-bbcWorld",
+      "second": "gay-law-ruling-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-bbcWorld",
+      "second": "gay-law-ruling-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-bbcWorld",
+      "second": "meta-election-fine-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-bbcWorld",
+      "second": "meta-election-fine-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-bbcWorld",
+      "second": "russia-france-bans-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-bbcWorld",
+      "second": "russia-france-bans-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-bbcWorld",
+      "second": "hegseth-impeachment-blocked-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "kenya-ebola-discharge-bbcWorld",
+      "second": "poland-nationalist-march-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-bbcWorld",
+      "second": "poland-nationalist-march-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-bbcWorld",
+      "second": "us-soldier-spying-arrest-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-bbcWorld",
+      "second": "cyprus-soldier-charged-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "kenya-ebola-discharge-bbcWorld",
+      "second": "cyprus-soldier-charged-skyUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "kenya-ebola-discharge-bbcWorld",
+      "second": "congo-ebola-cases-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "kenya-ebola-discharge-bbcWorld",
+      "second": "bessent-iran-policy-analysis-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "kenya-ebola-discharge-bbcWorld",
+      "second": "nvidia-company-investigation-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-bbcWorld",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "kenya-ebola-discharge-bbcWorld",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-bbcWorld",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-bbcWorld",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "kenya-ebola-discharge-bbcWorld",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-bbcWorld",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "indonesia-resignation-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "indonesia-resignation-nprWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "argentina-escape-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "argentina-escape-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "bessent-relocation-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "bessent-relocation-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "gay-law-ruling-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "gay-law-ruling-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "meta-election-fine-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "meta-election-fine-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "russia-france-bans-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "hegseth-impeachment-blocked-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "hegseth-impeachment-blocked-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "poland-nationalist-march-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "us-soldier-spying-arrest-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "us-soldier-spying-arrest-bbcUK",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "cyprus-soldier-charged-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "cyprus-soldier-charged-skyUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "congo-ebola-cases-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "poland-victims-march-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "nvidia-company-investigation-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "nvidia-company-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "nvidia-fbi-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "nvidia-share-price-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "kenya-ebola-discharge-aljazeera",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-bbcWorld",
+      "second": "indonesia-resignation-nprWorld",
+      "sameEvent": true,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-bbcWorld",
+      "second": "argentina-escape-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-bbcWorld",
+      "second": "bessent-relocation-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-bbcWorld",
+      "second": "gay-law-ruling-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-bbcWorld",
+      "second": "gay-law-ruling-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-bbcWorld",
+      "second": "meta-election-fine-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-bbcWorld",
+      "second": "meta-election-fine-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-bbcWorld",
+      "second": "russia-france-bans-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-bbcWorld",
+      "second": "russia-france-bans-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-bbcWorld",
+      "second": "hegseth-impeachment-blocked-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "indonesia-resignation-bbcWorld",
+      "second": "poland-nationalist-march-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-bbcWorld",
+      "second": "poland-nationalist-march-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-bbcWorld",
+      "second": "us-soldier-spying-arrest-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-bbcWorld",
+      "second": "cyprus-soldier-charged-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "indonesia-resignation-bbcWorld",
+      "second": "cyprus-soldier-charged-skyUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "indonesia-resignation-bbcWorld",
+      "second": "congo-ebola-cases-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "indonesia-resignation-bbcWorld",
+      "second": "bessent-iran-policy-analysis-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "indonesia-resignation-bbcWorld",
+      "second": "nvidia-company-investigation-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-bbcWorld",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "indonesia-resignation-bbcWorld",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-bbcWorld",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-bbcWorld",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "indonesia-resignation-bbcWorld",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-bbcWorld",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "argentina-escape-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "argentina-escape-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "bessent-relocation-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "bessent-relocation-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "gay-law-ruling-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "gay-law-ruling-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "meta-election-fine-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "meta-election-fine-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "russia-france-bans-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "russia-france-bans-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "hegseth-impeachment-blocked-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "hegseth-impeachment-blocked-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "poland-nationalist-march-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "poland-nationalist-march-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "us-soldier-spying-arrest-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "us-soldier-spying-arrest-bbcUK",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "cyprus-soldier-charged-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "cyprus-soldier-charged-skyUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "poland-victims-march-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "bessent-iran-policy-analysis-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "nvidia-company-investigation-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "nvidia-company-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "nvidia-fbi-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "nvidia-share-price-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "indonesia-resignation-nprWorld",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-bbcWorld",
+      "second": "argentina-escape-guardianWorld",
+      "sameEvent": true,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-bbcWorld",
+      "second": "bessent-relocation-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-bbcWorld",
+      "second": "gay-law-ruling-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-bbcWorld",
+      "second": "gay-law-ruling-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-bbcWorld",
+      "second": "meta-election-fine-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-bbcWorld",
+      "second": "meta-election-fine-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-bbcWorld",
+      "second": "russia-france-bans-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-bbcWorld",
+      "second": "russia-france-bans-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-bbcWorld",
+      "second": "hegseth-impeachment-blocked-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "argentina-escape-bbcWorld",
+      "second": "poland-nationalist-march-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-bbcWorld",
+      "second": "poland-nationalist-march-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-bbcWorld",
+      "second": "us-soldier-spying-arrest-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-bbcWorld",
+      "second": "cyprus-soldier-charged-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "argentina-escape-bbcWorld",
+      "second": "cyprus-soldier-charged-skyUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "argentina-escape-bbcWorld",
+      "second": "congo-ebola-cases-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "argentina-escape-bbcWorld",
+      "second": "bessent-iran-policy-analysis-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "argentina-escape-bbcWorld",
+      "second": "nvidia-company-investigation-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-bbcWorld",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "argentina-escape-bbcWorld",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-bbcWorld",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-bbcWorld",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "argentina-escape-bbcWorld",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-bbcWorld",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-guardianWorld",
+      "second": "bessent-relocation-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-guardianWorld",
+      "second": "gay-law-ruling-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-guardianWorld",
+      "second": "gay-law-ruling-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-guardianWorld",
+      "second": "meta-election-fine-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-guardianWorld",
+      "second": "meta-election-fine-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-guardianWorld",
+      "second": "russia-france-bans-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-guardianWorld",
+      "second": "russia-france-bans-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-guardianWorld",
+      "second": "hegseth-impeachment-blocked-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "argentina-escape-guardianWorld",
+      "second": "hegseth-impeachment-blocked-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "argentina-escape-guardianWorld",
+      "second": "poland-nationalist-march-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-guardianWorld",
+      "second": "poland-nationalist-march-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-guardianWorld",
+      "second": "us-soldier-spying-arrest-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-guardianWorld",
+      "second": "us-soldier-spying-arrest-bbcUK",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-guardianWorld",
+      "second": "cyprus-soldier-charged-skyUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "argentina-escape-guardianWorld",
+      "second": "congo-ebola-cases-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "argentina-escape-guardianWorld",
+      "second": "poland-victims-march-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "argentina-escape-guardianWorld",
+      "second": "bessent-iran-policy-analysis-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "argentina-escape-guardianWorld",
+      "second": "nvidia-company-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-guardianWorld",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "argentina-escape-guardianWorld",
+      "second": "nvidia-fbi-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "argentina-escape-guardianWorld",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-guardianWorld",
+      "second": "nvidia-share-price-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-guardianWorld",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-guardianWorld",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "argentina-escape-guardianWorld",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-guardianWorld",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "argentina-escape-guardianWorld",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-bbcWorld",
+      "second": "bessent-relocation-guardianWorld",
+      "sameEvent": true,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-bbcWorld",
+      "second": "gay-law-ruling-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-bbcWorld",
+      "second": "gay-law-ruling-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-bbcWorld",
+      "second": "meta-election-fine-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-bbcWorld",
+      "second": "meta-election-fine-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-bbcWorld",
+      "second": "russia-france-bans-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-bbcWorld",
+      "second": "russia-france-bans-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-bbcWorld",
+      "second": "hegseth-impeachment-blocked-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bessent-relocation-bbcWorld",
+      "second": "poland-nationalist-march-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-bbcWorld",
+      "second": "poland-nationalist-march-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-bbcWorld",
+      "second": "us-soldier-spying-arrest-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-bbcWorld",
+      "second": "cyprus-soldier-charged-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bessent-relocation-bbcWorld",
+      "second": "cyprus-soldier-charged-skyUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bessent-relocation-bbcWorld",
+      "second": "congo-ebola-cases-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bessent-relocation-bbcWorld",
+      "second": "bessent-iran-policy-analysis-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bessent-relocation-bbcWorld",
+      "second": "nvidia-company-investigation-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-bbcWorld",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bessent-relocation-bbcWorld",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-bbcWorld",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-bbcWorld",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bessent-relocation-bbcWorld",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-bbcWorld",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-guardianWorld",
+      "second": "gay-law-ruling-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-guardianWorld",
+      "second": "gay-law-ruling-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-guardianWorld",
+      "second": "meta-election-fine-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-guardianWorld",
+      "second": "meta-election-fine-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-guardianWorld",
+      "second": "russia-france-bans-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-guardianWorld",
+      "second": "russia-france-bans-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-guardianWorld",
+      "second": "hegseth-impeachment-blocked-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bessent-relocation-guardianWorld",
+      "second": "hegseth-impeachment-blocked-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bessent-relocation-guardianWorld",
+      "second": "poland-nationalist-march-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-guardianWorld",
+      "second": "poland-nationalist-march-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-guardianWorld",
+      "second": "us-soldier-spying-arrest-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-guardianWorld",
+      "second": "us-soldier-spying-arrest-bbcUK",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-guardianWorld",
+      "second": "cyprus-soldier-charged-skyUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bessent-relocation-guardianWorld",
+      "second": "congo-ebola-cases-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bessent-relocation-guardianWorld",
+      "second": "poland-victims-march-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bessent-relocation-guardianWorld",
+      "second": "bessent-iran-policy-analysis-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bessent-relocation-guardianWorld",
+      "second": "nvidia-company-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-guardianWorld",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bessent-relocation-guardianWorld",
+      "second": "nvidia-fbi-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bessent-relocation-guardianWorld",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-guardianWorld",
+      "second": "nvidia-share-price-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-guardianWorld",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-guardianWorld",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bessent-relocation-guardianWorld",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-guardianWorld",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "bessent-relocation-guardianWorld",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "gay-law-ruling-skyWorld",
+      "second": "gay-law-ruling-dwWorld",
+      "sameEvent": true,
+      "split": "development"
+    },
+    {
+      "first": "gay-law-ruling-skyWorld",
+      "second": "meta-election-fine-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "gay-law-ruling-skyWorld",
+      "second": "meta-election-fine-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "gay-law-ruling-skyWorld",
+      "second": "russia-france-bans-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "gay-law-ruling-skyWorld",
+      "second": "russia-france-bans-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "gay-law-ruling-skyWorld",
+      "second": "hegseth-impeachment-blocked-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "gay-law-ruling-skyWorld",
+      "second": "hegseth-impeachment-blocked-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "gay-law-ruling-skyWorld",
+      "second": "poland-nationalist-march-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "gay-law-ruling-skyWorld",
+      "second": "poland-nationalist-march-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "gay-law-ruling-skyWorld",
+      "second": "us-soldier-spying-arrest-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "gay-law-ruling-skyWorld",
+      "second": "us-soldier-spying-arrest-bbcUK",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "gay-law-ruling-skyWorld",
+      "second": "cyprus-soldier-charged-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "gay-law-ruling-skyWorld",
+      "second": "congo-ebola-cases-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "gay-law-ruling-skyWorld",
+      "second": "poland-victims-march-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "gay-law-ruling-skyWorld",
+      "second": "bessent-iran-policy-analysis-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "gay-law-ruling-skyWorld",
+      "second": "nvidia-company-investigation-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "gay-law-ruling-skyWorld",
+      "second": "nvidia-company-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "gay-law-ruling-skyWorld",
+      "second": "nvidia-fbi-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "gay-law-ruling-skyWorld",
+      "second": "nvidia-share-price-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "gay-law-ruling-skyWorld",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "gay-law-ruling-skyWorld",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "gay-law-ruling-skyWorld",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "gay-law-ruling-dwWorld",
+      "second": "meta-election-fine-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "gay-law-ruling-dwWorld",
+      "second": "russia-france-bans-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "gay-law-ruling-dwWorld",
+      "second": "russia-france-bans-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "gay-law-ruling-dwWorld",
+      "second": "hegseth-impeachment-blocked-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "gay-law-ruling-dwWorld",
+      "second": "hegseth-impeachment-blocked-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "gay-law-ruling-dwWorld",
+      "second": "poland-nationalist-march-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "gay-law-ruling-dwWorld",
+      "second": "poland-nationalist-march-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "gay-law-ruling-dwWorld",
+      "second": "us-soldier-spying-arrest-bbcUK",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "gay-law-ruling-dwWorld",
+      "second": "cyprus-soldier-charged-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "gay-law-ruling-dwWorld",
+      "second": "cyprus-soldier-charged-skyUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "gay-law-ruling-dwWorld",
+      "second": "congo-ebola-cases-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "gay-law-ruling-dwWorld",
+      "second": "poland-victims-march-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "gay-law-ruling-dwWorld",
+      "second": "bessent-iran-policy-analysis-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "gay-law-ruling-dwWorld",
+      "second": "nvidia-company-investigation-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "gay-law-ruling-dwWorld",
+      "second": "nvidia-company-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "gay-law-ruling-dwWorld",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "gay-law-ruling-dwWorld",
+      "second": "nvidia-fbi-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "gay-law-ruling-dwWorld",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "gay-law-ruling-dwWorld",
+      "second": "nvidia-share-price-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "gay-law-ruling-dwWorld",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "gay-law-ruling-dwWorld",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "gay-law-ruling-dwWorld",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "gay-law-ruling-dwWorld",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "meta-election-fine-dwWorld",
+      "second": "meta-election-fine-france24",
+      "sameEvent": true,
+      "split": "development"
+    },
+    {
+      "first": "meta-election-fine-dwWorld",
+      "second": "russia-france-bans-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "meta-election-fine-dwWorld",
+      "second": "russia-france-bans-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "meta-election-fine-dwWorld",
+      "second": "hegseth-impeachment-blocked-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "meta-election-fine-dwWorld",
+      "second": "hegseth-impeachment-blocked-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "meta-election-fine-dwWorld",
+      "second": "poland-nationalist-march-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "meta-election-fine-dwWorld",
+      "second": "poland-nationalist-march-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "meta-election-fine-dwWorld",
+      "second": "us-soldier-spying-arrest-bbcUK",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "meta-election-fine-dwWorld",
+      "second": "cyprus-soldier-charged-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "meta-election-fine-dwWorld",
+      "second": "cyprus-soldier-charged-skyUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "meta-election-fine-dwWorld",
+      "second": "congo-ebola-cases-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "meta-election-fine-dwWorld",
+      "second": "poland-victims-march-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "meta-election-fine-dwWorld",
+      "second": "bessent-iran-policy-analysis-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "meta-election-fine-dwWorld",
+      "second": "nvidia-company-investigation-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "meta-election-fine-dwWorld",
+      "second": "nvidia-company-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "meta-election-fine-dwWorld",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "meta-election-fine-dwWorld",
+      "second": "nvidia-fbi-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "meta-election-fine-dwWorld",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "meta-election-fine-dwWorld",
+      "second": "nvidia-share-price-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "meta-election-fine-dwWorld",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "meta-election-fine-dwWorld",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "meta-election-fine-dwWorld",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "meta-election-fine-dwWorld",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "meta-election-fine-france24",
+      "second": "russia-france-bans-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "meta-election-fine-france24",
+      "second": "hegseth-impeachment-blocked-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "meta-election-fine-france24",
+      "second": "poland-nationalist-march-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "meta-election-fine-france24",
+      "second": "us-soldier-spying-arrest-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "meta-election-fine-france24",
+      "second": "us-soldier-spying-arrest-bbcUK",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "meta-election-fine-france24",
+      "second": "cyprus-soldier-charged-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "meta-election-fine-france24",
+      "second": "cyprus-soldier-charged-skyUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "meta-election-fine-france24",
+      "second": "congo-ebola-cases-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "meta-election-fine-france24",
+      "second": "poland-victims-march-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "meta-election-fine-france24",
+      "second": "bessent-iran-policy-analysis-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "meta-election-fine-france24",
+      "second": "nvidia-company-investigation-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "meta-election-fine-france24",
+      "second": "nvidia-company-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "meta-election-fine-france24",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "meta-election-fine-france24",
+      "second": "nvidia-fbi-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "meta-election-fine-france24",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "meta-election-fine-france24",
+      "second": "nvidia-share-price-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "meta-election-fine-france24",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "meta-election-fine-france24",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "meta-election-fine-france24",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "meta-election-fine-france24",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "russia-france-bans-aljazeera",
+      "second": "russia-france-bans-france24",
+      "sameEvent": true,
+      "split": "development"
+    },
+    {
+      "first": "russia-france-bans-aljazeera",
+      "second": "hegseth-impeachment-blocked-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "russia-france-bans-aljazeera",
+      "second": "hegseth-impeachment-blocked-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "russia-france-bans-aljazeera",
+      "second": "poland-nationalist-march-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "russia-france-bans-aljazeera",
+      "second": "us-soldier-spying-arrest-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "russia-france-bans-aljazeera",
+      "second": "us-soldier-spying-arrest-bbcUK",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "russia-france-bans-aljazeera",
+      "second": "cyprus-soldier-charged-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "russia-france-bans-aljazeera",
+      "second": "cyprus-soldier-charged-skyUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "russia-france-bans-aljazeera",
+      "second": "congo-ebola-cases-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "russia-france-bans-aljazeera",
+      "second": "poland-victims-march-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "russia-france-bans-aljazeera",
+      "second": "nvidia-company-investigation-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "russia-france-bans-aljazeera",
+      "second": "nvidia-company-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "russia-france-bans-aljazeera",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "russia-france-bans-aljazeera",
+      "second": "nvidia-fbi-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "russia-france-bans-aljazeera",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "russia-france-bans-aljazeera",
+      "second": "nvidia-share-price-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "russia-france-bans-aljazeera",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "russia-france-bans-aljazeera",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "russia-france-bans-aljazeera",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "russia-france-bans-aljazeera",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "russia-france-bans-aljazeera",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "russia-france-bans-france24",
+      "second": "hegseth-impeachment-blocked-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "russia-france-bans-france24",
+      "second": "poland-nationalist-march-aljazeera",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "russia-france-bans-france24",
+      "second": "us-soldier-spying-arrest-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "russia-france-bans-france24",
+      "second": "us-soldier-spying-arrest-bbcUK",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "russia-france-bans-france24",
+      "second": "cyprus-soldier-charged-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "russia-france-bans-france24",
+      "second": "cyprus-soldier-charged-skyUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "russia-france-bans-france24",
+      "second": "congo-ebola-cases-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "russia-france-bans-france24",
+      "second": "poland-victims-march-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "russia-france-bans-france24",
+      "second": "bessent-iran-policy-analysis-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "russia-france-bans-france24",
+      "second": "nvidia-company-investigation-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "russia-france-bans-france24",
+      "second": "nvidia-company-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "russia-france-bans-france24",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "russia-france-bans-france24",
+      "second": "nvidia-fbi-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "russia-france-bans-france24",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "russia-france-bans-france24",
+      "second": "nvidia-share-price-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "russia-france-bans-france24",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "russia-france-bans-france24",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "russia-france-bans-france24",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "russia-france-bans-france24",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-bbcWorld",
+      "second": "hegseth-impeachment-blocked-france24",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-bbcWorld",
+      "second": "poland-nationalist-march-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-bbcWorld",
+      "second": "poland-nationalist-march-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-bbcWorld",
+      "second": "us-soldier-spying-arrest-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-bbcWorld",
+      "second": "cyprus-soldier-charged-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-bbcWorld",
+      "second": "cyprus-soldier-charged-skyUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-bbcWorld",
+      "second": "congo-ebola-cases-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-bbcWorld",
+      "second": "bessent-iran-policy-analysis-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-bbcWorld",
+      "second": "nvidia-company-investigation-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-bbcWorld",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-bbcWorld",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-bbcWorld",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-bbcWorld",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-bbcWorld",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-bbcWorld",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-france24",
+      "second": "poland-nationalist-march-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-france24",
+      "second": "us-soldier-spying-arrest-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-france24",
+      "second": "us-soldier-spying-arrest-bbcUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-france24",
+      "second": "cyprus-soldier-charged-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-france24",
+      "second": "cyprus-soldier-charged-skyUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-france24",
+      "second": "congo-ebola-cases-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-france24",
+      "second": "poland-victims-march-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-france24",
+      "second": "bessent-iran-policy-analysis-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-france24",
+      "second": "nvidia-company-investigation-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-france24",
+      "second": "nvidia-company-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-france24",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-france24",
+      "second": "nvidia-fbi-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-france24",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-france24",
+      "second": "nvidia-share-price-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-france24",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-france24",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-france24",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "hegseth-impeachment-blocked-france24",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "poland-nationalist-march-aljazeera",
+      "second": "poland-nationalist-march-france24",
+      "sameEvent": true,
+      "split": "development"
+    },
+    {
+      "first": "poland-nationalist-march-aljazeera",
+      "second": "us-soldier-spying-arrest-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "poland-nationalist-march-aljazeera",
+      "second": "us-soldier-spying-arrest-bbcUK",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "poland-nationalist-march-aljazeera",
+      "second": "cyprus-soldier-charged-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "poland-nationalist-march-aljazeera",
+      "second": "cyprus-soldier-charged-skyUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "poland-nationalist-march-aljazeera",
+      "second": "congo-ebola-cases-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "poland-nationalist-march-aljazeera",
+      "second": "poland-victims-march-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "poland-nationalist-march-aljazeera",
+      "second": "nvidia-company-investigation-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "poland-nationalist-march-aljazeera",
+      "second": "nvidia-company-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "poland-nationalist-march-aljazeera",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "poland-nationalist-march-aljazeera",
+      "second": "nvidia-fbi-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "poland-nationalist-march-aljazeera",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "poland-nationalist-march-aljazeera",
+      "second": "nvidia-share-price-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "poland-nationalist-march-aljazeera",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "poland-nationalist-march-aljazeera",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "poland-nationalist-march-aljazeera",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "poland-nationalist-march-aljazeera",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "poland-nationalist-march-aljazeera",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "poland-nationalist-march-france24",
+      "second": "us-soldier-spying-arrest-dwWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "poland-nationalist-march-france24",
+      "second": "us-soldier-spying-arrest-bbcUK",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "poland-nationalist-march-france24",
+      "second": "cyprus-soldier-charged-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "poland-nationalist-march-france24",
+      "second": "cyprus-soldier-charged-skyUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "poland-nationalist-march-france24",
+      "second": "congo-ebola-cases-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "poland-nationalist-march-france24",
+      "second": "poland-victims-march-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "poland-nationalist-march-france24",
+      "second": "bessent-iran-policy-analysis-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "poland-nationalist-march-france24",
+      "second": "nvidia-company-investigation-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "poland-nationalist-march-france24",
+      "second": "nvidia-company-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "poland-nationalist-march-france24",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "poland-nationalist-march-france24",
+      "second": "nvidia-fbi-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "poland-nationalist-march-france24",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "poland-nationalist-march-france24",
+      "second": "nvidia-share-price-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "poland-nationalist-march-france24",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "poland-nationalist-march-france24",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "poland-nationalist-march-france24",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "poland-nationalist-march-france24",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "us-soldier-spying-arrest-dwWorld",
+      "second": "us-soldier-spying-arrest-bbcUK",
+      "sameEvent": true,
+      "split": "development"
+    },
+    {
+      "first": "us-soldier-spying-arrest-dwWorld",
+      "second": "cyprus-soldier-charged-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "us-soldier-spying-arrest-dwWorld",
+      "second": "cyprus-soldier-charged-skyUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "us-soldier-spying-arrest-dwWorld",
+      "second": "congo-ebola-cases-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "us-soldier-spying-arrest-dwWorld",
+      "second": "poland-victims-march-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "us-soldier-spying-arrest-dwWorld",
+      "second": "bessent-iran-policy-analysis-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "us-soldier-spying-arrest-dwWorld",
+      "second": "nvidia-company-investigation-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "us-soldier-spying-arrest-dwWorld",
+      "second": "nvidia-company-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "us-soldier-spying-arrest-dwWorld",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "us-soldier-spying-arrest-dwWorld",
+      "second": "nvidia-fbi-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "us-soldier-spying-arrest-dwWorld",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "us-soldier-spying-arrest-dwWorld",
+      "second": "nvidia-share-price-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "us-soldier-spying-arrest-dwWorld",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "us-soldier-spying-arrest-dwWorld",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "us-soldier-spying-arrest-dwWorld",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "us-soldier-spying-arrest-dwWorld",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "us-soldier-spying-arrest-bbcUK",
+      "second": "cyprus-soldier-charged-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "us-soldier-spying-arrest-bbcUK",
+      "second": "cyprus-soldier-charged-skyUK",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "us-soldier-spying-arrest-bbcUK",
+      "second": "congo-ebola-cases-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "us-soldier-spying-arrest-bbcUK",
+      "second": "bessent-iran-policy-analysis-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "us-soldier-spying-arrest-bbcUK",
+      "second": "nvidia-company-investigation-guardianWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "us-soldier-spying-arrest-bbcUK",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "us-soldier-spying-arrest-bbcUK",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "us-soldier-spying-arrest-bbcUK",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "us-soldier-spying-arrest-bbcUK",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "us-soldier-spying-arrest-bbcUK",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "us-soldier-spying-arrest-bbcUK",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "cyprus-soldier-charged-guardianWorld",
+      "second": "cyprus-soldier-charged-skyUK",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "cyprus-soldier-charged-guardianWorld",
+      "second": "congo-ebola-cases-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "cyprus-soldier-charged-guardianWorld",
+      "second": "poland-victims-march-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "cyprus-soldier-charged-guardianWorld",
+      "second": "bessent-iran-policy-analysis-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "cyprus-soldier-charged-guardianWorld",
+      "second": "nvidia-company-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "cyprus-soldier-charged-guardianWorld",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "cyprus-soldier-charged-guardianWorld",
+      "second": "nvidia-fbi-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "cyprus-soldier-charged-guardianWorld",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "cyprus-soldier-charged-guardianWorld",
+      "second": "nvidia-share-price-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "cyprus-soldier-charged-guardianWorld",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "cyprus-soldier-charged-guardianWorld",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "cyprus-soldier-charged-guardianWorld",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "cyprus-soldier-charged-guardianWorld",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "cyprus-soldier-charged-guardianWorld",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "cyprus-soldier-charged-skyUK",
+      "second": "congo-ebola-cases-nprWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "cyprus-soldier-charged-skyUK",
+      "second": "poland-victims-march-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "cyprus-soldier-charged-skyUK",
+      "second": "bessent-iran-policy-analysis-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "cyprus-soldier-charged-skyUK",
+      "second": "nvidia-company-investigation-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "cyprus-soldier-charged-skyUK",
+      "second": "nvidia-company-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "cyprus-soldier-charged-skyUK",
+      "second": "nvidia-fbi-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "cyprus-soldier-charged-skyUK",
+      "second": "nvidia-share-price-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "cyprus-soldier-charged-skyUK",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "cyprus-soldier-charged-skyUK",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "cyprus-soldier-charged-skyUK",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "congo-ebola-cases-nprWorld",
+      "second": "poland-victims-march-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "congo-ebola-cases-nprWorld",
+      "second": "bessent-iran-policy-analysis-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "congo-ebola-cases-nprWorld",
+      "second": "nvidia-company-investigation-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "congo-ebola-cases-nprWorld",
+      "second": "nvidia-company-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "congo-ebola-cases-nprWorld",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "congo-ebola-cases-nprWorld",
+      "second": "nvidia-fbi-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "congo-ebola-cases-nprWorld",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "congo-ebola-cases-nprWorld",
+      "second": "nvidia-share-price-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "congo-ebola-cases-nprWorld",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "congo-ebola-cases-nprWorld",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "congo-ebola-cases-nprWorld",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "congo-ebola-cases-nprWorld",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "congo-ebola-cases-nprWorld",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "poland-victims-march-bbcWorld",
+      "second": "bessent-iran-policy-analysis-aljazeera",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "poland-victims-march-bbcWorld",
+      "second": "nvidia-company-investigation-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "poland-victims-march-bbcWorld",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "poland-victims-march-bbcWorld",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "poland-victims-march-bbcWorld",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "poland-victims-march-bbcWorld",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "poland-victims-march-bbcWorld",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "poland-victims-march-bbcWorld",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bessent-iran-policy-analysis-aljazeera",
+      "second": "nvidia-company-investigation-guardianWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bessent-iran-policy-analysis-aljazeera",
+      "second": "nvidia-company-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bessent-iran-policy-analysis-aljazeera",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bessent-iran-policy-analysis-aljazeera",
+      "second": "nvidia-fbi-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bessent-iran-policy-analysis-aljazeera",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bessent-iran-policy-analysis-aljazeera",
+      "second": "nvidia-share-price-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bessent-iran-policy-analysis-aljazeera",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bessent-iran-policy-analysis-aljazeera",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bessent-iran-policy-analysis-aljazeera",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bessent-iran-policy-analysis-aljazeera",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bessent-iran-policy-analysis-aljazeera",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "nvidia-company-investigation-guardianWorld",
+      "second": "nvidia-company-investigation-bbcBusiness",
+      "sameEvent": true,
+      "split": "development"
+    },
+    {
+      "first": "nvidia-company-investigation-guardianWorld",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "nvidia-company-investigation-guardianWorld",
+      "second": "nvidia-fbi-investigation-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "nvidia-company-investigation-guardianWorld",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "nvidia-company-investigation-guardianWorld",
+      "second": "nvidia-share-price-bbcBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "nvidia-company-investigation-guardianWorld",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "nvidia-company-investigation-guardianWorld",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "nvidia-company-investigation-guardianWorld",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "nvidia-company-investigation-guardianWorld",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "nvidia-company-investigation-guardianWorld",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "nvidia-company-investigation-bbcBusiness",
+      "second": "nvidia-fbi-investigation-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "nvidia-company-investigation-bbcBusiness",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "nvidia-company-investigation-bbcBusiness",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "nvidia-company-investigation-bbcBusiness",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "nvidia-company-investigation-bbcBusiness",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "nvidia-company-investigation-bbcBusiness",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "nvidia-fbi-investigation-skyWorld",
+      "second": "nvidia-fbi-investigation-bbcBusiness",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "nvidia-fbi-investigation-skyWorld",
+      "second": "nvidia-share-price-bbcBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "nvidia-fbi-investigation-skyWorld",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "nvidia-fbi-investigation-skyWorld",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "nvidia-fbi-investigation-skyWorld",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "nvidia-fbi-investigation-bbcBusiness",
+      "second": "nvidia-share-price-skyBusiness",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "nvidia-fbi-investigation-bbcBusiness",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "nvidia-fbi-investigation-bbcBusiness",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "nvidia-fbi-investigation-bbcBusiness",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "nvidia-fbi-investigation-bbcBusiness",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "nvidia-share-price-skyBusiness",
+      "second": "nvidia-share-price-bbcBusiness",
+      "sameEvent": true,
+      "split": "development"
+    },
+    {
+      "first": "nvidia-share-price-skyBusiness",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "nvidia-share-price-skyBusiness",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "nvidia-share-price-skyBusiness",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "nvidia-share-price-bbcBusiness",
+      "second": "cyberattack-iran-attribution-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "nvidia-share-price-bbcBusiness",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "nvidia-share-price-bbcBusiness",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "nvidia-share-price-bbcBusiness",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "cyberattack-iran-attribution-skyWorld",
+      "second": "cyberattack-diplomatic-response-dwWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "cyberattack-iran-attribution-skyWorld",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "cyberattack-iran-attribution-skyWorld",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "cyberattack-diplomatic-response-dwWorld",
+      "second": "france-cybersecurity-explainer-france24",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "cyberattack-diplomatic-response-dwWorld",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "cyberattack-diplomatic-response-dwWorld",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "france-cybersecurity-explainer-france24",
+      "second": "child-found-alive-bbcWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "france-cybersecurity-explainer-france24",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    },
+    {
+      "first": "child-found-alive-bbcWorld",
+      "second": "bulgaria-road-crash-skyWorld",
+      "sameEvent": false,
+      "split": "development"
+    }
+  ],
+  "acceptance": {
+    "minimumRecall": 0.75,
+    "minimumHoldoutRecall": 0.7
+  },
+  "evaluationHistory": "The event-level reserved split was first inspected after general action/context changes. Its errors were then used to add commemoration distinctions and separate headline/lead embedding comparisons. Final reserved-split results are regression results, not a second untouched holdout."
+}

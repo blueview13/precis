@@ -1,0 +1,264 @@
+{
+  "date": "2026-11-11",
+  "model": "Apple Foundation Models / SystemLanguageModel.default",
+  "runs": [
+    {
+      "name": "initial",
+      "complete": true,
+      "results": [
+        {
+          "first": "pochettino-bbc",
+          "second": "pochettino-sky",
+          "expected": true,
+          "matched": true,
+          "path": "model",
+          "error": ""
+        },
+        {
+          "first": "raducanu-bbc",
+          "second": "raducanu-sky",
+          "expected": true,
+          "matched": true,
+          "path": "model",
+          "error": ""
+        },
+        {
+          "first": "japan-bbc",
+          "second": "japan-sky",
+          "expected": true,
+          "matched": false,
+          "path": "model",
+          "error": ""
+        },
+        {
+          "first": "obrien-bbc",
+          "second": "obrien-sky",
+          "expected": true,
+          "matched": false,
+          "path": "model",
+          "error": ""
+        },
+        {
+          "first": "ashes-bbc",
+          "second": "ashes-sky",
+          "expected": true,
+          "matched": false,
+          "path": "failed",
+          "error": "Response may contain sensitive or unsafe content"
+        },
+        {
+          "first": "bethell-bbc",
+          "second": "bethell-sky",
+          "expected": true,
+          "matched": false,
+          "path": "model",
+          "error": ""
+        },
+        {
+          "first": "league-bbc",
+          "second": "league-sky",
+          "expected": true,
+          "matched": true,
+          "path": "model",
+          "error": ""
+        },
+        {
+          "first": "brand-bbc",
+          "second": "brand-sky",
+          "expected": true,
+          "matched": true,
+          "path": "model",
+          "error": ""
+        },
+        {
+          "first": "schools-bbc",
+          "second": "schools-sky",
+          "expected": true,
+          "matched": false,
+          "path": "failed",
+          "error": "Response may contain sensitive or unsafe content"
+        },
+        {
+          "first": "ashes-bbc",
+          "second": "bethell-sky",
+          "expected": false,
+          "matched": false,
+          "path": "candidateRejected",
+          "error": ""
+        },
+        {
+          "first": "bethell-bbc",
+          "second": "ashes-sky",
+          "expected": false,
+          "matched": false,
+          "path": "candidateRejected",
+          "error": ""
+        },
+        {
+          "first": "england-result-bbc",
+          "second": "japan-sky",
+          "expected": false,
+          "matched": false,
+          "path": "candidateRejected",
+          "error": ""
+        },
+        {
+          "first": "pochettino-sky",
+          "second": "robinson-bbc",
+          "expected": false,
+          "matched": false,
+          "path": "candidateRejected",
+          "error": ""
+        },
+        {
+          "first": "pochettino-sky",
+          "second": "united-defence-bbc",
+          "expected": false,
+          "matched": false,
+          "path": "candidateRejected",
+          "error": ""
+        },
+        {
+          "first": "king-sky",
+          "second": "pochettino-bbc",
+          "expected": false,
+          "matched": false,
+          "path": "candidateRejected",
+          "error": ""
+        },
+        {
+          "first": "kane-sky",
+          "second": "pochettino-bbc",
+          "expected": false,
+          "matched": false,
+          "path": "candidateRejected",
+          "error": ""
+        },
+        {
+          "first": "league-sky",
+          "second": "japan-bbc",
+          "expected": false,
+          "matched": false,
+          "path": "candidateRejected",
+          "error": ""
+        },
+        {
+          "first": "brand-sky",
+          "second": "walliams-bbc",
+          "expected": false,
+          "matched": false,
+          "path": "candidateRejected",
+          "error": ""
+        },
+        {
+          "first": "schools-bbc",
+          "second": "poundland-sky",
+          "expected": false,
+          "matched": false,
+          "path": "candidateRejected",
+          "error": ""
+        },
+        {
+          "first": "city-bbc",
+          "second": "pochettino-sky",
+          "expected": false,
+          "matched": false,
+          "path": "candidateRejected",
+          "error": ""
+        },
+        {
+          "first": "city-result-bbc",
+          "second": "pochettino-sky",
+          "expected": false,
+          "matched": false,
+          "path": "candidateRejected",
+          "error": ""
+        }
+      ]
+    },
+    {
+      "name": "repeat",
+      "complete": false,
+      "results": [
+        {
+          "first": "pochettino-bbc",
+          "second": "pochettino-sky",
+          "expected": true,
+          "matched": false,
+          "path": "model",
+          "error": ""
+        },
+        {
+          "first": "raducanu-bbc",
+          "second": "raducanu-sky",
+          "expected": true,
+          "matched": true,
+          "path": "model",
+          "error": ""
+        },
+        {
+          "first": "japan-bbc",
+          "second": "japan-sky",
+          "expected": true,
+          "matched": false,
+          "path": "model",
+          "error": ""
+        },
+        {
+          "first": "obrien-bbc",
+          "second": "obrien-sky",
+          "expected": true,
+          "matched": true,
+          "path": "model",
+          "error": ""
+        },
+        {
+          "first": "ashes-bbc",
+          "second": "ashes-sky",
+          "expected": true,
+          "matched": true,
+          "path": "model",
+          "error": ""
+        },
+        {
+          "first": "bethell-bbc",
+          "second": "bethell-sky",
+          "expected": true,
+          "matched": false,
+          "path": "model",
+          "error": ""
+        },
+        {
+          "first": "league-bbc",
+          "second": "league-sky",
+          "expected": true,
+          "matched": true,
+          "path": "model",
+          "error": ""
+        }
+      ]
+    },
+    {
+      "name": "hard-negatives",
+      "complete": true,
+      "results": [
+        {
+          "first": "england-result-bbc",
+          "second": "bethell-sky",
+          "expected": false,
+          "matched": true,
+          "path": "model",
+          "error": ""
+        },
+        {
+          "first": "england-result-bbc",
+          "second": "england-analysis-sky",
+          "expected": false,
+          "matched": false,
+          "path": "model",
+          "error": ""
+        }
+      ]
+    }
+  ]
+}

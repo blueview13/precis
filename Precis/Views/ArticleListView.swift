@@ -509,7 +509,7 @@ private struct ArticleListRow: View, Equatable {
             }
         }
         .padding(PrecisSpacing.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: isGrid ? .infinity : nil, alignment: .topLeading)
         .padding(.horizontal, PrecisSpacing.xs)
         // The whole row is tappable, so ONE press anywhere on it selects the
         // article and (via the view model) marks it read.
