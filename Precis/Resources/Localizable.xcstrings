@@ -2412,6 +2412,9 @@
         }
       }
     },
+    "Attempts to accept common cookie banners in Precis’s in-app browser. Some sites may still require a choice." : {
+
+    },
     "Auto-generate summaries on open" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5475,6 +5478,9 @@
         }
       }
     },
+    "Grid" : {
+
+    },
     "Group matching stories among the 800 newest articles into expandable rows." : {
       "localizations" : {
         "ar" : {
@@ -6106,6 +6112,9 @@
           }
         }
       }
+    },
+    "List" : {
+
     },
     "Loading full article…" : {
       "localizations" : {
@@ -8052,6 +8061,9 @@
           }
         }
       }
+    },
+    "Precis In-App Browser" : {
+
     },
     "Precis Newspaper PDF" : {
       "localizations" : {

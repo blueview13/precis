@@ -27,6 +27,7 @@ struct ArticleListView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage("showThumbnails") private var showThumbnails: Bool = true
+    @AppStorage("articleListLayout") private var articleListLayout = "list"
     @FocusState private var isSearchFieldFocused: Bool
     @State private var isCreatingNewspaper = false
     /// Non-optional so progress updates just re-render the open modal:
@@ -40,6 +41,49 @@ struct ArticleListView: View {
     // republishes `sortPreference`, so the list re-sorts the moment Settings
     // changes it.
     @AppStorage("defaultSortOrder") private var defaultSortOrder: String = "newest"
+
+    @ViewBuilder
+    private func articleEntry(_ item: ArticleListItem, isGrid: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ArticleListRow(
+                item: item,
+                isSelected: viewModel.selectedItemID == item.id,
+                showThumbnails: showThumbnails,
+                onSelect: { viewModel.select(item, context: modelContext) },
+                onToggleStar: { viewModel.toggleStarred(item, context: modelContext) },
+                isStoryExpanded: expandedStoryIDs.contains(item.id),
+                onToggleStoryExpansion: {
+                    if expandedStoryIDs.contains(item.id) { expandedStoryIDs.remove(item.id) }
+                    else { expandedStoryIDs.insert(item.id) }
+                },
+                showsThumbnailAbove: isGrid || isColumnLayout,
+                isGrid: isGrid
+            )
+            if expandedStoryIDs.contains(item.id) {
+                ForEach(item.storyMembers) { member in
+                    Button {
+                        if let article = viewModel.items.first(where: { $0.id == member.id }) {
+                            viewModel.select(article, context: modelContext)
+                        }
+                    } label: {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(member.title)
+                                .font(PrecisTypography.body)
+                                .lineLimit(2)
+                            Text(FeedDiscoveryService.conciseTitle(member.feedTitle))
+                                .font(PrecisTypography.metadata)
+                                .foregroundStyle(PrecisDesignSystem.marginalia)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.leading, PrecisSpacing.lg)
+                        .padding(.vertical, PrecisSpacing.xs)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .id(item.id)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -205,8 +249,9 @@ struct ArticleListView: View {
             .padding(.leading, isColumnLayout ? PrecisSpacing.sm : 0)
             .padding(.vertical, PrecisSpacing.md)
 
+            GeometryReader { geometry in
             ScrollViewReader { proxy in
-                ScrollView {
+                ScrollView(articleListLayout == "grid" ? [.vertical, .horizontal] : .vertical) {
                     if viewModel.filteredItems.isEmpty {
                         // No more blank pane — explain why the list is empty
                         // (e.g. Unread filter right after "Mark All Read").
@@ -223,51 +268,21 @@ struct ArticleListView: View {
                         .padding(.top, 64)
                         .padding(.horizontal, PrecisSpacing.md)
                     } else {
-                        // Lazy: a full-window layout pass (first context-menu open
-                        // triggers one) must only measure visible rows — the eager
-                        // VStack measured every article and stalled the main thread.
-                        LazyVStack(alignment: .leading, spacing: PrecisSpacing.sm * 0.7) {
-                            ForEach(viewModel.filteredItems) { item in
-                                VStack(alignment: .leading, spacing: 0) {
-                                    ArticleListRow(
-                                        item: item,
-                                        isSelected: viewModel.selectedItemID == item.id,
-                                        showThumbnails: showThumbnails,
-                                        onSelect: { viewModel.select(item, context: modelContext) },
-                                        onToggleStar: { viewModel.toggleStarred(item, context: modelContext) },
-                                        isStoryExpanded: expandedStoryIDs.contains(item.id),
-                                        onToggleStoryExpansion: {
-                                            if expandedStoryIDs.contains(item.id) { expandedStoryIDs.remove(item.id) }
-                                            else { expandedStoryIDs.insert(item.id) }
-                                        },
-                                        showsThumbnailAbove: isColumnLayout
-                                    )
-                                    if !item.storyMembers.isEmpty {
-                                        if expandedStoryIDs.contains(item.id) {
-                                            ForEach(item.storyMembers) { member in
-                                                Button {
-                                                    if let article = viewModel.items.first(where: { $0.id == member.id }) {
-                                                        viewModel.select(article, context: modelContext)
-                                                    }
-                                                } label: {
-                                                    VStack(alignment: .leading, spacing: 3) {
-                                                        Text(member.title)
-                                                            .font(PrecisTypography.body)
-                                                            .lineLimit(2)
-                                                        Text(FeedDiscoveryService.conciseTitle(member.feedTitle))
-                                                            .font(PrecisTypography.metadata)
-                                                            .foregroundStyle(PrecisDesignSystem.marginalia)
-                                                    }
-                                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                                    .padding(.leading, PrecisSpacing.lg)
-                                                    .padding(.vertical, PrecisSpacing.xs)
-                                                }
-                                                .buttonStyle(.plain)
-                                            }
-                                        }
-                                    }
+                        if articleListLayout == "grid" {
+                            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: PrecisSpacing.sm), count: 3), alignment: .leading, spacing: PrecisSpacing.sm) {
+                                ForEach(viewModel.filteredItems) { item in
+                                    articleEntry(item, isGrid: true)
                                 }
-                                .id(item.id)
+                            }
+                            .padding(.horizontal, PrecisSpacing.xs)
+                            // Keep three readable cards even when headlines are
+                            // displayed in the narrow pane beside the article.
+                            .frame(width: max(750, geometry.size.width))
+                        } else {
+                            LazyVStack(alignment: .leading, spacing: PrecisSpacing.sm * 0.7) {
+                                ForEach(viewModel.filteredItems) { item in
+                                    articleEntry(item, isGrid: false)
+                                }
                             }
                         }
                     }
@@ -284,6 +299,7 @@ struct ArticleListView: View {
                         proxy.scrollTo(selectedID, anchor: .center)
                     }
                 }
+            }
             }
         }
         .background(PrecisDesignSystem.background(for: colorScheme))
@@ -457,6 +473,7 @@ private struct ArticleListRow: View, Equatable {
     /// summary at the full column width. The stacked layout keeps the
     /// side-by-side row (thumbnail left of the text) — unchanged.
     var showsThumbnailAbove: Bool = false
+    var isGrid: Bool = false
 
     /// Compared on the parameters the body reads, never on the closures: a
     /// width-only change (a live resize tick) leaves every one of these alone,
@@ -471,14 +488,10 @@ private struct ArticleListRow: View, Equatable {
             && lhs.showThumbnails == rhs.showThumbnails
             && lhs.isStoryExpanded == rhs.isStoryExpanded
             && lhs.showsThumbnailAbove == rhs.showsThumbnailAbove
+            && lhs.isGrid == rhs.isGrid
     }
 
     var body: some View {
-        // TEMPORARY live-resize diagnostic: prints which property invalidated
-        // this row. Run once to see whether a width-only drag re-runs row
-        // bodies, then DELETE this line — it logs on every render, which would
-        // distort the Instruments numbers it is meant to explain.
-        let _ = Self._printChanges()
         Group {
             if showsThumbnailAbove {
                 // Card-style row: full-width banner over the headline and
@@ -524,6 +537,9 @@ private struct ArticleListRow: View, Equatable {
                     // no unread dot, source, reading time or age crowding the
                     // headline. The headline owns the full first line and only
                     // wraps to a second line once that line is full.
+                    if isGrid && !item.isRead {
+                        Circle().frame(width: 8, height: 8).foregroundStyle(Color.accentColor)
+                    }
                     Text(item.title)
                         .font(PrecisTypography.headline)
                         .foregroundStyle(item.isRead ? Color.gray : PrecisDesignSystem.foreground(for: colorScheme))
@@ -569,6 +585,22 @@ private struct ArticleListRow: View, Equatable {
 
                     starButton
                 }
+            }
+
+            if isGrid {
+                HStack(spacing: 5) {
+                    Text(FeedDiscoveryService.conciseTitle(item.feedTitle))
+                        .lineLimit(1)
+                    if showReadingTime {
+                        Text("•")
+                        Text("\(item.readingTimeMinutes) min read")
+                            .lineLimit(1)
+                    }
+                    Spacer(minLength: 0)
+                    Text(publishedAgo(item.publishedDate))
+                }
+                .font(PrecisTypography.metadata)
+                .foregroundStyle(PrecisDesignSystem.marginalia)
             }
 
             if !item.storyMembers.isEmpty {

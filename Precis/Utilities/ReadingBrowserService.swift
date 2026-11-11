@@ -74,6 +74,9 @@ private final class PrecisBrowserWindowController: NSObject, NSWindowDelegate {
             backing: .buffered,
             defer: false
         )
+        // The controller retains each window until windowWillClose. AppKit's
+        // automatic release on close must be disabled when ARC owns it.
+        window.isReleasedWhenClosed = false
         window.title = url.host ?? "Precis Browser"
         window.delegate = self
         window.contentViewController = NSHostingController(rootView: BrowserView(url: url))

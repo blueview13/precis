@@ -40,28 +40,72 @@ enum NewspaperArticleSelection {
             .sorted { $0.publishedDate > $1.publishedDate }
     }
 
-    /// Visible characters a story must carry to be eligible as the featured
-    /// lead — stricter than the 200-char floor for appearing in the edition.
+    /// Coverage uses all recent scoped articles, including ones that cannot be
+    /// printed, while the selected lead must itself meet the print requirements.
+    struct CoverageArticle {
+        let id: UUID
+        let feedID: UUID
+        let title: String
+        let url: URL?
+        let publishedDate: Date
+        let isStarred: Bool
+    }
+
     static let featuredMinimumTextLength = 500
 
-    /// Index of the story to feature on the cover. Every included story
-    /// already has a photo, so among those clearing the featured text bar we
-    /// prefer starred, then longer text, then newest. When nothing clears the
-    /// bar, fall back to the newest story so the cover always gets a lead.
-    static func featuredIndex(in stories: [NewspaperPDFService.PreparedStory]) -> Int? {
-        guard !stories.isEmpty else { return nil }
-        let eligible = stories.indices.filter { stories[$0].visibleTextLength > featuredMinimumTextLength }
-        guard !eligible.isEmpty else {
-            return stories.indices.max { stories[$0].publishedDate < stories[$1].publishedDate }
+    static func featuredIndex(in stories: [NewspaperPDFService.PreparedStory], coverage: [CoverageArticle], now: Date) -> Int? {
+        let eligible = stories.indices.filter { stories[$0].visibleTextLength >= featuredMinimumTextLength }
+        guard !eligible.isEmpty else { return nil }
+
+        var parents = Array(coverage.indices)
+        func root(_ index: Int) -> Int {
+            var current = index
+            while parents[current] != current { current = parents[current] }
+            return current
         }
+        let terms = coverage.map { StoryMatching.storyTerms($0.title) }
+        let hashes = coverage.map { DeduplicationPipeline.titleHash($0.title) }
+        let urls = coverage.map { $0.url.map(DeduplicationPipeline.canonicalURL) }
+        for i in coverage.indices {
+            for j in coverage.indices where j < i {
+                let sameURL = urls[i] != nil && urls[i] == urls[j]
+                let sameTitle = !hashes[i].isEmpty && hashes[i] == hashes[j]
+                let related = coverage[i].feedID != coverage[j].feedID && StoryMatching.sharesSameStory(terms[i], terms[j])
+                if sameURL || sameTitle || related {
+                    let a = root(i), b = root(j)
+                    if a != b { parents[b] = a }
+                }
+            }
+        }
+        var groups: [Int: [Int]] = [:]
+        for i in coverage.indices { groups[root(i), default: []].append(i) }
+        let coverageIndexByID = Dictionary(uniqueKeysWithValues: coverage.enumerated().map { ($0.element.id, $0.offset) })
+
+        func score(_ indices: [Int]) -> Double {
+            let feeds = Set(indices.map { coverage[$0].feedID }).count
+            let newest = indices.map { coverage[$0].publishedDate }.max() ?? .distantPast
+            let ageHours = max(0, now.timeIntervalSince(newest) / 3600)
+            let recency = exp(-ageHours / 6)
+            let starred = indices.contains { coverage[$0].isStarred } ? 0.35 : 0
+            return 2 * log2(Double(max(1, feeds))) + recency + starred
+        }
+        // Pick the best qualifying article from each ranked story. Text length
+        // chooses the representative, not the importance of the story itself.
         return eligible.max { lhs, rhs in
-            let a = stories[lhs]
-            let b = stories[rhs]
-            if a.isStarred != b.isStarred { return !a.isStarred }
+            func group(for story: NewspaperPDFService.PreparedStory) -> [Int] {
+                guard let index = coverageIndexByID[story.id] else { return [] }
+                return groups[root(index)] ?? [index]
+            }
+            let a = stories[lhs], b = stories[rhs]
+            let aGroup = group(for: a), bGroup = group(for: b)
+            let aScore = score(aGroup), bScore = score(bGroup)
+            if aScore != bScore { return aScore < bScore }
             if a.visibleTextLength != b.visibleTextLength { return a.visibleTextLength < b.visibleTextLength }
-            return a.publishedDate < b.publishedDate
+            if a.publishedDate != b.publishedDate { return a.publishedDate < b.publishedDate }
+            return a.id.uuidString > b.id.uuidString
         }
     }
+
 }
 
 struct NewspaperEdition {
@@ -124,6 +168,7 @@ final class NewspaperPDFService {
     enum EditionError: LocalizedError {
         case noRecentArticles
         case noEligibleArticles(fullText: Int, image: Int)
+        case noEligibleLead
         case saveFailed
 
         var errorDescription: String? {
@@ -132,6 +177,8 @@ final class NewspaperPDFService {
                 return "There are no articles in this feed or category from the last 24 hours."
             case .noEligibleArticles(let fullText, let image):
                 return "No articles had both full text and a usable image. Skipped \(fullText) because full text was unavailable and \(image) because an image was unavailable."
+            case .noEligibleLead:
+                return "No article has the 500 characters of full text required for the lead story. Try another feed or category."
             case .saveFailed:
                 return "The newspaper PDF could not be written to the selected location."
             }
@@ -262,10 +309,17 @@ final class NewspaperPDFService {
         guard !included.isEmpty else {
             throw EditionError.noEligibleArticles(fullText: fullTextExclusions, image: imageExclusions)
         }
-        if let featured = NewspaperArticleSelection.featuredIndex(in: included) {
-            let lead = included.remove(at: featured)
-            included.insert(lead, at: 0)
+        let coverage = candidates.map {
+            NewspaperArticleSelection.CoverageArticle(
+                id: $0.id, feedID: $0.feedID, title: $0.title, url: $0.articleURL,
+                publishedDate: $0.publishedDate, isStarred: $0.isStarred
+            )
         }
+        guard let featured = NewspaperArticleSelection.featuredIndex(in: included, coverage: coverage, now: now) else {
+            throw EditionError.noEligibleLead
+        }
+        let lead = included.remove(at: featured)
+        included.insert(lead, at: 0)
 
         // The draw pass reports its own progress and yields between stories so
         // the modal's bar keeps advancing while pages are laid out.

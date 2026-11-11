@@ -430,48 +430,57 @@ final class NewspaperPDFServiceTests: XCTestCase {
         XCTAssertEqual(lockup.wordOrigin.y, 674, accuracy: 0.001)
     }
 
-    func testFeaturedSelectionPrefersStarredStoryOverNewerOne() {
+    func testFeaturedSelectionRewardsDistinctSourceCoverage() {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
-        let stories = [
-            featuredStory(title: "Newest", published: now, textLength: 700),
-            featuredStory(title: "Starred", published: now.addingTimeInterval(-3_600), starred: true, textLength: 600)
-        ]
-
-        XCTAssertEqual(NewspaperArticleSelection.featuredIndex(in: stories), 1)
+        let lead = featuredStory(title: "Space mission reaches Jupiter", published: now.addingTimeInterval(-3_600), textLength: 500)
+        let single = featuredStory(title: "Local festival opens today", published: now, starred: true, textLength: 2_000)
+        let coverage = [coverageArticle(lead), coverageArticle(single),
+                        coverageArticle(title: "Space mission reaches Jupiter", published: now)]
+        XCTAssertEqual(NewspaperArticleSelection.featuredIndex(in: [lead, single], coverage: coverage, now: now), 0)
     }
 
-    func testFeaturedSelectionPrefersLongerStoryWhenNoneAreStarred() {
+    func testRepeatedArticlesFromSameFeedDoNotInflateCoverage() {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
-        let stories = [
-            featuredStory(title: "Shorter", published: now, textLength: 600),
-            featuredStory(title: "Longer", published: now.addingTimeInterval(-3_600), textLength: 1_800)
-        ]
-
-        XCTAssertEqual(NewspaperArticleSelection.featuredIndex(in: stories), 1)
+        let older = featuredStory(title: "Space mission reaches Jupiter", published: now.addingTimeInterval(-12_000))
+        let newer = featuredStory(title: "Local festival opens today", published: now)
+        let feed = UUID()
+        let coverage = [coverageArticle(older, feedID: feed), coverageArticle(newer),
+                        coverageArticle(title: older.title, published: now.addingTimeInterval(-12_000), feedID: feed)]
+        XCTAssertEqual(NewspaperArticleSelection.featuredIndex(in: [older, newer], coverage: coverage, now: now), 1)
     }
 
-    func testFeaturedSelectionRequiresMoreThanFiveHundredVisibleCharacters() {
+    func testSimilarHeadlinesCountAsCoverageEvenWhenOnlyOneArticleCanPrint() {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
-        let stories = [
-            featuredStory(title: "At threshold", published: now, textLength: 500),
-            featuredStory(title: "Above threshold", published: now.addingTimeInterval(-3_600), textLength: 501)
-        ]
-
-        XCTAssertEqual(NewspaperArticleSelection.featuredIndex(in: stories), 1)
+        let lead = featuredStory(title: "Jupiter spacecraft captures images of Earth", published: now.addingTimeInterval(-3_600))
+        let other = featuredStory(title: "Local festival opens today", published: now)
+        let coverage = [coverageArticle(lead), coverageArticle(other),
+                        coverageArticle(title: "Jupiter spacecraft captures new images of Earth", published: now)]
+        XCTAssertEqual(NewspaperArticleSelection.featuredIndex(in: [lead, other], coverage: coverage, now: now), 0)
     }
 
-    func testFeaturedSelectionFallsBackToNewestWhenNothingClearsTheBar() {
+    func testFeaturedSelectionRequiresAtLeastFiveHundredCharacters() {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
-        let stories = [
-            featuredStory(title: "Older and longer", published: now.addingTimeInterval(-3_600), starred: true, textLength: 450),
-            featuredStory(title: "Newer and shorter", published: now, textLength: 210)
-        ]
-
-        XCTAssertEqual(NewspaperArticleSelection.featuredIndex(in: stories), 1)
+        let short = featuredStory(title: "Short", published: now, textLength: 499)
+        let minimum = featuredStory(title: "Minimum", published: now, textLength: 500)
+        XCTAssertEqual(NewspaperArticleSelection.featuredIndex(in: [short, minimum], coverage: [coverageArticle(short), coverageArticle(minimum)], now: now), 1)
+        XCTAssertNil(NewspaperArticleSelection.featuredIndex(in: [short], coverage: [coverageArticle(short)], now: now))
     }
 
-    func testFeaturedSelectionReturnsNilWithoutStories() {
-        XCTAssertNil(NewspaperArticleSelection.featuredIndex(in: []))
+    func testFeaturedSelectionUsesStarAsModestBoostAndLengthWithinStory() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let plain = featuredStory(title: "Local festival opens today", published: now)
+        let starred = featuredStory(title: "Space mission reaches Jupiter", published: now.addingTimeInterval(-1_000), starred: true)
+        XCTAssertEqual(NewspaperArticleSelection.featuredIndex(in: [plain, starred], coverage: [coverageArticle(plain), coverageArticle(starred)], now: now), 1)
+        let longer = featuredStory(title: starred.title, published: now, textLength: 1200)
+        XCTAssertEqual(NewspaperArticleSelection.featuredIndex(in: [starred, longer], coverage: [coverageArticle(starred), coverageArticle(longer)], now: now), 1)
+    }
+
+    private func coverageArticle(_ story: NewspaperPDFService.PreparedStory, feedID: UUID = UUID()) -> NewspaperArticleSelection.CoverageArticle {
+        .init(id: story.id, feedID: feedID, title: story.title, url: nil, publishedDate: story.publishedDate, isStarred: story.isStarred)
+    }
+
+    private func coverageArticle(title: String, published: Date, feedID: UUID = UUID()) -> NewspaperArticleSelection.CoverageArticle {
+        .init(id: UUID(), feedID: feedID, title: title, url: nil, publishedDate: published, isStarred: false)
     }
 
     /// The band owns the top 30% of the cover across the left and middle

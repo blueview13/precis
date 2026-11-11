@@ -264,7 +264,7 @@ public final class ArticleListViewModel: ObservableObject {
             let dated = sorted.indices.filter { sorted[$0].publishedDate != nil }.sorted {
                 (sorted[$0].publishedDate ?? .distantPast) > (sorted[$1].publishedDate ?? .distantPast)
             }.prefix(800)
-            let termsByIndex = Dictionary(uniqueKeysWithValues: dated.map { ($0, storyTerms(sorted[$0].title)) })
+            let termsByIndex = Dictionary(uniqueKeysWithValues: dated.map { ($0, StoryMatching.storyTerms(sorted[$0].title)) })
             var unknownCandidates: [(first: Int, second: Int, key: String, overlap: Int)] = []
             for offset in dated.indices {
                 let firstIndex = dated[offset]
@@ -292,7 +292,7 @@ public final class ArticleListViewModel: ObservableObject {
                     } else {
                         // The local title comparison is immediate while the
                         // on-device model reviews this candidate asynchronously.
-                        if sharesSameStory(firstTerms, secondTerms),
+                        if StoryMatching.sharesSameStory(firstTerms, secondTerms),
                            root(of: firstIndex) == firstIndex,
                            root(of: later) == later {
                             join(firstIndex, later)
@@ -352,22 +352,6 @@ public final class ArticleListViewModel: ObservableObject {
             result.append(primary)
         }
         return result
-    }
-
-    private func sharesSameStory(_ a: Set<String>, _ b: Set<String>) -> Bool {
-        guard a.count >= 3, b.count >= 3 else { return false }
-        let overlap = a.intersection(b).count
-        return overlap >= 2 && Double(overlap) / Double(min(a.count, b.count)) >= 0.65
-    }
-
-    private func storyTerms(_ text: String) -> Set<String> {
-        let ignored: Set<String> = [
-            "the", "and", "for", "with", "from", "that", "this", "after", "over", "into", "says", "said", "about", "how", "why", "what", "has", "have", "will", "are", "its",
-            "news", "update", "updates", "latest", "live", "breaking", "report", "reports", "today", "new", "announces", "announce", "announced",
-            "tour", "tours", "dates", "date", "shows", "show", "spring", "summer", "autumn", "fall", "winter", "european", "world", "leg", "legs", "2027"
-        ]
-        return Set(text.lowercased().split { !$0.isLetter && !$0.isNumber }
-            .map(String.init).filter { $0.count > 2 && !$0.allSatisfy(\.isNumber) && !ignored.contains($0) })
     }
 
     private func storyPairKey(_ first: UUID, _ second: UUID) -> String {
@@ -1304,6 +1288,26 @@ public final class ArticleListViewModel: ObservableObject {
                 items[index].isStarred.toggle()
             }
         }
+    }
+
+}
+
+// Shared local headline matching for the article list and newspaper.
+enum StoryMatching {
+    static func sharesSameStory(_ a: Set<String>, _ b: Set<String>) -> Bool {
+        guard a.count >= 3, b.count >= 3 else { return false }
+        let overlap = a.intersection(b).count
+        return overlap >= 2 && Double(overlap) / Double(min(a.count, b.count)) >= 0.65
+    }
+
+    static func storyTerms(_ text: String) -> Set<String> {
+        let ignored: Set<String> = [
+            "the", "and", "for", "with", "from", "that", "this", "after", "over", "into", "says", "said", "about", "how", "why", "what", "has", "have", "will", "are", "its",
+            "news", "update", "updates", "latest", "live", "breaking", "report", "reports", "today", "new", "announces", "announce", "announced",
+            "tour", "tours", "dates", "date", "shows", "show", "spring", "summer", "autumn", "fall", "winter", "european", "world", "leg", "legs", "2027"
+        ]
+        return Set(text.lowercased().split { !$0.isLetter && !$0.isNumber }
+            .map(String.init).filter { $0.count > 2 && !$0.allSatisfy(\.isNumber) && !ignored.contains($0) })
     }
 
 }

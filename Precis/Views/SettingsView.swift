@@ -148,6 +148,7 @@ struct SettingsView: View {
     @AppStorage("defaultSortOrder") private var defaultSortOrder: String = "newest"
     @AppStorage("showReadingTime") private var showReadingTime: Bool = true
     @AppStorage("showThumbnails") private var showThumbnails: Bool = true
+    @AppStorage("articleListLayout") private var articleListLayout = "list"
     @AppStorage("showArticleImages") private var showArticleImages: Bool = true
     @AppStorage("stackRelatedStories") private var stackRelatedStories: Bool = true
     @AppStorage("notifyOnNewArticles") private var notifyOnNewArticles = false
@@ -382,6 +383,12 @@ struct SettingsView: View {
 
                     settingsSection(title: "Article List") {
                         VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
+                            Picker("Article layout", selection: $articleListLayout) {
+                                Text("List").tag("list")
+                                Text("Grid").tag("grid")
+                            }
+                            .pickerStyle(.segmented)
+
                             Toggle("Stack related stories", isOn: $stackRelatedStories)
                                 .font(PrecisTypography.body)
                                 .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
