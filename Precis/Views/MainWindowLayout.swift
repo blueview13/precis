@@ -2144,15 +2144,6 @@ struct MainWindowLayout: View {
                             .buttonStyle(.plain)
                             .help(collapsedCategoryIDs.contains(category.id) ? "Expand category feeds" : "Collapse category feeds")
 
-                            if isCategorySelected {
-                                Capsule()
-                                    .frame(width: 4, height: 18)
-                                    .foregroundStyle(Color.accentColor)
-                            } else {
-                                Color.clear
-                                    .frame(width: 4, height: 18)
-                            }
-
                             Image(systemName: "square.grid.2x2")
                                 .font(.body)
                                 .frame(width: 18)
@@ -2331,7 +2322,7 @@ struct MainWindowLayout: View {
 
                 if isUncategorizedFeedsExpanded {
                     ForEach(uncategorizedFeeds) { feed in
-                        sidebarFeedRow(feed, group: uncategorizedFeeds)
+                        sidebarFeedRow(feed, indent: 32, group: uncategorizedFeeds)
                             .id("uncat-\(feed.id)-\(selectedFeedIDs.contains(feed.id))")
                     }
                 }

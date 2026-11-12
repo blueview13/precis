@@ -36,6 +36,29 @@ final class StoryClusterServiceTests: XCTestCase {
         XCTAssertEqual(afterDelete[b.id], first[b.id])
     }
 
+    func testPipelineUpgradePreservesMembershipsUntilSnapshotRefreshesEntries() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("clusters.json")
+        let a = article("Riverton approves a new library")
+        let original = StoryClusterService(storeURL: url, useAppleIntelligence: false, useSystemEmbeddings: false)
+        let before = await original.update([a])
+        var saved = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+        var entries = try XCTUnwrap(saved["entries"] as? [Any])
+        var entry = try XCTUnwrap(entries[1] as? [String: Any])
+        entry["pipelineVersion"] = "events-v6-apple-system-only"
+        entries[1] = entry
+        saved["entries"] = entries
+        saved["version"] = "events-v6-apple-system-only"
+        try JSONSerialization.data(withJSONObject: saved).write(to: url)
+
+        let upgraded = StoryClusterService(storeURL: url, useAppleIntelligence: false, useSystemEmbeddings: false)
+        let retained = await upgraded.memberships(for: [a.id])
+        XCTAssertEqual(retained[a.id], before[a.id])
+        let refreshed = await upgraded.update([a])
+        XCTAssertEqual(refreshed[a.id], before[a.id])
+    }
+
     func testBridgeDoesNotMergeIncompatibleEvents() async {
         let service = StoryClusterService(useSystemEmbeddings: false, encoder: { _ in [1,0] }, reviewer: { a,b in
             let incompatible = (a.contains("Alpha") && b.contains("Gamma")) || (a.contains("Gamma") && b.contains("Alpha"))
@@ -152,7 +175,7 @@ final class StoryClusterServiceTests: XCTestCase {
         XCTAssertEqual(result.count, 805)
     }
 
-    func testAppleReviewBudgetBoundsLargeBatches() async {
+    func testAppleReviewBudgetAllowsMoreCandidateReviews() async {
         actor Counter {
             var value = 0
             func increment() { value += 1 }
@@ -164,7 +187,20 @@ final class StoryClusterServiceTests: XCTestCase {
         })
         _ = await service.update((0..<20).map { article("Different report \($0)", days: Double($0) / 100) })
         let calls = await counter.value
-        XCTAssertEqual(calls, 12)
+        XCTAssertGreaterThan(calls, 12)
+        XCTAssertLessThanOrEqual(calls, 96)
+    }
+
+    func testGroundedAppleReviewCanBridgeLowSimilarityHeadlines() async {
+        let service = StoryClusterService(useSystemEmbeddings: false, encoder: { text in
+            text.contains("Riverton backs") ? [0.3, sqrt(0.91)] : [1, 0]
+        }, reviewer: { _,_ in
+            StoryReview(relation: .sameEvent, score: 1, provider: "apple", reason: "grounded-event-review")
+        })
+        let a = article("Riverton approves Oak Street community library", body: "The council voted to approve the library on Monday.")
+        let b = article("Riverton backs a new public reading room", body: "Councillors voted for the Oak Street library project on Monday.", days: 1)
+        let groups = await service.update([a,b])
+        XCTAssertEqual(groups[a.id], groups[b.id], "A source-grounded Apple review should recover a story that the narrow text gate misses")
     }
 
     @MainActor
@@ -211,6 +247,18 @@ final class StoryClusterServiceTests: XCTestCase {
         let negative = try await reviewer.review(a,c)
         XCTAssertEqual(positive?.relation, .sameEvent)
         XCTAssertNotEqual(negative?.relation, .sameEvent)
+    }
+
+    func testLiveAppleReviewCanCreateStackBelowLocalSimilarityThreshold() async throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["PRECIS_APPLE_STORY_TEST"] == "1", "Opt-in live model test")
+        try XCTSkipUnless(SystemLanguageModel.default.isAvailable, "Apple Intelligence is unavailable on this Mac")
+        let service = StoryClusterService(useSystemEmbeddings: false, encoder: { text in
+            text.contains("Riverton gives") ? [0.3, sqrt(0.91)] : [1, 0]
+        })
+        let a = article("Council approves new library", body: "On Monday Riverton council approved a new library on Oak Street.")
+        let b = article("Riverton gives Oak Street library green light", body: "Councillors voted on Monday to approve construction of a new library on Oak Street.", days: 1)
+        let groups = await service.update([a,b])
+        XCTAssertEqual(groups[a.id], groups[b.id], "Apple's grounded decision should stack paraphrases below the local semantic threshold")
     }
 }
 

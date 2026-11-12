@@ -50,7 +50,9 @@ struct AppleStoryEventReviewer: Sendable {
             options: GenerationOptions(sampling: .greedy)
         )
         let result = response.content
-        let grounded = !result.evidenceA.isEmpty && !result.evidenceB.isEmpty
+        let grounded = result.eventComparison.trimmingCharacters(in: .whitespacesAndNewlines).count >= 12
+            && result.evidenceA.split(whereSeparator: { !$0.isLetter && !$0.isNumber }).count >= 2
+            && result.evidenceB.split(whereSeparator: { !$0.isLetter && !$0.isNumber }).count >= 2
             && first.localizedCaseInsensitiveContains(result.evidenceA)
             && second.localizedCaseInsensitiveContains(result.evidenceB)
         return StoryReview(relation: result.relation == .sameEvent && !grounded ? .insufficientEvidence : result.relation,

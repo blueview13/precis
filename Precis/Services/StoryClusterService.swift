@@ -12,7 +12,7 @@ actor StoryClusterService {
     static var defaultStoreURL: URL {
         URL.applicationSupportDirectory.appendingPathComponent("Precis/StoryClusters-v1.json")
     }
-    static let pipelineVersion = "events-v6-apple-system-only"
+    static let pipelineVersion = "events-v7-apple-assisted"
     typealias Reviewer = @Sendable (String, String) async throws -> StoryReview?
     typealias Encoder = @Sendable (String) throws -> [Double]
 
@@ -55,7 +55,8 @@ actor StoryClusterService {
     private var loaded = false
     private var busy = false
     private var waiters: [CheckedContinuation<Void, Never>] = []
-    private var remainingAppleReviews = 12
+    private let appleReviewBudgetPerUpdate = 96
+    private var remainingAppleReviews = 96
     private var pairCache: [String: StoryReview] = [:]
     private(set) var lastPersistenceError: String?
     private(set) var lastModelError: String?
@@ -85,8 +86,10 @@ actor StoryClusterService {
         do {
             let saved = try JSONDecoder().decode(Store.self, from: Data(contentsOf: storeURL))
             store = saved
-            // Retire profiles and decisions produced by the removed bundled models.
-            store.entries = saved.entries.filter { $0.value.pipelineVersion == Self.pipelineVersion }
+            // Keep the old index intact while a current article snapshot is
+            // loaded. update(_:) refreshes entries as they appear in snapshots;
+            // dropping older entries here would erase memberships when startup
+            // initially supplies only a partial list.
             store.version = Self.pipelineVersion
         } catch { lastPersistenceError = "Could not read story index: \(error.localizedDescription)" }
     }
@@ -149,7 +152,7 @@ actor StoryClusterService {
             let a = $0.publishedDate ?? now, b = $1.publishedDate ?? now
             return a == b ? $0.id.uuidString < $1.id.uuidString : a < b
         }
-        remainingAppleReviews = 12
+        remainingAppleReviews = appleReviewBudgetPerUpdate
         var changed = false
         var affectedClusters: Set<UUID> = []
         for article in sorted {
@@ -278,19 +281,25 @@ actor StoryClusterService {
             let centralSimilarity = StoryPairFeatures.cosine(entry.profile.vector ?? [], centroid)
             let lexical = members.contains { entry.profile.title.intersection($0.profile.title).count >= 2 }
             let exact = members.contains { entry.url != nil && entry.url == $0.url }
-            guard best >= 0.40 || lexical || exact else { return nil }
+            // NaturalLanguage embeddings shortlist substantially more broadly;
+            // Apple Intelligence does the expensive same-event decision below.
+            guard best >= 0.25 || lexical || exact else { return nil }
             // Recent candidates rank ahead of equally similar older coverage; time is not event identity.
             let age = members.map { abs(($0.date ?? $0.receivedAt).timeIntervalSince(date)) }.min() ?? 0
             let entityAnchor = members.contains { !entry.profile.names.isDisjoint(with: $0.profile.names) }
             guard age <= 14 * 86400 || (best >= 0.82 && entityAnchor) || exact else { return nil }
             let allMembers = store.entries.values.filter { $0.id != entry.id && $0.clusterID == id }
             return (id, allMembers, 0.8 * best + 0.2 * centralSimilarity - min(0.12, age / (14 * 86400) * 0.12))
-        }.sorted { a, b in a.2 == b.2 ? a.0.uuidString < b.0.uuidString : a.2 > b.2 }.prefix(8).map { $0 }
+        }.sorted { a, b in a.2 == b.2 ? a.0.uuidString < b.0.uuidString : a.2 > b.2 }.prefix(12).map { $0 }
     }
 
     private func similarity(_ a: Entry, _ b: Entry) -> Double {
         guard a.encoderVersion == b.encoderVersion else { return 0 }
-        return StoryPairFeatures.cosine(a.profile.vector ?? [], b.profile.vector ?? [])
+        return [
+            StoryPairFeatures.cosine(a.profile.vector ?? [], b.profile.vector ?? []),
+            StoryPairFeatures.cosine(a.profile.headlineVector ?? [], b.profile.headlineVector ?? []),
+            StoryPairFeatures.cosine(a.profile.openingVector ?? [], b.profile.openingVector ?? [])
+        ].max() ?? 0
     }
 
     private func representatives(of members: [Entry], near entry: Entry) -> [Entry] {
@@ -309,7 +318,7 @@ actor StoryClusterService {
         if let cached = pairCache[cacheKey] { return cached }
         let evidence = StoryEvidence.evaluate(a.profile, b.profile)
         let features = StoryPairFeatures.values(a.profile, b.profile)
-        let eventConflict = features[7] > 0 || features[9] > 0
+        let eventConflict = features[7] > 0 || features[8] > 0 || features[9] > 0
         let result: StoryReview
         if a.url != nil && a.url == b.url {
             result = StoryReview(relation: .sameEvent, score: 1, provider: "identity", reason: "same-url")
@@ -330,9 +339,15 @@ actor StoryClusterService {
                 // available, are supplied by macOS NaturalLanguage, never by app-bundled assets.
                 let comparable = a.encoderVersion == b.encoderVersion
                 let supported = evidence.matches || (!a.profile.commentary && !b.profile.commentary
-                    && ((comparable && features[0] >= 0.65)
+                    && ((comparable && max(features[0], features[1], features[2]) >= 0.65)
                         || (!a.profile.names.isDisjoint(with: b.profile.names) && features[3] >= 0.25)))
-                result = apple.matches && !supported
+                // Apple can bridge different wording only when it cites exact
+                // source text for both reports. Explicit event/person/sport
+                // conflicts above remain hard vetoes.
+                let groundedAppleMatch = apple.provider == "apple" && apple.matches
+                    && apple.score >= 0.9 && apple.reason == "grounded-event-review"
+                    && !a.profile.commentary && !b.profile.commentary
+                result = apple.matches && !supported && !groundedAppleMatch
                     ? StoryReview(relation: .insufficientEvidence, score: 0, provider: "apple",
                                   reason: "generated-event-claim-lacks-independent-support")
                     : apple
