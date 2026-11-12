@@ -100,7 +100,8 @@ schemes:
       executable: Precis
     test:
       config: Debug
-      targets: []
+      targets:
+        - PrecisTests
     profile:
       config: Release
       executable: Precis

@@ -83,16 +83,20 @@ public final class FeedRepository: FeedRepositoryProtocol {
     }
 
     public func delete(_ feed: FeedRecord, context: ModelContext) throws {
+        let articleIDs = Set(feed.articles.map(\.id))
         context.delete(feed)
         try context.save()
+        Task { await StoryClusterService.shared.removeArticles(articleIDs) }
     }
 
     public func delete(_ feeds: [FeedRecord], context: ModelContext) throws {
         guard !feeds.isEmpty else { return }
+        let articleIDs = Set(feeds.flatMap { $0.articles.map(\.id) })
         for feed in feeds {
             context.delete(feed)
         }
         try context.save()
+        Task { await StoryClusterService.shared.removeArticles(articleIDs) }
     }
 
     public func update(_ feed: FeedRecord, context: ModelContext) throws {

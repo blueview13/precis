@@ -1,0 +1,2917 @@
+{
+  "description": "Synthetic regression scenarios. Initially held out from the evidence head, then used to train the event cross-encoder after observed failures. Not actual news.",
+  "articles": [
+    {
+      "id": "library-0",
+      "title": "Riverton approves Oak Street library",
+      "summary": "Riverton councillors voted on Monday to fund construction of a new public library on Oak Street.",
+      "url": "https://example.com/library/0",
+      "timestamp": 1800000000,
+      "event": "library",
+      "source": "synthetic-0",
+      "split": "holdout"
+    },
+    {
+      "id": "library-1",
+      "title": "Green light for new reading centre in Riverton",
+      "summary": "The council approved funding on Monday for the proposed public library on Oak Street.",
+      "url": "https://example.com/library/1",
+      "timestamp": 1800000600,
+      "event": "library",
+      "source": "synthetic-1",
+      "split": "holdout"
+    },
+    {
+      "id": "library-2",
+      "title": "Riverton library opens its doors",
+      "summary": "The new public library on Oak Street welcomed its first readers on Friday after construction finished.",
+      "url": "https://example.com/library/2",
+      "timestamp": 1800001200,
+      "event": "library-different",
+      "source": "synthetic-2",
+      "split": "holdout"
+    },
+    {
+      "id": "recall-0",
+      "title": "Northstar recalls kettles over fire risk",
+      "summary": "Northstar Appliances has recalled its K20 electric kettles because faulty wiring could cause fires.",
+      "url": "https://example.com/recall/0",
+      "timestamp": 1800003600,
+      "event": "recall",
+      "source": "synthetic-0",
+      "split": "holdout"
+    },
+    {
+      "id": "recall-1",
+      "title": "Faulty wiring prompts K20 kettle recall",
+      "summary": "Consumers are being asked to return Northstar Appliances K20 kettles after a fire hazard was identified.",
+      "url": "https://example.com/recall/1",
+      "timestamp": 1800004200,
+      "event": "recall",
+      "source": "synthetic-1",
+      "split": "holdout"
+    },
+    {
+      "id": "recall-2",
+      "title": "Northstar launches replacement kettle",
+      "summary": "Northstar Appliances unveiled the K30 kettle with an improved heating element and a new design.",
+      "url": "https://example.com/recall/2",
+      "timestamp": 1800004800,
+      "event": "recall-different",
+      "source": "synthetic-2",
+      "split": "holdout"
+    },
+    {
+      "id": "quake-0",
+      "title": "Earthquake strikes Port Azure",
+      "summary": "A magnitude 6.2 earthquake hit Port Azure on Tuesday morning, damaging buildings near the harbour.",
+      "url": "https://example.com/quake/0",
+      "timestamp": 1800007200,
+      "event": "quake",
+      "source": "synthetic-0",
+      "split": "holdout"
+    },
+    {
+      "id": "quake-1",
+      "title": "Port Azure shaken by 6.2 tremor",
+      "summary": "Buildings near the harbour were damaged when a magnitude 6.2 earthquake struck Port Azure on Tuesday morning.",
+      "url": "https://example.com/quake/1",
+      "timestamp": 1800007800,
+      "event": "quake",
+      "source": "synthetic-1",
+      "split": "holdout"
+    },
+    {
+      "id": "quake-2",
+      "title": "Another earthquake hits Port Azure",
+      "summary": "A new magnitude 4.8 earthquake struck Port Azure on Wednesday evening, a day after the larger quake.",
+      "url": "https://example.com/quake/2",
+      "timestamp": 1800008400,
+      "event": "quake-different",
+      "source": "synthetic-2",
+      "split": "holdout"
+    },
+    {
+      "id": "merger-0",
+      "title": "Meridian agrees to buy Larch Labs",
+      "summary": "Meridian signed an agreement to acquire Larch Labs for 200 million dollars, subject to regulatory approval.",
+      "url": "https://example.com/merger/0",
+      "timestamp": 1800010800,
+      "event": "merger",
+      "source": "synthetic-0",
+      "split": "holdout"
+    },
+    {
+      "id": "merger-1",
+      "title": "Larch Labs accepts Meridian takeover offer",
+      "summary": "Meridian will buy Larch Labs for 200 million dollars under a signed deal awaiting regulators approval.",
+      "url": "https://example.com/merger/1",
+      "timestamp": 1800011400,
+      "event": "merger",
+      "source": "synthetic-1",
+      "split": "holdout"
+    },
+    {
+      "id": "merger-2",
+      "title": "Regulator blocks Meridian takeover",
+      "summary": "The competition regulator prohibited Meridian from acquiring Larch Labs after finding the deal would reduce competition.",
+      "url": "https://example.com/merger/2",
+      "timestamp": 1800012000,
+      "event": "merger-different",
+      "source": "synthetic-2",
+      "split": "holdout"
+    },
+    {
+      "id": "sport-0",
+      "title": "Falcons beat Wolves in cup final",
+      "summary": "The Falcons defeated the Wolves 3-1 in Sundays national cup final at Riverside Stadium.",
+      "url": "https://example.com/sport/0",
+      "timestamp": 1800014400,
+      "event": "sport",
+      "source": "synthetic-0",
+      "split": "holdout"
+    },
+    {
+      "id": "sport-1",
+      "title": "Cup glory for Falcons after 3-1 victory",
+      "summary": "The Falcons lifted the national cup on Sunday with a 3-1 win over the Wolves at Riverside Stadium.",
+      "url": "https://example.com/sport/1",
+      "timestamp": 1800015000,
+      "event": "sport",
+      "source": "synthetic-1",
+      "split": "holdout"
+    },
+    {
+      "id": "sport-2",
+      "title": "Wolves defeat Falcons in league clash",
+      "summary": "The Wolves beat the Falcons 2-0 in Wednesdays league match at Riverside Stadium.",
+      "url": "https://example.com/sport/2",
+      "timestamp": 1800015600,
+      "event": "sport-different",
+      "source": "synthetic-2",
+      "split": "holdout"
+    },
+    {
+      "id": "resign-0",
+      "title": "Elena Ward resigns as mayor",
+      "summary": "Riverton mayor Elena Ward announced her resignation on Tuesday following an audit of council spending.",
+      "url": "https://example.com/resign/0",
+      "timestamp": 1800018000,
+      "event": "resign",
+      "source": "synthetic-0",
+      "split": "holdout"
+    },
+    {
+      "id": "resign-1",
+      "title": "Riverton leader steps down after spending audit",
+      "summary": "Elena Ward said on Tuesday she would leave her position as mayor after an audit of council expenditure.",
+      "url": "https://example.com/resign/1",
+      "timestamp": 1800018600,
+      "event": "resign",
+      "source": "synthetic-1",
+      "split": "holdout"
+    },
+    {
+      "id": "resign-2",
+      "title": "Elena Ward cleared by inquiry",
+      "summary": "An independent inquiry cleared former Riverton mayor Elena Ward of wrongdoing in council spending.",
+      "url": "https://example.com/resign/2",
+      "timestamp": 1800019200,
+      "event": "resign-different",
+      "source": "synthetic-2",
+      "split": "holdout"
+    },
+    {
+      "id": "launch-0",
+      "title": "Aurora launches weather satellite",
+      "summary": "Aurora Space launched the Nimbus weather satellite aboard a Falcon rocket from Cape Arlen on Thursday.",
+      "url": "https://example.com/launch/0",
+      "timestamp": 1800021600,
+      "event": "launch",
+      "source": "synthetic-0",
+      "split": "holdout"
+    },
+    {
+      "id": "launch-1",
+      "title": "Nimbus reaches orbit after Cape Arlen liftoff",
+      "summary": "A Falcon rocket carried Aurora Spaces Nimbus weather satellite into orbit from Cape Arlen on Thursday.",
+      "url": "https://example.com/launch/1",
+      "timestamp": 1800022200,
+      "event": "launch",
+      "source": "synthetic-1",
+      "split": "holdout"
+    },
+    {
+      "id": "launch-2",
+      "title": "Aurora postpones next satellite mission",
+      "summary": "Aurora Space delayed the launch of its Stratus weather satellite from Cape Arlen because of strong winds.",
+      "url": "https://example.com/launch/2",
+      "timestamp": 1800022800,
+      "event": "launch-different",
+      "source": "synthetic-2",
+      "split": "holdout"
+    },
+    {
+      "id": "strike-0",
+      "title": "Bus drivers walk out in Westhaven",
+      "summary": "Westhaven bus drivers began a 24-hour strike on Monday in a dispute over pay with TransitCo.",
+      "url": "https://example.com/strike/0",
+      "timestamp": 1800025200,
+      "event": "strike",
+      "source": "synthetic-0",
+      "split": "holdout"
+    },
+    {
+      "id": "strike-1",
+      "title": "Pay dispute halts Westhaven bus services",
+      "summary": "TransitCo services in Westhaven were disrupted on Monday as drivers staged a one-day walkout over wages.",
+      "url": "https://example.com/strike/1",
+      "timestamp": 1800025800,
+      "event": "strike",
+      "source": "synthetic-1",
+      "split": "holdout"
+    },
+    {
+      "id": "strike-2",
+      "title": "Westhaven drivers accept pay deal",
+      "summary": "TransitCo bus drivers in Westhaven voted to accept a new pay agreement, ending their dispute.",
+      "url": "https://example.com/strike/2",
+      "timestamp": 1800026400,
+      "event": "strike-different",
+      "source": "synthetic-2",
+      "split": "holdout"
+    },
+    {
+      "id": "trial-0",
+      "title": "Court acquits Daniel Moss of fraud",
+      "summary": "A jury at Eastbridge Crown Court found Daniel Moss not guilty of fraud on Friday.",
+      "url": "https://example.com/trial/0",
+      "timestamp": 1800028800,
+      "event": "trial",
+      "source": "synthetic-0",
+      "split": "holdout"
+    },
+    {
+      "id": "trial-1",
+      "title": "Daniel Moss cleared in Eastbridge fraud trial",
+      "summary": "Jurors returned a not-guilty verdict for Daniel Moss at Eastbridge Crown Court on Friday.",
+      "url": "https://example.com/trial/1",
+      "timestamp": 1800029400,
+      "event": "trial",
+      "source": "synthetic-1",
+      "split": "holdout"
+    },
+    {
+      "id": "trial-2",
+      "title": "Daniel Moss charged in separate case",
+      "summary": "Prosecutors charged Daniel Moss with money laundering on Monday in a separate case.",
+      "url": "https://example.com/trial/2",
+      "timestamp": 1800030000,
+      "event": "trial-different",
+      "source": "synthetic-2",
+      "split": "holdout"
+    },
+    {
+      "id": "research-0",
+      "title": "Researchers find water beneath desert",
+      "summary": "A team from Elms University discovered a freshwater aquifer beneath the Arida desert using radar surveys.",
+      "url": "https://example.com/research/0",
+      "timestamp": 1800032400,
+      "event": "research",
+      "source": "synthetic-0",
+      "split": "holdout"
+    },
+    {
+      "id": "research-1",
+      "title": "Hidden aquifer discovered under Arida sands",
+      "summary": "Radar surveys by Elms University scientists revealed freshwater stored beneath the Arida desert.",
+      "url": "https://example.com/research/1",
+      "timestamp": 1800033000,
+      "event": "research",
+      "source": "synthetic-1",
+      "split": "holdout"
+    },
+    {
+      "id": "research-2",
+      "title": "Elms researchers dispute aquifer finding",
+      "summary": "A second Elms University team challenged the claim of freshwater beneath the Arida desert, saying radar results were misinterpreted.",
+      "url": "https://example.com/research/2",
+      "timestamp": 1800033600,
+      "event": "research-different",
+      "source": "synthetic-2",
+      "split": "holdout"
+    }
+  ],
+  "pairs": [
+    {
+      "first": "library-0",
+      "second": "library-1",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "library-0",
+      "second": "library-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-0",
+      "second": "recall-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-0",
+      "second": "recall-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-0",
+      "second": "recall-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-0",
+      "second": "quake-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-0",
+      "second": "quake-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-0",
+      "second": "quake-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-0",
+      "second": "merger-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-0",
+      "second": "merger-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-0",
+      "second": "merger-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-0",
+      "second": "sport-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-0",
+      "second": "sport-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-0",
+      "second": "sport-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-0",
+      "second": "resign-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-0",
+      "second": "resign-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-0",
+      "second": "resign-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-0",
+      "second": "launch-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-0",
+      "second": "launch-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-0",
+      "second": "launch-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-0",
+      "second": "strike-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-0",
+      "second": "strike-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-0",
+      "second": "strike-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-0",
+      "second": "trial-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-0",
+      "second": "trial-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-0",
+      "second": "trial-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-0",
+      "second": "research-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-0",
+      "second": "research-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-0",
+      "second": "research-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-1",
+      "second": "library-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-1",
+      "second": "recall-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-1",
+      "second": "recall-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-1",
+      "second": "recall-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-1",
+      "second": "quake-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-1",
+      "second": "quake-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-1",
+      "second": "quake-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-1",
+      "second": "merger-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-1",
+      "second": "merger-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-1",
+      "second": "merger-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-1",
+      "second": "sport-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-1",
+      "second": "sport-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-1",
+      "second": "sport-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-1",
+      "second": "resign-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-1",
+      "second": "resign-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-1",
+      "second": "resign-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-1",
+      "second": "launch-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-1",
+      "second": "launch-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-1",
+      "second": "launch-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-1",
+      "second": "strike-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-1",
+      "second": "strike-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-1",
+      "second": "strike-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-1",
+      "second": "trial-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-1",
+      "second": "trial-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-1",
+      "second": "trial-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-1",
+      "second": "research-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-1",
+      "second": "research-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-1",
+      "second": "research-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-2",
+      "second": "recall-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-2",
+      "second": "recall-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-2",
+      "second": "recall-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-2",
+      "second": "quake-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-2",
+      "second": "quake-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-2",
+      "second": "quake-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-2",
+      "second": "merger-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-2",
+      "second": "merger-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-2",
+      "second": "merger-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-2",
+      "second": "sport-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-2",
+      "second": "sport-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-2",
+      "second": "sport-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-2",
+      "second": "resign-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-2",
+      "second": "resign-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-2",
+      "second": "resign-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-2",
+      "second": "launch-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-2",
+      "second": "launch-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-2",
+      "second": "launch-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-2",
+      "second": "strike-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-2",
+      "second": "strike-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-2",
+      "second": "strike-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-2",
+      "second": "trial-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-2",
+      "second": "trial-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-2",
+      "second": "trial-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-2",
+      "second": "research-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-2",
+      "second": "research-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "library-2",
+      "second": "research-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-0",
+      "second": "recall-1",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-0",
+      "second": "recall-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-0",
+      "second": "quake-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-0",
+      "second": "quake-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-0",
+      "second": "quake-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-0",
+      "second": "merger-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-0",
+      "second": "merger-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-0",
+      "second": "merger-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-0",
+      "second": "sport-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-0",
+      "second": "sport-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-0",
+      "second": "sport-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-0",
+      "second": "resign-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-0",
+      "second": "resign-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-0",
+      "second": "resign-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-0",
+      "second": "launch-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-0",
+      "second": "launch-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-0",
+      "second": "launch-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-0",
+      "second": "strike-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-0",
+      "second": "strike-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-0",
+      "second": "strike-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-0",
+      "second": "trial-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-0",
+      "second": "trial-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-0",
+      "second": "trial-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-0",
+      "second": "research-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-0",
+      "second": "research-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-0",
+      "second": "research-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-1",
+      "second": "recall-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-1",
+      "second": "quake-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-1",
+      "second": "quake-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-1",
+      "second": "quake-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-1",
+      "second": "merger-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-1",
+      "second": "merger-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-1",
+      "second": "merger-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-1",
+      "second": "sport-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-1",
+      "second": "sport-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-1",
+      "second": "sport-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-1",
+      "second": "resign-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-1",
+      "second": "resign-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-1",
+      "second": "resign-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-1",
+      "second": "launch-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-1",
+      "second": "launch-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-1",
+      "second": "launch-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-1",
+      "second": "strike-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-1",
+      "second": "strike-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-1",
+      "second": "strike-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-1",
+      "second": "trial-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-1",
+      "second": "trial-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-1",
+      "second": "trial-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-1",
+      "second": "research-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-1",
+      "second": "research-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-1",
+      "second": "research-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-2",
+      "second": "quake-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-2",
+      "second": "quake-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-2",
+      "second": "quake-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-2",
+      "second": "merger-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-2",
+      "second": "merger-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-2",
+      "second": "merger-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-2",
+      "second": "sport-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-2",
+      "second": "sport-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-2",
+      "second": "sport-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-2",
+      "second": "resign-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-2",
+      "second": "resign-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-2",
+      "second": "resign-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-2",
+      "second": "launch-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-2",
+      "second": "launch-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-2",
+      "second": "launch-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-2",
+      "second": "strike-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-2",
+      "second": "strike-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-2",
+      "second": "strike-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-2",
+      "second": "trial-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-2",
+      "second": "trial-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-2",
+      "second": "trial-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-2",
+      "second": "research-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-2",
+      "second": "research-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "recall-2",
+      "second": "research-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-0",
+      "second": "quake-1",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-0",
+      "second": "quake-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-0",
+      "second": "merger-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-0",
+      "second": "merger-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-0",
+      "second": "merger-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-0",
+      "second": "sport-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-0",
+      "second": "sport-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-0",
+      "second": "sport-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-0",
+      "second": "resign-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-0",
+      "second": "resign-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-0",
+      "second": "resign-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-0",
+      "second": "launch-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-0",
+      "second": "launch-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-0",
+      "second": "launch-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-0",
+      "second": "strike-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-0",
+      "second": "strike-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-0",
+      "second": "strike-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-0",
+      "second": "trial-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-0",
+      "second": "trial-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-0",
+      "second": "trial-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-0",
+      "second": "research-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-0",
+      "second": "research-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-0",
+      "second": "research-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-1",
+      "second": "quake-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-1",
+      "second": "merger-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-1",
+      "second": "merger-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-1",
+      "second": "merger-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-1",
+      "second": "sport-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-1",
+      "second": "sport-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-1",
+      "second": "sport-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-1",
+      "second": "resign-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-1",
+      "second": "resign-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-1",
+      "second": "resign-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-1",
+      "second": "launch-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-1",
+      "second": "launch-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-1",
+      "second": "launch-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-1",
+      "second": "strike-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-1",
+      "second": "strike-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-1",
+      "second": "strike-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-1",
+      "second": "trial-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-1",
+      "second": "trial-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-1",
+      "second": "trial-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-1",
+      "second": "research-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-1",
+      "second": "research-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-1",
+      "second": "research-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-2",
+      "second": "merger-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-2",
+      "second": "merger-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-2",
+      "second": "merger-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-2",
+      "second": "sport-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-2",
+      "second": "sport-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-2",
+      "second": "sport-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-2",
+      "second": "resign-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-2",
+      "second": "resign-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-2",
+      "second": "resign-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-2",
+      "second": "launch-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-2",
+      "second": "launch-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-2",
+      "second": "launch-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-2",
+      "second": "strike-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-2",
+      "second": "strike-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-2",
+      "second": "strike-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-2",
+      "second": "trial-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-2",
+      "second": "trial-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-2",
+      "second": "trial-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-2",
+      "second": "research-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-2",
+      "second": "research-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "quake-2",
+      "second": "research-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-0",
+      "second": "merger-1",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-0",
+      "second": "merger-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-0",
+      "second": "sport-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-0",
+      "second": "sport-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-0",
+      "second": "sport-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-0",
+      "second": "resign-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-0",
+      "second": "resign-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-0",
+      "second": "resign-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-0",
+      "second": "launch-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-0",
+      "second": "launch-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-0",
+      "second": "launch-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-0",
+      "second": "strike-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-0",
+      "second": "strike-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-0",
+      "second": "strike-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-0",
+      "second": "trial-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-0",
+      "second": "trial-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-0",
+      "second": "trial-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-0",
+      "second": "research-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-0",
+      "second": "research-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-0",
+      "second": "research-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-1",
+      "second": "merger-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-1",
+      "second": "sport-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-1",
+      "second": "sport-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-1",
+      "second": "sport-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-1",
+      "second": "resign-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-1",
+      "second": "resign-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-1",
+      "second": "resign-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-1",
+      "second": "launch-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-1",
+      "second": "launch-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-1",
+      "second": "launch-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-1",
+      "second": "strike-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-1",
+      "second": "strike-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-1",
+      "second": "strike-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-1",
+      "second": "trial-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-1",
+      "second": "trial-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-1",
+      "second": "trial-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-1",
+      "second": "research-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-1",
+      "second": "research-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-1",
+      "second": "research-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-2",
+      "second": "sport-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-2",
+      "second": "sport-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-2",
+      "second": "sport-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-2",
+      "second": "resign-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-2",
+      "second": "resign-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-2",
+      "second": "resign-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-2",
+      "second": "launch-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-2",
+      "second": "launch-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-2",
+      "second": "launch-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-2",
+      "second": "strike-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-2",
+      "second": "strike-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-2",
+      "second": "strike-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-2",
+      "second": "trial-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-2",
+      "second": "trial-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-2",
+      "second": "trial-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-2",
+      "second": "research-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-2",
+      "second": "research-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "merger-2",
+      "second": "research-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-0",
+      "second": "sport-1",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-0",
+      "second": "sport-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-0",
+      "second": "resign-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-0",
+      "second": "resign-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-0",
+      "second": "resign-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-0",
+      "second": "launch-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-0",
+      "second": "launch-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-0",
+      "second": "launch-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-0",
+      "second": "strike-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-0",
+      "second": "strike-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-0",
+      "second": "strike-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-0",
+      "second": "trial-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-0",
+      "second": "trial-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-0",
+      "second": "trial-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-0",
+      "second": "research-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-0",
+      "second": "research-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-0",
+      "second": "research-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-1",
+      "second": "sport-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-1",
+      "second": "resign-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-1",
+      "second": "resign-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-1",
+      "second": "resign-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-1",
+      "second": "launch-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-1",
+      "second": "launch-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-1",
+      "second": "launch-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-1",
+      "second": "strike-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-1",
+      "second": "strike-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-1",
+      "second": "strike-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-1",
+      "second": "trial-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-1",
+      "second": "trial-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-1",
+      "second": "trial-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-1",
+      "second": "research-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-1",
+      "second": "research-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-1",
+      "second": "research-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-2",
+      "second": "resign-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-2",
+      "second": "resign-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-2",
+      "second": "resign-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-2",
+      "second": "launch-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-2",
+      "second": "launch-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-2",
+      "second": "launch-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-2",
+      "second": "strike-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-2",
+      "second": "strike-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-2",
+      "second": "strike-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-2",
+      "second": "trial-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-2",
+      "second": "trial-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-2",
+      "second": "trial-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-2",
+      "second": "research-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-2",
+      "second": "research-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "sport-2",
+      "second": "research-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-0",
+      "second": "resign-1",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-0",
+      "second": "resign-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-0",
+      "second": "launch-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-0",
+      "second": "launch-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-0",
+      "second": "launch-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-0",
+      "second": "strike-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-0",
+      "second": "strike-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-0",
+      "second": "strike-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-0",
+      "second": "trial-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-0",
+      "second": "trial-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-0",
+      "second": "trial-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-0",
+      "second": "research-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-0",
+      "second": "research-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-0",
+      "second": "research-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-1",
+      "second": "resign-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-1",
+      "second": "launch-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-1",
+      "second": "launch-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-1",
+      "second": "launch-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-1",
+      "second": "strike-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-1",
+      "second": "strike-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-1",
+      "second": "strike-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-1",
+      "second": "trial-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-1",
+      "second": "trial-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-1",
+      "second": "trial-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-1",
+      "second": "research-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-1",
+      "second": "research-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-1",
+      "second": "research-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-2",
+      "second": "launch-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-2",
+      "second": "launch-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-2",
+      "second": "launch-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-2",
+      "second": "strike-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-2",
+      "second": "strike-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-2",
+      "second": "strike-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-2",
+      "second": "trial-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-2",
+      "second": "trial-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-2",
+      "second": "trial-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-2",
+      "second": "research-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-2",
+      "second": "research-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "resign-2",
+      "second": "research-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "launch-0",
+      "second": "launch-1",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "launch-0",
+      "second": "launch-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "launch-0",
+      "second": "strike-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "launch-0",
+      "second": "strike-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "launch-0",
+      "second": "strike-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "launch-0",
+      "second": "trial-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "launch-0",
+      "second": "trial-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "launch-0",
+      "second": "trial-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "launch-0",
+      "second": "research-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "launch-0",
+      "second": "research-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "launch-0",
+      "second": "research-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "launch-1",
+      "second": "launch-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "launch-1",
+      "second": "strike-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "launch-1",
+      "second": "strike-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "launch-1",
+      "second": "strike-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "launch-1",
+      "second": "trial-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "launch-1",
+      "second": "trial-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "launch-1",
+      "second": "trial-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "launch-1",
+      "second": "research-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "launch-1",
+      "second": "research-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "launch-1",
+      "second": "research-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "launch-2",
+      "second": "strike-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "launch-2",
+      "second": "strike-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "launch-2",
+      "second": "strike-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "launch-2",
+      "second": "trial-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "launch-2",
+      "second": "trial-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "launch-2",
+      "second": "trial-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "launch-2",
+      "second": "research-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "launch-2",
+      "second": "research-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "launch-2",
+      "second": "research-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "strike-0",
+      "second": "strike-1",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "strike-0",
+      "second": "strike-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "strike-0",
+      "second": "trial-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "strike-0",
+      "second": "trial-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "strike-0",
+      "second": "trial-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "strike-0",
+      "second": "research-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "strike-0",
+      "second": "research-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "strike-0",
+      "second": "research-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "strike-1",
+      "second": "strike-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "strike-1",
+      "second": "trial-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "strike-1",
+      "second": "trial-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "strike-1",
+      "second": "trial-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "strike-1",
+      "second": "research-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "strike-1",
+      "second": "research-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "strike-1",
+      "second": "research-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "strike-2",
+      "second": "trial-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "strike-2",
+      "second": "trial-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "strike-2",
+      "second": "trial-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "strike-2",
+      "second": "research-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "strike-2",
+      "second": "research-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "strike-2",
+      "second": "research-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "trial-0",
+      "second": "trial-1",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "trial-0",
+      "second": "trial-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "trial-0",
+      "second": "research-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "trial-0",
+      "second": "research-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "trial-0",
+      "second": "research-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "trial-1",
+      "second": "trial-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "trial-1",
+      "second": "research-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "trial-1",
+      "second": "research-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "trial-1",
+      "second": "research-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "trial-2",
+      "second": "research-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "trial-2",
+      "second": "research-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "trial-2",
+      "second": "research-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "research-0",
+      "second": "research-1",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "research-0",
+      "second": "research-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "research-1",
+      "second": "research-2",
+      "sameEvent": false,
+      "split": "holdout"
+    }
+  ]
+}

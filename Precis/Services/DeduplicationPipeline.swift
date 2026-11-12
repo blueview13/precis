@@ -44,7 +44,9 @@ public struct PreparedArticle: Sendable {
 }
 
 public actor ArticleIngestProcessor {
-    public init() {}
+    private let storyClusters: StoryClusterService
+    public init() { storyClusters = .shared }
+    init(storyClusters: StoryClusterService) { self.storyClusters = storyClusters }
 
     public func prepare(_ entries: [ParsedFeedEntry]) -> [PreparedArticle] {
         entries.map(PreparedArticle.init(entry:))
@@ -60,6 +62,7 @@ public actor ArticleIngestProcessor {
         guard let feed = try context.fetch(feedRequest).first else { return 0 }
         let repository = ArticleRepository()
         var inserted = 0
+        var clusteringItems: [ArticleListItem] = []
         for prepared in entries {
             let entry = prepared.entry
             let record = ArticleRecord(
@@ -75,7 +78,15 @@ public actor ArticleIngestProcessor {
                 contentHTML: entry.contentHTML,
                 imageURL: entry.imageURL?.absoluteString
             )
-            if try repository.saveIfNew(record, context: context) { inserted += 1 }
+            if try repository.saveIfNew(record, context: context) {
+                inserted += 1
+                clusteringItems.append(ArticleListItem(record: record))
+            }
+        }
+        // Article persistence completes immediately; the shared actor serializes background inference.
+        let incoming = clusteringItems
+        if !incoming.isEmpty {
+            Task { await storyClusters.update(incoming) }
         }
         return inserted
     }

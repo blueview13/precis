@@ -53,7 +53,7 @@ enum NewspaperArticleSelection {
 
     static let featuredMinimumTextLength = 500
 
-    static func featuredIndex(in stories: [NewspaperPDFService.PreparedStory], coverage: [CoverageArticle], now: Date) -> Int? {
+    static func featuredIndex(in stories: [NewspaperPDFService.PreparedStory], coverage: [CoverageArticle], now: Date, storyGroups: [UUID: UUID]? = nil) -> Int? {
         let eligible = stories.indices.filter { stories[$0].visibleTextLength >= featuredMinimumTextLength }
         guard !eligible.isEmpty else { return nil }
 
@@ -70,7 +70,12 @@ enum NewspaperArticleSelection {
             for j in coverage.indices where j < i {
                 let sameURL = urls[i] != nil && urls[i] == urls[j]
                 let sameTitle = !hashes[i].isEmpty && hashes[i] == hashes[j]
-                let related = coverage[i].feedID != coverage[j].feedID && StoryMatching.sharesSameStory(terms[i], terms[j])
+                let related: Bool
+                if let storyGroups {
+                    related = storyGroups[coverage[i].id] != nil && storyGroups[coverage[i].id] == storyGroups[coverage[j].id]
+                } else {
+                    related = coverage[i].feedID != coverage[j].feedID && StoryMatching.sharesSameStory(terms[i], terms[j])
+                }
                 if sameURL || sameTitle || related {
                     let a = root(i), b = root(j)
                     if a != b { parents[b] = a }
@@ -315,7 +320,8 @@ final class NewspaperPDFService {
                 publishedDate: $0.publishedDate, isStarred: $0.isStarred
             )
         }
-        guard let featured = NewspaperArticleSelection.featuredIndex(in: included, coverage: coverage, now: now) else {
+        let storyGroups = await StoryClusterService.shared.memberships(for: Set(coverage.map(\.id)))
+        guard let featured = NewspaperArticleSelection.featuredIndex(in: included, coverage: coverage, now: now, storyGroups: storyGroups) else {
             throw EditionError.noEligibleLead
         }
         let lead = included.remove(at: featured)

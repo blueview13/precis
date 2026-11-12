@@ -319,33 +319,20 @@ public final class ArticleListViewModel: ObservableObject {
     }
 
     private func scheduleStoryMatching() {
-        // Content changes trigger reviews; read/star/selection changes reuse the cache.
-        let snapshot = StoryMatching.recentArticles(items)
-        let signature = snapshot.map { "\($0.id)|\($0.feedID?.uuidString ?? "")|\($0.publishedDate?.timeIntervalSince1970 ?? 0)|\(StoryMatching.reviewText($0))" }
+        let snapshot = items
+        let signature = snapshot.map { "\($0.id)|\(StoryClusterService.fingerprint($0))" }.sorted()
         guard signature != storyMatchingSignature else { return }
         storyMatchingSignature = signature
         storyMatchingTask?.cancel()
-        storyGroups = [:]
         storyMatchingTask = Task { @MainActor [weak self] in
             guard let self else { return }
-            let features = await storySimilarityService.candidateFeatures(for: snapshot)
+            let ids = Set(snapshot.map(\.id))
+            let existing = await StoryClusterService.shared.memberships(for: ids)
             guard !Task.isCancelled else { return }
-            var groups: [UUID: UUID] = [:]
-            var primaries: [ArticleListItem] = []
-            for article in snapshot {
-                guard !Task.isCancelled else { return }
-                let primaryID = await StoryMatching.primary(for: article, among: primaries, features: features) { [service = storySimilarityService] first, second in
-                    await service.areSameStory(first, second)
-                }
-                guard !Task.isCancelled else { return }
-                groups[article.id] = primaryID
-                if primaryID == article.id { primaries.append(article) }
-                // Publish progress so a large archive does not hold back all stacks.
-                if primaryID != article.id || groups.count % 25 == 0 || groups.count == snapshot.count {
-                    storyGroups = groups
-                    await Task.yield()
-                }
-            }
+            storyGroups.merge(existing) { _, new in new }
+            let groups = await StoryClusterService.shared.update(snapshot)
+            guard !Task.isCancelled else { return }
+            storyGroups = groups
         }
     }
 
@@ -361,6 +348,7 @@ public final class ArticleListViewModel: ObservableObject {
         didSet { invalidateDerivedState() }
     }
     nonisolated(unsafe) private var sortObserver: NSObjectProtocol?
+    nonisolated(unsafe) private var storyObserver: NSObjectProtocol?
 
     /// Stable ordering — ties keep the underlying newest-first fetch order.
     private func applySort(to unsorted: [ArticleListItem]) -> [ArticleListItem] {
@@ -540,7 +528,6 @@ public final class ArticleListViewModel: ObservableObject {
     }
 
     private let articleRepository: ArticleRepositoryProtocol
-    private let storySimilarityService = StorySimilarityService()
     private var storyMatchingTask: Task<Void, Never>?
     private var storyMatchingSignature: [String] = []
 
@@ -578,6 +565,14 @@ public final class ArticleListViewModel: ObservableObject {
         self.selectedFeedID = nil
         self.articleRepository = articleRepository
         scheduleStoryMatching()
+        storyObserver = NotificationCenter.default.addObserver(forName: .storyClustersDidChange, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                let ids = Set(items.map(\.id))
+                let groups = await StoryClusterService.shared.memberships(for: ids)
+                storyGroups = groups.filter { ids.contains($0.key) }
+            }
+        }
 
         // The Settings window writes "defaultSortOrder" from another window —
         // observe it and republish so the list re-sorts the moment it changes
@@ -600,6 +595,7 @@ public final class ArticleListViewModel: ObservableObject {
 
     deinit {
         storyMatchingTask?.cancel()
+        if let storyObserver { NotificationCenter.default.removeObserver(storyObserver) }
         if let sortObserver {
             NotificationCenter.default.removeObserver(sortObserver)
         }

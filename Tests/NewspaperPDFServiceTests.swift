@@ -530,6 +530,18 @@ final class NewspaperPDFServiceTests: XCTestCase {
         XCTAssertEqual(NewspaperArticleSelection.featuredIndex(in: [lead, other], coverage: coverage, now: now), 0)
     }
 
+    func testFeaturedSelectionUsesPersistedSemanticMemberships() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let lead = featuredStory(title: "Jupiter spacecraft captures images of Earth", published: now.addingTimeInterval(-3_600))
+        let other = featuredStory(title: "Local festival opens today", published: now)
+        let companion = coverageArticle(title: "Probe sends back photographs of our planet", published: now)
+        let coverage = [coverageArticle(lead), coverageArticle(other), companion]
+        let grouped = [lead.id: lead.id, other.id: other.id, companion.id: lead.id]
+        XCTAssertEqual(NewspaperArticleSelection.featuredIndex(in: [lead, other], coverage: coverage, now: now, storyGroups: grouped), 0)
+        let separate = [lead.id: lead.id, other.id: other.id, companion.id: companion.id]
+        XCTAssertEqual(NewspaperArticleSelection.featuredIndex(in: [lead, other], coverage: coverage, now: now, storyGroups: separate), 1)
+    }
+
     func testFeaturedSelectionRequiresAtLeastFiveHundredCharacters() {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         let short = featuredStory(title: "Short", published: now, textLength: 499)

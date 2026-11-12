@@ -5,14 +5,14 @@ import NaturalLanguage
 /// Independent, inspectable evidence for automatic story stacks. Semantic
 /// similarity corroborates subject/action evidence; it cannot override conflicts.
 enum StoryEvidence {
-    struct Profile: Sendable {
+    struct Profile: Codable, Sendable {
         let title: Set<String>
         let body: Set<String>
         let names: Set<String>
         let mainPerson: Set<String>
         let sport: String?
         let development: String?
-        let vector: [Double]?
+        var vector: [Double]?
         var places: Set<String> = []
         var commentary = false
         var headlineVector: [Double]?
@@ -59,6 +59,8 @@ enum StoryEvidence {
         let text = normalized(text)
         let tagger = NLTagger(tagSchemes: [.lemma])
         tagger.string = text
+        // This matcher is English-only. Short tokens such as "dies" otherwise auto-detect as German.
+        tagger.setLanguage(.english, range: text.startIndex..<text.endIndex)
         var words: [String] = []
         tagger.enumerateTags(in: text.startIndex..<text.endIndex, unit: .word, scheme: .lemma,
                              options: [.omitWhitespace, .omitPunctuation]) { tag, range in
@@ -125,7 +127,7 @@ enum StoryEvidence {
         if !t.isDisjoint(with: ["share", "stock", "value"]) && t.contains("fall") { return "market-fall" }
         if t.contains("investigate") {
             if t.contains("fbi") || t.contains("police") { return "criminal-investigation" }
-            if text.contains("law firm") || text.contains("independent investigation") || t.contains("open") { return "internal-investigation" }
+            if text.contains("law firm") || text.contains("independent investigation") { return "internal-investigation" }
             return "investigation"
         }
         if !t.isDisjoint(with: ["debut", "ipo", "valuation"]) && (text.contains("stock market") || text.contains("ipo")) { return "listing" }
@@ -245,8 +247,8 @@ enum StoryEvidence {
     }
 }
 
-/// Content-keyed profiles and decisions are reused across navigation/read state
-/// changes. Automatic stacks no longer depend on generative model answers.
+/// Legacy evidence-only matcher retained as a regression oracle. Production stacks use
+/// StoryClusterService, which persists memberships and combines local models with Apple review.
 actor StorySimilarityService {
     enum ReviewPath: String, Sendable { case notRun, cached, evidence }
     private var profiles: [String: StoryEvidence.Profile] = [:]

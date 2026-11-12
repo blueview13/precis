@@ -1,0 +1,106 @@
+{
+  "date": "2026-11-12",
+  "pipelineVersion": "events-v5-ensemble-v1-tinybert-event-v1-minilm-l6-v2-c9745ed-fp32-256-v1",
+  "platform": {
+    "macOS": "27.3",
+    "architecture": "arm64",
+    "xcode": "27.0 (27A266a)"
+  },
+  "fullSuite": {
+    "executed": 131,
+    "passed": 130,
+    "skipped": 1,
+    "failures": 0,
+    "skip": "Legacy evidence-only opt-in benchmark; new semantic benchmark and live Apple review were enabled."
+  },
+  "runs": [
+    {
+      "fixture": "StoryMatchingBenchmark.json",
+      "mode": "offline",
+      "pairs": 342,
+      "positivePairs": 13,
+      "negativePairs": 329,
+      "pairMatches": 13,
+      "falsePairMatches": 0,
+      "stackedPositivePairs": 13,
+      "falseStackedPairs": 0,
+      "seconds": 3.171512007713318,
+      "applePairDecisions": 0
+    },
+    {
+      "fixture": "StoryMatchingWorldNews.json",
+      "mode": "offline, reverse-order replay",
+      "pairs": 808,
+      "positivePairs": 26,
+      "negativePairs": 782,
+      "pairMatches": 26,
+      "falsePairMatches": 0,
+      "stackedPositivePairs": 26,
+      "falseStackedPairs": 0,
+      "seconds": 7.471961975097656,
+      "reversedOrderAgreement": true,
+      "applePairDecisions": 0
+    },
+    {
+      "fixture": "StoryMatchingStreamingHoldout.json",
+      "mode": "offline",
+      "pairs": 435,
+      "positivePairs": 10,
+      "negativePairs": 425,
+      "pairMatches": 8,
+      "falsePairMatches": 0,
+      "stackedPositivePairs": 8,
+      "falseStackedPairs": 0,
+      "seconds": 3.092307925224304,
+      "applePairDecisions": 0
+    },
+    {
+      "fixture": "StoryMatchingSemanticRegression.json",
+      "mode": "offline, training regressions",
+      "pairs": 435,
+      "positivePairs": 10,
+      "negativePairs": 425,
+      "pairMatches": 9,
+      "falsePairMatches": 0,
+      "stackedPositivePairs": 9,
+      "falseStackedPairs": 0,
+      "seconds": 3.135561943054199,
+      "applePairDecisions": 0
+    },
+    {
+      "fixture": "StoryMatchingWorldNews.json",
+      "mode": "Apple enabled",
+      "pairs": 808,
+      "positivePairs": 26,
+      "negativePairs": 782,
+      "pairMatches": 26,
+      "falsePairMatches": 0,
+      "stackedPositivePairs": 26,
+      "falseStackedPairs": 0,
+      "seconds": 33.72424602508545,
+      "applePairDecisions": 6
+    },
+    {
+      "fixture": "StoryMatchingStreamingHoldout.json",
+      "mode": "Apple enabled",
+      "pairs": 435,
+      "positivePairs": 10,
+      "negativePairs": 425,
+      "pairMatches": 10,
+      "falsePairMatches": 0,
+      "stackedPositivePairs": 9,
+      "falseStackedPairs": 0,
+      "seconds": 24.694959044456482,
+      "applePairDecisions": 7
+    }
+  ],
+  "limitations": [
+    "Regression results are not an untouched estimate of production accuracy.",
+    "Original/world corpora contain overlapping events and pairs are not independent stories.",
+    "The first synthetic corpus contributed training examples; the second was excluded from training but inspected during integration.",
+    "Apple model judgements can vary or fail temporarily. Independent support, cluster checks and conservative fallback remain necessary.",
+    "The app still targets macOS 26+ arm64; Intel support was not added or tested.",
+    "Semantic clustering is English-only; runtime models add approximately 141 MiB before distribution compression."
+  ],
+  "status": "Superseded: historical bundled-model results. Models have been removed; these results do not validate the current Apple-only implementation. No subsequent tests were run at user request."
+}

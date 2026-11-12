@@ -1,0 +1,2917 @@
+{
+  "description": "Second synthetic holdout, written before cross-encoder evaluation. Not actual news. Excluded from training.",
+  "articles": [
+    {
+      "id": "evacuation-0",
+      "title": "Flood warning forces Brookfield residents to leave",
+      "summary": "Authorities ordered evacuation of Brookfield on Thursday as the river threatened to overflow.",
+      "url": "https://example.com/final/evacuation/0",
+      "timestamp": 1800200000,
+      "event": "evacuation",
+      "source": "synthetic-0",
+      "split": "holdout"
+    },
+    {
+      "id": "evacuation-1",
+      "title": "Brookfield evacuated amid rising river levels",
+      "summary": "Residents were told to leave Brookfield on Thursday because the rising river posed an imminent flood risk.",
+      "url": "https://example.com/final/evacuation/1",
+      "timestamp": 1800200600,
+      "event": "evacuation",
+      "source": "synthetic-1",
+      "split": "holdout"
+    },
+    {
+      "id": "evacuation-2",
+      "title": "Brookfield residents allowed home",
+      "summary": "Officials lifted the evacuation order on Saturday after river levels fell and residents began returning home.",
+      "url": "https://example.com/final/evacuation/2",
+      "timestamp": 1800201200,
+      "event": "evacuation-different",
+      "source": "synthetic-2",
+      "split": "holdout"
+    },
+    {
+      "id": "factory-0",
+      "title": "Aster Motors shuts Dunford plant",
+      "summary": "Aster Motors announced it will permanently close its Dunford factory, with 800 jobs lost.",
+      "url": "https://example.com/final/factory/0",
+      "timestamp": 1800203600,
+      "event": "factory",
+      "source": "synthetic-0",
+      "split": "holdout"
+    },
+    {
+      "id": "factory-1",
+      "title": "Eight hundred jobs to go as Dunford car factory closes",
+      "summary": "The Dunford plant operated by Aster Motors will close permanently, the company announced, affecting 800 workers.",
+      "url": "https://example.com/final/factory/1",
+      "timestamp": 1800204200,
+      "event": "factory",
+      "source": "synthetic-1",
+      "split": "holdout"
+    },
+    {
+      "id": "factory-2",
+      "title": "Aster workers protest factory closure",
+      "summary": "Workers staged a protest outside the Dunford plant against Aster Motors decision to close it.",
+      "url": "https://example.com/final/factory/2",
+      "timestamp": 1800204800,
+      "event": "factory-different",
+      "source": "synthetic-2",
+      "split": "holdout"
+    },
+    {
+      "id": "rate-0",
+      "title": "Central bank cuts rate to four percent",
+      "summary": "The central bank lowered its benchmark interest rate from 4.5 percent to 4 percent at its June meeting.",
+      "url": "https://example.com/final/rate/0",
+      "timestamp": 1800207200,
+      "event": "rate",
+      "source": "synthetic-0",
+      "split": "holdout"
+    },
+    {
+      "id": "rate-1",
+      "title": "June meeting delivers half-point interest cut",
+      "summary": "The central bank reduced the benchmark rate by half a percentage point to 4 percent in June.",
+      "url": "https://example.com/final/rate/1",
+      "timestamp": 1800207800,
+      "event": "rate",
+      "source": "synthetic-1",
+      "split": "holdout"
+    },
+    {
+      "id": "rate-2",
+      "title": "Central bank holds rate at four percent",
+      "summary": "At its July meeting the central bank kept its benchmark interest rate unchanged at 4 percent.",
+      "url": "https://example.com/final/rate/2",
+      "timestamp": 1800208400,
+      "event": "rate-different",
+      "source": "synthetic-2",
+      "split": "holdout"
+    },
+    {
+      "id": "appointment-0",
+      "title": "Jon Bell appointed museum director",
+      "summary": "The trustees of Westlake Museum appointed Jon Bell as director on Tuesday.",
+      "url": "https://example.com/final/appointment/0",
+      "timestamp": 1800210800,
+      "event": "appointment",
+      "source": "synthetic-0",
+      "split": "holdout"
+    },
+    {
+      "id": "appointment-1",
+      "title": "Westlake Museum names Jon Bell to lead institution",
+      "summary": "Jon Bell was chosen as the new director of Westlake Museum by its trustees on Tuesday.",
+      "url": "https://example.com/final/appointment/1",
+      "timestamp": 1800211400,
+      "event": "appointment",
+      "source": "synthetic-1",
+      "split": "holdout"
+    },
+    {
+      "id": "appointment-2",
+      "title": "Jon Bell resigns museum post",
+      "summary": "Westlake Museum director Jon Bell resigned on Friday citing personal reasons.",
+      "url": "https://example.com/final/appointment/2",
+      "timestamp": 1800212000,
+      "event": "appointment-different",
+      "source": "synthetic-2",
+      "split": "holdout"
+    },
+    {
+      "id": "bridge-0",
+      "title": "Stonebridge crossing collapses during storm",
+      "summary": "The road bridge at Stonebridge collapsed during a severe storm on Monday night.",
+      "url": "https://example.com/final/bridge/0",
+      "timestamp": 1800214400,
+      "event": "bridge",
+      "source": "synthetic-0",
+      "split": "holdout"
+    },
+    {
+      "id": "bridge-1",
+      "title": "Storm brings down Stonebridge road bridge",
+      "summary": "A fierce storm destroyed the road bridge at Stonebridge on Monday night.",
+      "url": "https://example.com/final/bridge/1",
+      "timestamp": 1800215000,
+      "event": "bridge",
+      "source": "synthetic-1",
+      "split": "holdout"
+    },
+    {
+      "id": "bridge-2",
+      "title": "Stonebridge crossing rebuilt after collapse",
+      "summary": "Engineers completed the replacement bridge at Stonebridge six months after the original collapsed.",
+      "url": "https://example.com/final/bridge/2",
+      "timestamp": 1800215600,
+      "event": "bridge-different",
+      "source": "synthetic-2",
+      "split": "holdout"
+    },
+    {
+      "id": "flight-0",
+      "title": "Orion flight diverts after engine failure",
+      "summary": "Orion Air flight 214 diverted to Elmport on Tuesday after an engine failed; all passengers landed safely.",
+      "url": "https://example.com/final/flight/0",
+      "timestamp": 1800218000,
+      "event": "flight",
+      "source": "synthetic-0",
+      "split": "holdout"
+    },
+    {
+      "id": "flight-1",
+      "title": "Engine trouble forces flight 214 to land at Elmport",
+      "summary": "Orion Air flight 214 made a safe diversion to Elmport on Tuesday following an engine failure.",
+      "url": "https://example.com/final/flight/1",
+      "timestamp": 1800218600,
+      "event": "flight",
+      "source": "synthetic-1",
+      "split": "holdout"
+    },
+    {
+      "id": "flight-2",
+      "title": "Orion flight suffers another engine failure",
+      "summary": "Orion Air flight 215 diverted to Elmport on Wednesday after a separate engine failure.",
+      "url": "https://example.com/final/flight/2",
+      "timestamp": 1800219200,
+      "event": "flight-different",
+      "source": "synthetic-2",
+      "split": "holdout"
+    },
+    {
+      "id": "election-0",
+      "title": "Mara Chen wins Eastport election",
+      "summary": "Mara Chen won Eastports mayoral election on Sunday with 54 percent of the vote.",
+      "url": "https://example.com/final/election/0",
+      "timestamp": 1800221600,
+      "event": "election",
+      "source": "synthetic-0",
+      "split": "holdout"
+    },
+    {
+      "id": "election-1",
+      "title": "Eastport elects Chen as mayor",
+      "summary": "Sundays mayoral vote in Eastport ended in victory for Mara Chen, who secured 54 percent.",
+      "url": "https://example.com/final/election/1",
+      "timestamp": 1800222200,
+      "event": "election",
+      "source": "synthetic-1",
+      "split": "holdout"
+    },
+    {
+      "id": "election-2",
+      "title": "Mara Chen sworn in as Eastport mayor",
+      "summary": "Mara Chen took the oath of office as Eastports new mayor at a ceremony on Friday.",
+      "url": "https://example.com/final/election/2",
+      "timestamp": 1800222800,
+      "event": "election-different",
+      "source": "synthetic-2",
+      "split": "holdout"
+    },
+    {
+      "id": "vaccine-0",
+      "title": "Regulator approves Luma vaccine",
+      "summary": "The national medicines regulator approved Luma Biotechs flu vaccine for adults after reviewing trial results.",
+      "url": "https://example.com/final/vaccine/0",
+      "timestamp": 1800225200,
+      "event": "vaccine",
+      "source": "synthetic-0",
+      "split": "holdout"
+    },
+    {
+      "id": "vaccine-1",
+      "title": "Luma flu jab receives regulatory clearance",
+      "summary": "Luma Biotechs vaccine against influenza was authorised for adult use by the national medicines regulator.",
+      "url": "https://example.com/final/vaccine/1",
+      "timestamp": 1800225800,
+      "event": "vaccine",
+      "source": "synthetic-1",
+      "split": "holdout"
+    },
+    {
+      "id": "vaccine-2",
+      "title": "Luma vaccine rollout begins",
+      "summary": "Clinics began administering Luma Biotechs flu vaccine to adults on Monday following last months approval.",
+      "url": "https://example.com/final/vaccine/2",
+      "timestamp": 1800226400,
+      "event": "vaccine-different",
+      "source": "synthetic-2",
+      "split": "holdout"
+    },
+    {
+      "id": "volcano-0",
+      "title": "Mount Sora erupts on Tuesday",
+      "summary": "Mount Sora began erupting on Tuesday, sending a plume of ash five kilometres high.",
+      "url": "https://example.com/final/volcano/0",
+      "timestamp": 1800228800,
+      "event": "volcano",
+      "source": "synthetic-0",
+      "split": "holdout"
+    },
+    {
+      "id": "volcano-1",
+      "title": "Ash plume rises as Sora volcano erupts",
+      "summary": "An eruption at Mount Sora on Tuesday sent ash five kilometres into the sky.",
+      "url": "https://example.com/final/volcano/1",
+      "timestamp": 1800229400,
+      "event": "volcano",
+      "source": "synthetic-1",
+      "split": "holdout"
+    },
+    {
+      "id": "volcano-2",
+      "title": "Mount Sora erupts again on Friday",
+      "summary": "Mount Sora began a separate eruption on Friday after two days of calm, sending ash three kilometres high.",
+      "url": "https://example.com/final/volcano/2",
+      "timestamp": 1800230000,
+      "event": "volcano-different",
+      "source": "synthetic-2",
+      "split": "holdout"
+    },
+    {
+      "id": "water-0",
+      "title": "Harbourton lifts boil-water advisory",
+      "summary": "Harbourton authorities lifted the boil-water advisory on Monday after tests confirmed the supply was safe.",
+      "url": "https://example.com/final/water/0",
+      "timestamp": 1800232400,
+      "event": "water",
+      "source": "synthetic-0",
+      "split": "holdout"
+    },
+    {
+      "id": "water-1",
+      "title": "Tap water safe again in Harbourton",
+      "summary": "Officials ended Harbourtons boil-water warning on Monday following clean test results.",
+      "url": "https://example.com/final/water/1",
+      "timestamp": 1800233000,
+      "event": "water",
+      "source": "synthetic-1",
+      "split": "holdout"
+    },
+    {
+      "id": "water-2",
+      "title": "Harbourton issues new boil-water warning",
+      "summary": "Harbourton issued a new boil-water advisory on Wednesday after contamination was detected again.",
+      "url": "https://example.com/final/water/2",
+      "timestamp": 1800233600,
+      "event": "water-different",
+      "source": "synthetic-2",
+      "split": "holdout"
+    }
+  ],
+  "pairs": [
+    {
+      "first": "evacuation-0",
+      "second": "evacuation-1",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-0",
+      "second": "evacuation-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-0",
+      "second": "factory-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-0",
+      "second": "factory-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-0",
+      "second": "factory-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-0",
+      "second": "rate-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-0",
+      "second": "rate-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-0",
+      "second": "rate-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-0",
+      "second": "appointment-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-0",
+      "second": "appointment-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-0",
+      "second": "appointment-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-0",
+      "second": "bridge-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-0",
+      "second": "bridge-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-0",
+      "second": "bridge-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-0",
+      "second": "flight-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-0",
+      "second": "flight-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-0",
+      "second": "flight-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-0",
+      "second": "election-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-0",
+      "second": "election-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-0",
+      "second": "election-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-0",
+      "second": "vaccine-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-0",
+      "second": "vaccine-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-0",
+      "second": "vaccine-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-0",
+      "second": "volcano-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-0",
+      "second": "volcano-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-0",
+      "second": "volcano-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-0",
+      "second": "water-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-0",
+      "second": "water-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-0",
+      "second": "water-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-1",
+      "second": "evacuation-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-1",
+      "second": "factory-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-1",
+      "second": "factory-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-1",
+      "second": "factory-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-1",
+      "second": "rate-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-1",
+      "second": "rate-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-1",
+      "second": "rate-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-1",
+      "second": "appointment-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-1",
+      "second": "appointment-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-1",
+      "second": "appointment-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-1",
+      "second": "bridge-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-1",
+      "second": "bridge-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-1",
+      "second": "bridge-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-1",
+      "second": "flight-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-1",
+      "second": "flight-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-1",
+      "second": "flight-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-1",
+      "second": "election-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-1",
+      "second": "election-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-1",
+      "second": "election-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-1",
+      "second": "vaccine-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-1",
+      "second": "vaccine-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-1",
+      "second": "vaccine-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-1",
+      "second": "volcano-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-1",
+      "second": "volcano-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-1",
+      "second": "volcano-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-1",
+      "second": "water-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-1",
+      "second": "water-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-1",
+      "second": "water-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-2",
+      "second": "factory-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-2",
+      "second": "factory-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-2",
+      "second": "factory-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-2",
+      "second": "rate-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-2",
+      "second": "rate-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-2",
+      "second": "rate-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-2",
+      "second": "appointment-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-2",
+      "second": "appointment-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-2",
+      "second": "appointment-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-2",
+      "second": "bridge-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-2",
+      "second": "bridge-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-2",
+      "second": "bridge-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-2",
+      "second": "flight-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-2",
+      "second": "flight-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-2",
+      "second": "flight-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-2",
+      "second": "election-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-2",
+      "second": "election-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-2",
+      "second": "election-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-2",
+      "second": "vaccine-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-2",
+      "second": "vaccine-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-2",
+      "second": "vaccine-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-2",
+      "second": "volcano-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-2",
+      "second": "volcano-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-2",
+      "second": "volcano-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-2",
+      "second": "water-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-2",
+      "second": "water-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "evacuation-2",
+      "second": "water-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-0",
+      "second": "factory-1",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-0",
+      "second": "factory-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-0",
+      "second": "rate-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-0",
+      "second": "rate-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-0",
+      "second": "rate-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-0",
+      "second": "appointment-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-0",
+      "second": "appointment-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-0",
+      "second": "appointment-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-0",
+      "second": "bridge-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-0",
+      "second": "bridge-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-0",
+      "second": "bridge-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-0",
+      "second": "flight-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-0",
+      "second": "flight-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-0",
+      "second": "flight-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-0",
+      "second": "election-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-0",
+      "second": "election-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-0",
+      "second": "election-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-0",
+      "second": "vaccine-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-0",
+      "second": "vaccine-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-0",
+      "second": "vaccine-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-0",
+      "second": "volcano-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-0",
+      "second": "volcano-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-0",
+      "second": "volcano-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-0",
+      "second": "water-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-0",
+      "second": "water-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-0",
+      "second": "water-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-1",
+      "second": "factory-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-1",
+      "second": "rate-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-1",
+      "second": "rate-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-1",
+      "second": "rate-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-1",
+      "second": "appointment-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-1",
+      "second": "appointment-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-1",
+      "second": "appointment-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-1",
+      "second": "bridge-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-1",
+      "second": "bridge-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-1",
+      "second": "bridge-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-1",
+      "second": "flight-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-1",
+      "second": "flight-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-1",
+      "second": "flight-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-1",
+      "second": "election-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-1",
+      "second": "election-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-1",
+      "second": "election-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-1",
+      "second": "vaccine-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-1",
+      "second": "vaccine-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-1",
+      "second": "vaccine-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-1",
+      "second": "volcano-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-1",
+      "second": "volcano-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-1",
+      "second": "volcano-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-1",
+      "second": "water-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-1",
+      "second": "water-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-1",
+      "second": "water-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-2",
+      "second": "rate-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-2",
+      "second": "rate-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-2",
+      "second": "rate-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-2",
+      "second": "appointment-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-2",
+      "second": "appointment-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-2",
+      "second": "appointment-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-2",
+      "second": "bridge-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-2",
+      "second": "bridge-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-2",
+      "second": "bridge-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-2",
+      "second": "flight-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-2",
+      "second": "flight-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-2",
+      "second": "flight-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-2",
+      "second": "election-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-2",
+      "second": "election-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-2",
+      "second": "election-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-2",
+      "second": "vaccine-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-2",
+      "second": "vaccine-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-2",
+      "second": "vaccine-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-2",
+      "second": "volcano-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-2",
+      "second": "volcano-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-2",
+      "second": "volcano-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-2",
+      "second": "water-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-2",
+      "second": "water-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "factory-2",
+      "second": "water-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-0",
+      "second": "rate-1",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-0",
+      "second": "rate-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-0",
+      "second": "appointment-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-0",
+      "second": "appointment-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-0",
+      "second": "appointment-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-0",
+      "second": "bridge-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-0",
+      "second": "bridge-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-0",
+      "second": "bridge-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-0",
+      "second": "flight-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-0",
+      "second": "flight-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-0",
+      "second": "flight-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-0",
+      "second": "election-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-0",
+      "second": "election-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-0",
+      "second": "election-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-0",
+      "second": "vaccine-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-0",
+      "second": "vaccine-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-0",
+      "second": "vaccine-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-0",
+      "second": "volcano-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-0",
+      "second": "volcano-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-0",
+      "second": "volcano-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-0",
+      "second": "water-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-0",
+      "second": "water-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-0",
+      "second": "water-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-1",
+      "second": "rate-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-1",
+      "second": "appointment-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-1",
+      "second": "appointment-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-1",
+      "second": "appointment-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-1",
+      "second": "bridge-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-1",
+      "second": "bridge-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-1",
+      "second": "bridge-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-1",
+      "second": "flight-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-1",
+      "second": "flight-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-1",
+      "second": "flight-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-1",
+      "second": "election-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-1",
+      "second": "election-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-1",
+      "second": "election-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-1",
+      "second": "vaccine-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-1",
+      "second": "vaccine-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-1",
+      "second": "vaccine-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-1",
+      "second": "volcano-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-1",
+      "second": "volcano-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-1",
+      "second": "volcano-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-1",
+      "second": "water-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-1",
+      "second": "water-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-1",
+      "second": "water-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-2",
+      "second": "appointment-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-2",
+      "second": "appointment-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-2",
+      "second": "appointment-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-2",
+      "second": "bridge-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-2",
+      "second": "bridge-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-2",
+      "second": "bridge-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-2",
+      "second": "flight-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-2",
+      "second": "flight-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-2",
+      "second": "flight-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-2",
+      "second": "election-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-2",
+      "second": "election-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-2",
+      "second": "election-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-2",
+      "second": "vaccine-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-2",
+      "second": "vaccine-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-2",
+      "second": "vaccine-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-2",
+      "second": "volcano-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-2",
+      "second": "volcano-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-2",
+      "second": "volcano-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-2",
+      "second": "water-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-2",
+      "second": "water-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "rate-2",
+      "second": "water-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-0",
+      "second": "appointment-1",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-0",
+      "second": "appointment-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-0",
+      "second": "bridge-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-0",
+      "second": "bridge-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-0",
+      "second": "bridge-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-0",
+      "second": "flight-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-0",
+      "second": "flight-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-0",
+      "second": "flight-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-0",
+      "second": "election-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-0",
+      "second": "election-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-0",
+      "second": "election-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-0",
+      "second": "vaccine-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-0",
+      "second": "vaccine-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-0",
+      "second": "vaccine-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-0",
+      "second": "volcano-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-0",
+      "second": "volcano-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-0",
+      "second": "volcano-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-0",
+      "second": "water-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-0",
+      "second": "water-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-0",
+      "second": "water-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-1",
+      "second": "appointment-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-1",
+      "second": "bridge-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-1",
+      "second": "bridge-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-1",
+      "second": "bridge-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-1",
+      "second": "flight-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-1",
+      "second": "flight-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-1",
+      "second": "flight-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-1",
+      "second": "election-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-1",
+      "second": "election-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-1",
+      "second": "election-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-1",
+      "second": "vaccine-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-1",
+      "second": "vaccine-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-1",
+      "second": "vaccine-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-1",
+      "second": "volcano-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-1",
+      "second": "volcano-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-1",
+      "second": "volcano-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-1",
+      "second": "water-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-1",
+      "second": "water-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-1",
+      "second": "water-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-2",
+      "second": "bridge-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-2",
+      "second": "bridge-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-2",
+      "second": "bridge-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-2",
+      "second": "flight-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-2",
+      "second": "flight-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-2",
+      "second": "flight-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-2",
+      "second": "election-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-2",
+      "second": "election-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-2",
+      "second": "election-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-2",
+      "second": "vaccine-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-2",
+      "second": "vaccine-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-2",
+      "second": "vaccine-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-2",
+      "second": "volcano-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-2",
+      "second": "volcano-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-2",
+      "second": "volcano-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-2",
+      "second": "water-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-2",
+      "second": "water-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "appointment-2",
+      "second": "water-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-0",
+      "second": "bridge-1",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-0",
+      "second": "bridge-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-0",
+      "second": "flight-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-0",
+      "second": "flight-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-0",
+      "second": "flight-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-0",
+      "second": "election-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-0",
+      "second": "election-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-0",
+      "second": "election-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-0",
+      "second": "vaccine-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-0",
+      "second": "vaccine-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-0",
+      "second": "vaccine-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-0",
+      "second": "volcano-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-0",
+      "second": "volcano-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-0",
+      "second": "volcano-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-0",
+      "second": "water-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-0",
+      "second": "water-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-0",
+      "second": "water-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-1",
+      "second": "bridge-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-1",
+      "second": "flight-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-1",
+      "second": "flight-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-1",
+      "second": "flight-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-1",
+      "second": "election-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-1",
+      "second": "election-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-1",
+      "second": "election-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-1",
+      "second": "vaccine-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-1",
+      "second": "vaccine-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-1",
+      "second": "vaccine-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-1",
+      "second": "volcano-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-1",
+      "second": "volcano-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-1",
+      "second": "volcano-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-1",
+      "second": "water-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-1",
+      "second": "water-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-1",
+      "second": "water-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-2",
+      "second": "flight-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-2",
+      "second": "flight-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-2",
+      "second": "flight-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-2",
+      "second": "election-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-2",
+      "second": "election-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-2",
+      "second": "election-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-2",
+      "second": "vaccine-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-2",
+      "second": "vaccine-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-2",
+      "second": "vaccine-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-2",
+      "second": "volcano-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-2",
+      "second": "volcano-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-2",
+      "second": "volcano-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-2",
+      "second": "water-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-2",
+      "second": "water-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "bridge-2",
+      "second": "water-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-0",
+      "second": "flight-1",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-0",
+      "second": "flight-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-0",
+      "second": "election-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-0",
+      "second": "election-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-0",
+      "second": "election-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-0",
+      "second": "vaccine-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-0",
+      "second": "vaccine-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-0",
+      "second": "vaccine-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-0",
+      "second": "volcano-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-0",
+      "second": "volcano-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-0",
+      "second": "volcano-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-0",
+      "second": "water-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-0",
+      "second": "water-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-0",
+      "second": "water-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-1",
+      "second": "flight-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-1",
+      "second": "election-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-1",
+      "second": "election-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-1",
+      "second": "election-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-1",
+      "second": "vaccine-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-1",
+      "second": "vaccine-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-1",
+      "second": "vaccine-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-1",
+      "second": "volcano-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-1",
+      "second": "volcano-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-1",
+      "second": "volcano-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-1",
+      "second": "water-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-1",
+      "second": "water-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-1",
+      "second": "water-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-2",
+      "second": "election-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-2",
+      "second": "election-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-2",
+      "second": "election-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-2",
+      "second": "vaccine-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-2",
+      "second": "vaccine-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-2",
+      "second": "vaccine-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-2",
+      "second": "volcano-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-2",
+      "second": "volcano-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-2",
+      "second": "volcano-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-2",
+      "second": "water-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-2",
+      "second": "water-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "flight-2",
+      "second": "water-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "election-0",
+      "second": "election-1",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "election-0",
+      "second": "election-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "election-0",
+      "second": "vaccine-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "election-0",
+      "second": "vaccine-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "election-0",
+      "second": "vaccine-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "election-0",
+      "second": "volcano-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "election-0",
+      "second": "volcano-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "election-0",
+      "second": "volcano-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "election-0",
+      "second": "water-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "election-0",
+      "second": "water-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "election-0",
+      "second": "water-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "election-1",
+      "second": "election-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "election-1",
+      "second": "vaccine-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "election-1",
+      "second": "vaccine-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "election-1",
+      "second": "vaccine-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "election-1",
+      "second": "volcano-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "election-1",
+      "second": "volcano-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "election-1",
+      "second": "volcano-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "election-1",
+      "second": "water-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "election-1",
+      "second": "water-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "election-1",
+      "second": "water-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "election-2",
+      "second": "vaccine-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "election-2",
+      "second": "vaccine-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "election-2",
+      "second": "vaccine-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "election-2",
+      "second": "volcano-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "election-2",
+      "second": "volcano-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "election-2",
+      "second": "volcano-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "election-2",
+      "second": "water-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "election-2",
+      "second": "water-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "election-2",
+      "second": "water-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "vaccine-0",
+      "second": "vaccine-1",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "vaccine-0",
+      "second": "vaccine-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "vaccine-0",
+      "second": "volcano-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "vaccine-0",
+      "second": "volcano-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "vaccine-0",
+      "second": "volcano-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "vaccine-0",
+      "second": "water-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "vaccine-0",
+      "second": "water-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "vaccine-0",
+      "second": "water-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "vaccine-1",
+      "second": "vaccine-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "vaccine-1",
+      "second": "volcano-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "vaccine-1",
+      "second": "volcano-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "vaccine-1",
+      "second": "volcano-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "vaccine-1",
+      "second": "water-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "vaccine-1",
+      "second": "water-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "vaccine-1",
+      "second": "water-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "vaccine-2",
+      "second": "volcano-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "vaccine-2",
+      "second": "volcano-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "vaccine-2",
+      "second": "volcano-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "vaccine-2",
+      "second": "water-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "vaccine-2",
+      "second": "water-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "vaccine-2",
+      "second": "water-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "volcano-0",
+      "second": "volcano-1",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "volcano-0",
+      "second": "volcano-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "volcano-0",
+      "second": "water-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "volcano-0",
+      "second": "water-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "volcano-0",
+      "second": "water-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "volcano-1",
+      "second": "volcano-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "volcano-1",
+      "second": "water-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "volcano-1",
+      "second": "water-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "volcano-1",
+      "second": "water-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "volcano-2",
+      "second": "water-0",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "volcano-2",
+      "second": "water-1",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "volcano-2",
+      "second": "water-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "water-0",
+      "second": "water-1",
+      "sameEvent": true,
+      "split": "holdout"
+    },
+    {
+      "first": "water-0",
+      "second": "water-2",
+      "sameEvent": false,
+      "split": "holdout"
+    },
+    {
+      "first": "water-1",
+      "second": "water-2",
+      "sameEvent": false,
+      "split": "holdout"
+    }
+  ]
+}

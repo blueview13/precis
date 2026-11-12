@@ -90,7 +90,7 @@ public struct ArticleListItem: Identifiable, Hashable, Sendable {
         self.sourceFeedURL = record.feed?.url
         self.author = record.author
         self.feedID = record.feed?.id
-        self.publishedDate = record.publishedDate ?? Date()
+        self.publishedDate = record.publishedDate
         self.isRead = record.isRead
         self.isStarred = record.isStarred
         let rawSnippet = record.extractedContentText ?? record.rawContentText ?? record.title
