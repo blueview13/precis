@@ -462,6 +462,7 @@ private struct DesktopFeedPanelView: View {
 
     private var visibleArticles: [ArticleRecord] {
         let availableFeedIDs = Set(articles.compactMap { $0.feed?.id })
+        let includesAllFeeds = selectedFeedIDs == "*"
         let selection = DesktopPanelFeedSelection.selectedFeedIDs(
             from: selectedFeedIDs,
             availableFeedIDs: availableFeedIDs
@@ -476,7 +477,10 @@ private struct DesktopFeedPanelView: View {
 
         let limit = min(max(articleLimit, 1), 50)
         return Array(articles.lazy.filter { article in
-            guard let feed = article.feed, !feed.muted else { return false }
+            // The reader includes legacy and imported Inbox articles whose
+            // feed relationship is nil. The default “all feeds” panel must
+            // include those too; explicit feed selections cannot match them.
+            guard let feed = article.feed else { return includesAllFeeds }
             if selection.contains(feed.id) { return true }
             guard !smartCategories.isEmpty else { return false }
             let articleValue = Article(record: article)
@@ -584,12 +588,36 @@ private struct DesktopFeedPanelView: View {
         }
         .frame(width: DesktopPanelPlacement.width(fromStoredWidth: CGFloat(panelWidth)))
         .background(panelBackground.opacity(backgroundOpacity))
+        .onAppear(perform: normalizeSelectedSources)
+        .onChange(of: smartCategoryStore.categories) { _, _ in
+            normalizeSelectedSources()
+        }
         // The inner edge (the vertical side facing the screen) resizes the
         // panel by drag; the docked edge stays put.
         .overlay(alignment: panelEdge == "left" ? .trailing : .leading) {
             resizeHandle
         }
         .environment(\.colorScheme, PrecisTheme.current.colorScheme)
+    }
+
+    /// Smart Categories are soft-deleted, so their UUIDs can remain in the
+    /// panel's saved source list after deletion. If that was the panel's only
+    /// selected source, the old `none` feed selection leaves it permanently
+    /// empty. Prune stale category IDs and restore the default all-feeds scope.
+    private func normalizeSelectedSources() {
+        let storedIDs = Set(selectedSmartCategoryIDs.split(separator: ",").compactMap {
+            UUID(uuidString: String($0))
+        })
+        guard !storedIDs.isEmpty else { return }
+
+        let liveIDs = Set(smartCategoryStore.categories.filter { !$0.isDeleted }.map(\.id))
+        let selectedLiveIDs = storedIDs.intersection(liveIDs)
+        guard selectedLiveIDs != storedIDs else { return }
+
+        selectedSmartCategoryIDs = selectedLiveIDs.map(\.uuidString).sorted().joined(separator: ",")
+        if selectedLiveIDs.isEmpty && selectedFeedIDs == "none" {
+            selectedFeedIDs = "*"
+        }
     }
 
     private var resizeHandle: some View {
@@ -641,7 +669,7 @@ private struct DesktopFeedPanelView: View {
     private func openArticle(_ article: ArticleRecord) {
         // Reading happens in the browser, not in Precis — mark the row read
         // first so it greys out here and in the main window, then hand the
-        // link to the system default browser.
+        // link to the browser selected in Settings (including Precis Browser).
         if !article.isRead {
             article.isRead = true
             do {
