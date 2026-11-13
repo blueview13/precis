@@ -72,8 +72,35 @@ enum StoryEvidence {
                        "tumble": "fall", "plummet": "fall", "drop": "fall", "slump": "fall",
                        "investigation": "investigate", "inquiry": "investigate",
                        "resignation": "resign", "flee": "escape", "overrule": "overturn",
-                       "relocation": "relocate", "impeachment": "impeach"]
+                       "relocation": "relocate", "impeachment": "impeach",
+                       "downtime": "serviceoutage", "outage": "serviceoutage", "outages": "serviceoutage",
+                       "disruption": "serviceoutage", "disruptions": "serviceoutage", "unavailable": "serviceoutage",
+                       "offline": "serviceoutage", "inaccessible": "serviceoutage", "interruption": "serviceoutage",
+                       "interruptions": "serviceoutage"]
         return Set(StoryMatching.storyTerms(words.joined(separator: " ")).map { aliases[$0] ?? $0 })
+    }
+
+    static func eventAnchors(_ terms: Set<String>) -> Set<String> {
+        let groups: [String: Set<String>] = [
+            "serviceoutage": ["serviceoutage", "down", "failure", "fail", "problem", "issue", "error", "break", "broken"],
+            "earthquake": ["earthquake", "tremor"], "fire": ["fire", "blaze", "wildfire"],
+            "shooting": ["shooting", "gunfire"], "cyberattack": ["cyberattack", "hack", "breach"],
+            "explosion": ["explosion", "blast"], "flood": ["flood", "flooding"],
+            "transportcrash": ["collision", "crash", "derailment"]
+        ]
+        return Set(groups.compactMap { anchor, words in terms.isDisjoint(with: words) ? nil : anchor })
+    }
+
+    static func hasAnchoredIncidentEvidence(_ a: Profile, _ b: Profile) -> Bool {
+        let first = a.title.union(a.body), second = b.title.union(b.body)
+        let facts = first.intersection(second).subtracting(weak).subtracting(countryTerms)
+        let commonSubjectTerms = a.title.intersection(b.title).filter {
+            $0.count >= 4 && !weak.contains($0) && !countryTerms.contains($0)
+                && eventAnchors([$0]).isEmpty
+        }
+        return (!a.names.isDisjoint(with: b.names) || !commonSubjectTerms.isEmpty)
+            && !eventAnchors(first).isDisjoint(with: eventAnchors(second))
+            && facts.count >= 2
     }
 
     private static func entities(_ text: String) -> (names: Set<String>, firstPerson: Set<String>, places: Set<String>) {
@@ -170,7 +197,7 @@ enum StoryEvidence {
                        sport: sport(article, text: normalizedText),
                        development: development(title: article.title, text: normalizedText),
                        vector: embedding?.vector(for: text), places: allEntities.places,
-                       commentary: article.title.contains("?") || ["why ", "how ", "what we know", "what do we know"].contains(where: { normalized(article.title).hasPrefix($0) })
+                       commentary: article.title.contains("?") || ["why ", "how "].contains(where: { normalized(article.title).hasPrefix($0) })
                            || normalized(article.title).contains(" unfazed "),
                        headlineVector: embedding?.vector(for: article.title),
                        openingVector: lead.isEmpty ? nil : embedding?.vector(for: lead))
@@ -227,6 +254,12 @@ enum StoryEvidence {
         let fullA = a.title.union(a.body), fullB = b.title.union(b.body)
         let facts = fullA.intersection(fullB).subtracting(weak).subtracting(countryTerms)
         let commonNames = a.names.intersection(b.names)
+        // Several independent reports of a breaking outage share a service/vendor entity
+        // and incident type even when one headline is an explainer ("what we know") and
+        // the others use different product names. Treat that as event evidence.
+        if hasAnchoredIncidentEvidence(a, b) {
+            return result(true, "shared-entity-and-incident")
+        }
         let commonPlaces = a.places.intersection(b.places)
         let venues = commonPlaces.subtracting(countryTerms)
         let headlineToLead = a.title.intersection(fullB).union(b.title.intersection(fullA))

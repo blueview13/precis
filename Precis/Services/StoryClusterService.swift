@@ -12,7 +12,7 @@ actor StoryClusterService {
     static var defaultStoreURL: URL {
         URL.applicationSupportDirectory.appendingPathComponent("Precis/StoryClusters-v1.json")
     }
-    static let pipelineVersion = "events-v7-apple-assisted"
+    static let pipelineVersion = "events-v14-incremental-clustering"
     typealias Reviewer = @Sendable (String, String) async throws -> StoryReview?
     typealias Encoder = @Sendable (String) throws -> [Double]
 
@@ -154,6 +154,7 @@ actor StoryClusterService {
         }
         remainingAppleReviews = appleReviewBudgetPerUpdate
         var changed = false
+        var updatesSincePersist = 0
         var affectedClusters: Set<UUID> = []
         for article in sorted {
             if Task.isCancelled { break }
@@ -201,8 +202,13 @@ actor StoryClusterService {
             store.entries[article.id] = entry
             affectedClusters.insert(entry.clusterID)
             changed = true
+            updatesSincePersist += 1
             if store.changes.count > 1000 { store.changes.removeFirst(store.changes.count - 1000) }
-            if store.entries.count % 25 == 0 { persist(); notify() }
+            if updatesSincePersist >= 25 {
+                persist()
+                notify()
+                updatesSincePersist = 0
+            }
             await Task.yield()
         }
         if !Task.isCancelled {
@@ -281,15 +287,17 @@ actor StoryClusterService {
             let centralSimilarity = StoryPairFeatures.cosine(entry.profile.vector ?? [], centroid)
             let lexical = members.contains { entry.profile.title.intersection($0.profile.title).count >= 2 }
             let exact = members.contains { entry.url != nil && entry.url == $0.url }
+            let entityAnchor = members.contains { !entry.profile.names.isDisjoint(with: $0.profile.names) }
             // NaturalLanguage embeddings shortlist substantially more broadly;
-            // Apple Intelligence does the expensive same-event decision below.
-            guard best >= 0.25 || lexical || exact else { return nil }
+            // a shared named person or organization also brings paraphrased coverage
+            // to the same-event reviewer. Entity overlap alone never creates a stack.
+            guard best >= 0.25 || lexical || exact || entityAnchor else { return nil }
             // Recent candidates rank ahead of equally similar older coverage; time is not event identity.
             let age = members.map { abs(($0.date ?? $0.receivedAt).timeIntervalSince(date)) }.min() ?? 0
-            let entityAnchor = members.contains { !entry.profile.names.isDisjoint(with: $0.profile.names) }
             guard age <= 14 * 86400 || (best >= 0.82 && entityAnchor) || exact else { return nil }
             let allMembers = store.entries.values.filter { $0.id != entry.id && $0.clusterID == id }
-            return (id, allMembers, 0.8 * best + 0.2 * centralSimilarity - min(0.12, age / (14 * 86400) * 0.12))
+            return (id, allMembers, 0.8 * best + 0.2 * centralSimilarity + (entityAnchor ? 0.08 : 0)
+                    - min(0.12, age / (14 * 86400) * 0.12))
         }.sorted { a, b in a.2 == b.2 ? a.0.uuidString < b.0.uuidString : a.2 > b.2 }.prefix(12).map { $0 }
     }
 
@@ -319,11 +327,16 @@ actor StoryClusterService {
         let evidence = StoryEvidence.evaluate(a.profile, b.profile)
         let features = StoryPairFeatures.values(a.profile, b.profile)
         let eventConflict = features[7] > 0 || features[8] > 0 || features[9] > 0
+        let withinBreakingWindow = abs((a.date ?? a.receivedAt).timeIntervalSince(b.date ?? b.receivedAt)) <= 3 * 86400
         let result: StoryReview
         if a.url != nil && a.url == b.url {
             result = StoryReview(relation: .sameEvent, score: 1, provider: "identity", reason: "same-url")
         } else if eventConflict {
             result = StoryReview(relation: .relatedDevelopment, score: 0, provider: "evidence-fallback", reason: "conflicting-event-evidence")
+        } else if withinBreakingWindow && StoryEvidence.hasAnchoredIncidentEvidence(a.profile, b.profile) {
+            // Preserve strong, concrete event evidence when the generative reviewer
+            // mistakes different headlines about one live incident for separate events.
+            result = StoryReview(relation: .sameEvent, score: 1, provider: "incident-evidence", reason: "shared-entity-incident-and-facts")
         } else if useSystemEmbeddings && injectedEncoder == nil
                     && ([a.language, b.language].compactMap { $0 }.contains { $0 != "en" }) {
             result = StoryReview(relation: .insufficientEvidence, score: 0, provider: "language-fallback", reason: "unsupported-language")

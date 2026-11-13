@@ -1414,27 +1414,43 @@ struct MainWindowLayout: View {
         let pending = feedsPendingDeletion
         let count = pending.count
         Task { @MainActor in
+            var unsubscribeErrors: [String] = []
+            if hasFeedbinCredentials, let credentials = await FeedbinCredentialStore.load() {
+                let service = FeedbinService(credentials: credentials)
+                for feed in pending {
+                    guard let id = feed.feedbinSubscriptionID else { continue }
+                    do { try await service.removeSubscription(id) }
+                    catch {
+                        unsubscribeErrors.append("Feedbin: \(error.localizedDescription)")
+                        PrecisLogger.error("Feedbin unsubscribe failed during feed deletion: \(error.localizedDescription)")
+                    }
+                }
+            }
+            if hasOldReaderCredentials, let credentials = await OldReaderCredentialStore.load() {
+                let service = OldReaderService(credentials: credentials)
+                for feed in pending {
+                    guard let id = feed.oldReaderSubscriptionID else { continue }
+                    do { try await service.removeSubscription(id) }
+                    catch {
+                        unsubscribeErrors.append("The Old Reader: \(error.localizedDescription)")
+                        PrecisLogger.error("Old Reader unsubscribe failed during feed deletion: \(error.localizedDescription)")
+                    }
+                }
+            }
             do {
-                if hasFeedbinCredentials, let credentials = await FeedbinCredentialStore.load() {
-                    let service = FeedbinService(credentials: credentials)
-                    for feed in pending {
-                        if let id = feed.feedbinSubscriptionID { try await service.removeSubscription(id) }
-                    }
-                }
-                if hasOldReaderCredentials, let credentials = await OldReaderCredentialStore.load() {
-                    let service = OldReaderService(credentials: credentials)
-                    for feed in pending {
-                        if let id = feed.oldReaderSubscriptionID { try await service.removeSubscription(id) }
-                    }
-                }
                 let repository = FeedRepository()
                 try repository.delete(pending, context: modelContext)
                 feedsPendingDeletion = []
                 feedSelection.ids = []
                 selectionAnchorID = nil
                 refreshFeeds()
-                importStatus = count == 1 ? "Feed removed" : "\(count) feeds removed"
-                importStatusKind = .success
+                if unsubscribeErrors.isEmpty {
+                    importStatus = count == 1 ? "Feed removed" : "\(count) feeds removed"
+                    importStatusKind = .success
+                } else {
+                    importStatus = "Removed from Precis; unsubscribe failed (\(unsubscribeErrors.joined(separator: "; "))). Sync may restore it."
+                    importStatusKind = .error
+                }
             } catch {
                 feedsPendingDeletion = []
                 importStatus = "Could not remove feed: \(error.localizedDescription)"
