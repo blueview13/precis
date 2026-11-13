@@ -86,7 +86,7 @@ public actor ArticleIngestProcessor {
         // Article persistence completes immediately; the shared actor serializes background inference.
         let incoming = clusteringItems
         if !incoming.isEmpty {
-            Task { await storyClusters.update(incoming) }
+            Task { await storyClusters.enqueue(incoming) }
         }
         return inserted
     }

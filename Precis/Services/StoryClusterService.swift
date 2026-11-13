@@ -55,8 +55,12 @@ actor StoryClusterService {
     private var loaded = false
     private var busy = false
     private var waiters: [CheckedContinuation<Void, Never>] = []
-    private let appleReviewBudgetPerUpdate = 96
-    private var remainingAppleReviews = 96
+    private var pendingArticles: [UUID: ArticleListItem] = [:]
+    private var pendingDrainScheduled = false
+    // Keep an update bounded even when many articles retrieve plausible event
+    // candidates. Individual Foundation Models reviews also have a deadline.
+    private let appleReviewBudgetPerUpdate = 24
+    private var remainingAppleReviews = 24
     private var pairCache: [String: StoryReview] = [:]
     private(set) var lastPersistenceError: String?
     private(set) var lastModelError: String?
@@ -78,6 +82,34 @@ actor StoryClusterService {
     private func release() {
         if waiters.isEmpty { busy = false }
         else { waiters.removeFirst().resume() }
+        schedulePendingDrainIfIdle()
+    }
+
+    /// Coalesce feed-ingestion batches while a library update or model review is
+    /// running. A large refresh can otherwise enqueue one serialized inference
+    /// job per feed and keep the newest library snapshot waiting behind them.
+    func enqueue(_ articles: [ArticleListItem]) {
+        for article in articles { pendingArticles[article.id] = article }
+        schedulePendingDrainIfIdle()
+    }
+
+    private func schedulePendingDrainIfIdle() {
+        guard !busy, waiters.isEmpty, !pendingArticles.isEmpty, !pendingDrainScheduled else { return }
+        pendingDrainScheduled = true
+        Task { [weak self] in await self?.drainPendingArticles() }
+    }
+
+    private func drainPendingArticles() async {
+        guard !busy, waiters.isEmpty else {
+            pendingDrainScheduled = false
+            return
+        }
+        let batch = Array(pendingArticles.values)
+        pendingArticles.removeAll(keepingCapacity: true)
+        pendingDrainScheduled = false
+        guard !batch.isEmpty else { return }
+        _ = await update(batch)
+        schedulePendingDrainIfIdle()
     }
     private func load() {
         guard !loaded else { return }

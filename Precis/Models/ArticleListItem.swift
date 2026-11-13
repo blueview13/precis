@@ -10,6 +10,9 @@ public struct ArticleListItem: Identifiable, Hashable, Sendable {
     /// Other articles folded into this row as coverage of the same story.
     public var storyMembers: [StoryArticleReference] = []
     public var storySources: [StorySourceReference] = []
+    /// Additional headlines bundled into feeds such as Google News' RSS output.
+    /// These belong in the expandable card list, not in the reading document.
+    public var bundledHeadlines: [BundledStoryHeadline] = []
     public var storyArticleIDs: Set<UUID> { Set([id] + storyMembers.map(\.id)) }
     public var feedTitle: String
     public var sourceFeedURL: String?
@@ -43,7 +46,9 @@ public struct ArticleListItem: Identifiable, Hashable, Sendable {
     /// Original HTML content for rich rendering in the reading pane.
     /// Falls back to the plain snippet when no HTML has been stored yet.
     public var rawArticleHTML: String {
-        if !contentHTML.isEmpty { return contentHTML }
+        if !contentHTML.isEmpty {
+            return bundledHeadlines.isEmpty ? contentHTML : Self.removingBundledHeadlineList(from: contentHTML)
+        }
         return snippet.isEmpty ? title : snippet
     }
 
@@ -78,6 +83,7 @@ public struct ArticleListItem: Identifiable, Hashable, Sendable {
         self.link = link
         self.imageURL = imageURL
         self.contentHTML = contentHTML
+        self.bundledHeadlines = []
         self.normalizedBody = Self.normalizeArticleText(snippet)
     }
 
@@ -98,6 +104,9 @@ public struct ArticleListItem: Identifiable, Hashable, Sendable {
         self.link = record.link
         self.imageURL = record.imageURL
         self.contentHTML = record.contentHTMLText ?? ""
+        self.bundledHeadlines = Self.isGoogleNewsFeed(record.feed?.url)
+            ? Self.bundledStoryHeadlines(from: self.contentHTML, primaryTitle: self.title)
+            : []
         // Reuse the persisted plain-text render when available — recomputing
         // it for every article on every load pegged the main thread at scale.
         // Whatever the source, the result is entity-decoded and has any
@@ -105,7 +114,13 @@ public struct ArticleListItem: Identifiable, Hashable, Sendable {
         // byline | date, "N Comments", read time) cut off, so the list's
         // lead-in starts at the article text itself.
         let html = record.contentHTMLText ?? record.extractedContentText ?? record.rawContentText ?? ""
-        if let stored = record.normalizedText, !stored.isEmpty {
+        if !self.bundledHeadlines.isEmpty {
+            let readerHTML = Self.removingBundledHeadlineList(from: self.contentHTML)
+            self.normalizedBody = Self.strippingLeadingMetadataBlob(
+                ArticleHTMLSanitizer.articlePlainText(from: readerHTML, title: record.title),
+                title: record.title
+            )
+        } else if let stored = record.normalizedText, !stored.isEmpty {
             self.normalizedBody = Self.strippingLeadingMetadataBlob(
                 ArticleHTMLSanitizer.decodingHTMLEntities(stored),
                 title: record.title
@@ -121,6 +136,71 @@ public struct ArticleListItem: Identifiable, Hashable, Sendable {
                 title: record.title
             )
         }
+    }
+
+    private static func bundledStoryHeadlines(from html: String, primaryTitle: String) -> [BundledStoryHeadline] {
+        guard html.range(of: #"<ol\b"#, options: .regularExpression) != nil,
+              let listRegex = try? NSRegularExpression(pattern: #"<li\b[^>]*>(.*?)</li>"#, options: [.caseInsensitive, .dotMatchesLineSeparators]),
+              let anchorRegex = try? NSRegularExpression(pattern: #"<a\b[^>]*href\s*=\s*[\"']([^\"']+)[\"'][^>]*>(.*?)</a>"#, options: [.caseInsensitive, .dotMatchesLineSeparators]) else {
+            return []
+        }
+
+        let fullRange = NSRange(html.startIndex..<html.endIndex, in: html)
+        let listItems = listRegex.matches(in: html, range: fullRange).compactMap { match -> BundledStoryHeadline? in
+            guard match.numberOfRanges > 1,
+                  let itemRange = Range(match.range(at: 1), in: html) else { return nil }
+            let itemHTML = String(html[itemRange])
+            let itemRangeNS = NSRange(itemHTML.startIndex..<itemHTML.endIndex, in: itemHTML)
+            guard let anchor = anchorRegex.firstMatch(in: itemHTML, range: itemRangeNS),
+                  anchor.numberOfRanges > 2,
+                  let urlRange = Range(anchor.range(at: 1), in: itemHTML),
+                  let titleRange = Range(anchor.range(at: 2), in: itemHTML) else { return nil }
+
+            let headline = ArticleHTMLSanitizer.plainText(fromHTML: String(itemHTML[titleRange]))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !headline.isEmpty, let url = URL(string: ArticleHTMLSanitizer.decodingHTMLEntities(String(itemHTML[urlRange]))) else { return nil }
+
+            let trailingHTML = String(itemHTML[titleRange.upperBound...])
+            let source = ArticleHTMLSanitizer.plainText(fromHTML: trailingHTML)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return BundledStoryHeadline(title: headline, source: source.isEmpty ? nil : source, url: url)
+        }
+
+        // Only promote a linked list when it contains this feed item’s own
+        // headline. This avoids treating an article's ordinary related-links
+        // section as a coverage bundle.
+        let normalizedPrimary = normalizedHeadline(primaryTitle)
+        guard listItems.count >= 2,
+              listItems.contains(where: { headlineMatches($0.title, normalizedPrimary: normalizedPrimary) }) else { return [] }
+        return listItems.filter { !headlineMatches($0.title, normalizedPrimary: normalizedPrimary) }
+    }
+
+    private static func isGoogleNewsFeed(_ rawURL: String?) -> Bool {
+        guard let rawURL, let components = URLComponents(string: rawURL),
+              let host = components.host?.lowercased() else { return false }
+        return host == "news.google.com" && components.path.hasPrefix("/rss")
+    }
+
+    private static func headlineMatches(_ title: String, normalizedPrimary: String) -> Bool {
+        let normalizedTitle = normalizedHeadline(title)
+        return normalizedTitle == normalizedPrimary
+            || normalizedPrimary.hasPrefix(normalizedTitle)
+            || normalizedTitle.hasPrefix(normalizedPrimary)
+    }
+
+    private static func normalizedHeadline(_ title: String) -> String {
+        title.lowercased().filter { $0.isLetter || $0.isNumber }
+    }
+
+    private static func removingBundledHeadlineList(from html: String) -> String {
+        guard let regex = try? NSRegularExpression(pattern: #"<ol\b[^>]*>.*?</ol>"#, options: [.caseInsensitive, .dotMatchesLineSeparators]) else {
+            return html
+        }
+        return regex.stringByReplacingMatches(
+            in: html,
+            range: NSRange(html.startIndex..<html.endIndex, in: html),
+            withTemplate: ""
+        )
     }
 
     /// Marks the end of the source-site chrome that a flattened article
@@ -243,6 +323,13 @@ public struct ArticleListItem: Identifiable, Hashable, Sendable {
         result += remainder
         return result
     }
+}
+
+public struct BundledStoryHeadline: Identifiable, Hashable, Sendable {
+    public var id: String { url.absoluteString }
+    public let title: String
+    public let source: String?
+    public let url: URL
 }
 
 public struct StoryArticleReference: Identifiable, Hashable, Sendable {

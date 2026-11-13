@@ -80,6 +80,24 @@ struct ArticleListView: View {
                     }
                     .buttonStyle(.plain)
                 }
+                ForEach(item.bundledHeadlines) { headline in
+                    Link(destination: headline.url) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(headline.title)
+                                .font(PrecisTypography.body)
+                                .lineLimit(2)
+                            if let source = headline.source, !source.isEmpty {
+                                Text(source)
+                                    .font(PrecisTypography.metadata)
+                                    .foregroundStyle(PrecisDesignSystem.marginalia)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.leading, PrecisSpacing.lg)
+                        .padding(.vertical, PrecisSpacing.xs)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
         .id(item.id)
@@ -614,12 +632,27 @@ private struct ArticleListRow: View, Equatable {
                 Button(action: onToggleStoryExpansion) {
                     StorySourceStrip(
                         sources: item.storySources,
-                        relatedCount: item.storyMembers.count,
+                        relatedCount: item.storyMembers.count + item.bundledHeadlines.count,
                         isExpanded: isStoryExpanded
                     )
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("\(item.storySources.count) sources, \(item.storyMembers.count) related articles. \(isStoryExpanded ? "Collapse" : "Expand") related articles.")
+                .accessibilityLabel("\(item.storySources.count) sources, \(item.storyMembers.count + item.bundledHeadlines.count) related articles. \(isStoryExpanded ? "Collapse" : "Expand") related articles.")
+            } else if !item.bundledHeadlines.isEmpty {
+                Button(action: onToggleStoryExpansion) {
+                    HStack(spacing: 7) {
+                        Text("\(item.bundledHeadlines.count) related \(item.bundledHeadlines.count == 1 ? "article" : "articles")")
+                            .font(PrecisTypography.metadata.weight(.semibold))
+                            .foregroundStyle(PrecisDesignSystem.marginalia)
+                        Image(systemName: isStoryExpanded ? "chevron.down" : "chevron.right")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(PrecisDesignSystem.marginalia)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(item.bundledHeadlines.count) related articles. \(isStoryExpanded ? "Collapse" : "Expand") related articles.")
             } else if !item.alsoIn.isEmpty {
                 Text("Also in: " + item.alsoIn.joined(separator: ", "))
                     .font(PrecisTypography.metadata)
