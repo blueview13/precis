@@ -323,16 +323,21 @@ public final class ArticleListViewModel: ObservableObject {
         let signature = snapshot.map { "\($0.id)|\(StoryClusterService.fingerprint($0))" }.sorted()
         guard signature != storyMatchingSignature else { return }
         storyMatchingSignature = signature
-        storyMatchingTask?.cancel()
+        pendingStorySnapshot = snapshot
+        guard storyMatchingTask == nil else { return }
         storyMatchingTask = Task { @MainActor [weak self] in
             guard let self else { return }
-            let ids = Set(snapshot.map(\.id))
-            let existing = await StoryClusterService.shared.memberships(for: ids)
-            guard !Task.isCancelled else { return }
-            storyGroups.merge(existing) { _, new in new }
-            let groups = await StoryClusterService.shared.update(snapshot)
-            guard !Task.isCancelled else { return }
-            storyGroups = groups
+            while !Task.isCancelled, let snapshot = self.pendingStorySnapshot {
+                self.pendingStorySnapshot = nil
+                let ids = Set(snapshot.map(\.id))
+                let existing = await StoryClusterService.shared.memberships(for: ids)
+                guard !Task.isCancelled else { break }
+                self.storyGroups.merge(existing) { _, new in new }
+                let groups = await StoryClusterService.shared.update(snapshot)
+                guard !Task.isCancelled else { break }
+                self.storyGroups = groups
+            }
+            self.storyMatchingTask = nil
         }
     }
 
@@ -529,6 +534,7 @@ public final class ArticleListViewModel: ObservableObject {
 
     private let articleRepository: ArticleRepositoryProtocol
     private var storyMatchingTask: Task<Void, Never>?
+    private var pendingStorySnapshot: [ArticleListItem]?
     private var storyMatchingSignature: [String] = []
 
     public init(

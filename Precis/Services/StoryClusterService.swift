@@ -12,7 +12,7 @@ actor StoryClusterService {
     static var defaultStoreURL: URL {
         URL.applicationSupportDirectory.appendingPathComponent("Precis/StoryClusters-v1.json")
     }
-    static let pipelineVersion = "events-v14-incremental-clustering"
+    static let pipelineVersion = "events-v15-recent-first-clustering"
     typealias Reviewer = @Sendable (String, String) async throws -> StoryReview?
     typealias Encoder = @Sendable (String) throws -> [Double]
 
@@ -150,7 +150,7 @@ actor StoryClusterService {
         guard !Task.isCancelled else { return memberships(for: Set(articles.map(\.id))) }
         let sorted = articles.sorted {
             let a = $0.publishedDate ?? now, b = $1.publishedDate ?? now
-            return a == b ? $0.id.uuidString < $1.id.uuidString : a < b
+            return a == b ? $0.id.uuidString < $1.id.uuidString : a > b
         }
         remainingAppleReviews = appleReviewBudgetPerUpdate
         var changed = false
@@ -204,7 +204,7 @@ actor StoryClusterService {
             changed = true
             updatesSincePersist += 1
             if store.changes.count > 1000 { store.changes.removeFirst(store.changes.count - 1000) }
-            if updatesSincePersist >= 25 {
+            if updatesSincePersist >= 5 {
                 persist()
                 notify()
                 updatesSincePersist = 0
