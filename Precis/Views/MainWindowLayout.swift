@@ -655,6 +655,44 @@ struct MainWindowLayout: View {
         }
     }
 
+    private func removeFeedFromPicker(url: String) async {
+        guard let feed = importedFeeds.first(where: { feedURLIdentity($0.url) == feedURLIdentity(url) }) else { return }
+        var unsubscribeErrors: [String] = []
+
+        if hasFeedbinCredentials, let subscriptionID = feed.feedbinSubscriptionID,
+           let credentials = await FeedbinCredentialStore.load() {
+            do { try await FeedbinService(credentials: credentials).removeSubscription(subscriptionID) }
+            catch {
+                unsubscribeErrors.append("Feedbin: \(error.localizedDescription)")
+                PrecisLogger.error("Feedbin unsubscribe failed from feed picker: \(error.localizedDescription)")
+            }
+        }
+        if hasOldReaderCredentials, let subscriptionID = feed.oldReaderSubscriptionID,
+           let credentials = await OldReaderCredentialStore.load() {
+            do { try await OldReaderService(credentials: credentials).removeSubscription(subscriptionID) }
+            catch {
+                unsubscribeErrors.append("The Old Reader: \(error.localizedDescription)")
+                PrecisLogger.error("The Old Reader unsubscribe failed from feed picker: \(error.localizedDescription)")
+            }
+        }
+
+        do {
+            try FeedRepository().delete(feed, context: modelContext)
+            feedSelection.ids.remove(feed.id)
+            refreshFeeds()
+            if unsubscribeErrors.isEmpty {
+                importStatus = "Feed removed"
+                importStatusKind = .success
+            } else {
+                importStatus = "Removed from Precis; unsubscribe failed (\(unsubscribeErrors.joined(separator: "; "))). Sync may restore it."
+                importStatusKind = .error
+            }
+        } catch {
+            importStatus = "Could not remove feed: \(error.localizedDescription)"
+            importStatusKind = .error
+        }
+    }
+
     // MARK: - Categories
     private func refreshCategories() {
         do {
@@ -2364,6 +2402,8 @@ struct MainWindowLayout: View {
                 importStatus: $importStatus,
                 importStatusKind: $importStatusKind,
                 canAddToFeedbin: hasFeedbinCredentials,
+                existingFeedURLs: Set(importedFeeds.map { feedURLIdentity($0.url) }),
+                onRemoveExistingFeed: removeFeedFromPicker,
                 onAdd: { feedURL, target in
                         isImporting = true
                         importStatus = ""
@@ -2464,6 +2504,7 @@ private enum FeedAddTarget: String, CaseIterable, Identifiable {
 }
 
 private struct AddFeedSheet: View {
+    @AppStorage(PrecisTheme.storageKey) private var selectedThemeRawValue = PrecisTheme.standard.rawValue
     @Binding var feedURLInput: String
     /// Tracks the URL this sheet took off the pasteboard, so a newer copy may
     /// replace it while a typed URL is left alone.
@@ -2472,6 +2513,8 @@ private struct AddFeedSheet: View {
     @Binding var importStatus: String
     @Binding var importStatusKind: ImportStatusKind
     let canAddToFeedbin: Bool
+    let existingFeedURLs: Set<String>
+    let onRemoveExistingFeed: (String) async -> Void
     let onAdd: (String, FeedAddTarget) async -> Void
     @State private var didImport = false
     @State private var selectedFeedURLs: Set<String> = []
@@ -2480,9 +2523,12 @@ private struct AddFeedSheet: View {
     @State private var isSearchingTopics = false
     @State private var feedPickerPresentation: FeedPickerPresentation?
     @State private var addTarget: FeedAddTarget = .precis
+    @State private var hoveredCategory: String?
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @FocusState private var isURLEntryFocused: Bool
+
+    private var selectedTheme: PrecisTheme { PrecisTheme(rawValue: selectedThemeRawValue) ?? .standard }
 
     var body: some View {
         VStack(alignment: .leading, spacing: PrecisSpacing.md) {
@@ -2491,6 +2537,9 @@ private struct AddFeedSheet: View {
                     .font(PrecisTypography.headline)
                     .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
                 Spacer()
+                RSSMark()
+                    .foregroundStyle(selectedTheme.accent)
+                    .frame(width: 22, height: 22)
                 Button(action: { dismiss() }) {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(PrecisDesignSystem.marginalia.opacity(0.6))
@@ -2555,13 +2604,21 @@ private struct AddFeedSheet: View {
                         Button {
                             feedPickerPresentation = FeedPickerPresentation(title: category.name, feeds: category.feeds)
                         } label: {
-                            Text(category.name)
-                                .font(PrecisTypography.metadata)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(9)
-                                .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+                            HStack(spacing: 9) {
+                                Image(systemName: icon(for: category.name))
+                                    .foregroundStyle(selectedTheme.accent)
+                                    .frame(width: 18)
+                                Text(category.name)
+                                    .font(PrecisTypography.metadata)
+                                    .foregroundStyle(selectedTheme.foreground)
+                                Spacer(minLength: 0)
+                            }
+                            .padding(10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(selectedTheme.accent.opacity(hoveredCategory == category.name ? 0.22 : 0.10), in: RoundedRectangle(cornerRadius: 8))
                         }
                         .buttonStyle(.plain)
+                        .onHover { hovering in hoveredCategory = hovering ? category.name : nil }
                     }
                 }
                 HStack {
@@ -2591,6 +2648,7 @@ private struct AddFeedSheet: View {
         }
         .padding(PrecisSpacing.lg)
         .frame(width: 560)
+        .tint(selectedTheme.accent)
         .onAppear {
             // Fresh sheet state on every presentation.
             importStatus = ""
@@ -2611,11 +2669,32 @@ private struct AddFeedSheet: View {
                 title: presentation.title,
                 feeds: presentation.feeds,
                 selectedURLs: $selectedFeedURLs,
+                existingFeedURLs: existingFeedURLs,
+                onRemoveExistingFeed: onRemoveExistingFeed,
                 isImporting: $isImporting,
                 onAdd: { urls in
                     for url in urls { await onAdd(url, addTarget) }
                 }
             )
+        }
+    }
+
+    private func icon(for category: String) -> String {
+        switch category {
+        case "General News": "newspaper"
+        case "World": "globe.americas"
+        case "Politics": "building.columns"
+        case "Finance": "chart.line.uptrend.xyaxis"
+        case "Technology": "laptopcomputer"
+        case "Science": "atom"
+        case "Health": "cross.case"
+        case "Environment": "leaf"
+        case "Sports": "sportscourt"
+        case "Culture": "theatermasks"
+        case "Gaming": "gamecontroller"
+        case "Food": "fork.knife"
+        case "Travel": "airplane"
+        default: "dot.radiowaves.left.and.right"
         }
     }
 
@@ -2664,12 +2743,20 @@ private struct FeedPickerPresentation: Identifiable {
 }
 
 private struct SuggestedFeedsPickerSheet: View {
+    @AppStorage(PrecisTheme.storageKey) private var selectedThemeRawValue = PrecisTheme.standard.rawValue
     let title: String
     let feeds: [SuggestedFeed]
     @Binding var selectedURLs: Set<String>
+    let existingFeedURLs: Set<String>
+    let onRemoveExistingFeed: (String) async -> Void
     @Binding var isImporting: Bool
     let onAdd: ([String]) async -> Void
     @Environment(\.dismiss) private var dismiss
+    @State private var feedPendingRemoval: SuggestedFeed?
+    private var selectedTheme: PrecisTheme { PrecisTheme(rawValue: selectedThemeRawValue) ?? .standard }
+    private var pendingSelectedURLs: [String] {
+        selectedURLs.filter { !existingFeedURLs.contains(feedURLIdentity($0)) }.sorted()
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: PrecisSpacing.md) {
@@ -2682,32 +2769,74 @@ private struct SuggestedFeedsPickerSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
                     ForEach(feeds) { feed in
-                        Toggle(isOn: Binding(
-                            get: { selectedURLs.contains(feed.url) },
-                            set: { selected in
-                                if selected { selectedURLs.insert(feed.url) }
-                                else { selectedURLs.remove(feed.url) }
+                        let isAlreadyAdded = existingFeedURLs.contains(feedURLIdentity(feed.url))
+                        if isAlreadyAdded {
+                            HStack(alignment: .top, spacing: 10) {
+                                Button {
+                                    feedPendingRemoval = feed
+                                } label: {
+                                    Image(systemName: "checkmark.square.fill")
+                                        .font(.title2)
+                                        .foregroundStyle(selectedTheme.accent)
+                                        .frame(width: 24, height: 24)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("Remove \(feed.name) from your feeds")
+                                VStack(alignment: .leading, spacing: 5) {
+                                    HStack(spacing: 8) {
+                                        Text(feed.name)
+                                            .fontWeight(.semibold)
+                                            .foregroundStyle(selectedTheme.foreground)
+                                        Text("ALREADY IN YOUR FEEDS")
+                                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                                            .tracking(0.35)
+                                            .foregroundStyle(selectedTheme.accent)
+                                            .padding(.horizontal, 7)
+                                            .padding(.vertical, 4)
+                                            .background(selectedTheme.accent.opacity(0.15), in: Capsule())
+                                    }
+                                    Text(feed.url)
+                                        .font(.caption2)
+                                        .foregroundStyle(selectedTheme.foreground.opacity(0.72))
+                                        .lineLimit(1)
+                                }
+                                Spacer(minLength: 0)
                             }
-                        )) {
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(feed.name)
-                                Text(feed.url)
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
+                            .padding(10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(selectedTheme.accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 9))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 9)
+                                    .stroke(selectedTheme.accent.opacity(0.35), lineWidth: 1)
                             }
+                        } else {
+                            Toggle(isOn: Binding(
+                                get: { selectedURLs.contains(feed.url) },
+                                set: { selected in
+                                    if selected { selectedURLs.insert(feed.url) }
+                                    else { selectedURLs.remove(feed.url) }
+                                }
+                            )) {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(feed.name)
+                                    Text(feed.url)
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                }
+                            }
+                            .toggleStyle(.checkbox)
+                            .tint(selectedTheme.accent)
                         }
-                        .toggleStyle(.checkbox)
-                        .tint(Color.green)
                     }
                 }
             }
             HStack {
-                Text("\(selectedURLs.count) selected")
+                Text("\(pendingSelectedURLs.count) selected")
                     .foregroundStyle(.secondary)
                 Spacer()
                 Button("Add Selected Feeds") {
-                    let urls = selectedURLs.sorted()
+                    let urls = pendingSelectedURLs
                     Task {
                         await onAdd(urls)
                         selectedURLs.subtract(urls)
@@ -2715,11 +2844,25 @@ private struct SuggestedFeedsPickerSheet: View {
                     }
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(selectedURLs.isEmpty || isImporting)
+                .disabled(pendingSelectedURLs.isEmpty || isImporting)
             }
         }
         .padding(PrecisSpacing.lg)
         .frame(width: 560, height: 620)
+        .tint(selectedTheme.accent)
+        .alert("Remove \(feedPendingRemoval?.name ?? "feed")?", isPresented: Binding(
+            get: { feedPendingRemoval != nil },
+            set: { if !$0 { feedPendingRemoval = nil } }
+        )) {
+            Button("Remove Feed", role: .destructive) {
+                guard let feed = feedPendingRemoval else { return }
+                feedPendingRemoval = nil
+                Task { await onRemoveExistingFeed(feed.url) }
+            }
+            Button("Cancel", role: .cancel) { feedPendingRemoval = nil }
+        } message: {
+            Text("This removes the feed and all its saved articles from Precis. Feeds synced from Feedbin or The Old Reader will also be unsubscribed.")
+        }
     }
 }
 
@@ -2728,6 +2871,24 @@ private struct SuggestedFeed: Identifiable, Sendable {
     let url: String
 
     var id: String { url }
+}
+
+private func feedURLIdentity(_ rawURL: String) -> String {
+    guard var components = URLComponents(string: rawURL),
+          let scheme = components.scheme?.lowercased(),
+          let host = components.host?.lowercased() else {
+        return rawURL.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    components.scheme = scheme
+    components.host = host
+    if (scheme == "https" && components.port == 443) || (scheme == "http" && components.port == 80) {
+        components.port = nil
+    }
+    if components.path.isEmpty { components.path = "/" }
+    else if components.path.count > 1 && components.path.hasSuffix("/") {
+        components.path.removeLast()
+    }
+    return components.string ?? rawURL
 }
 
 private struct SuggestedFeedCategory: Identifiable {
@@ -2871,6 +3032,16 @@ private enum SuggestedFeedCatalog {
             SuggestedFeed(name: "France 24", url: "https://www.france24.com/en/rss"),
             SuggestedFeed(name: "DW News", url: "https://rss.dw.com/rdf/rss-en-all"),
             SuggestedFeed(name: "BBC UK", url: "https://feeds.bbci.co.uk/news/uk/rss.xml"),
+            SuggestedFeed(name: "ABC News", url: "https://abcnews.go.com/abcnews/topstories"),
+            SuggestedFeed(name: "CBS News", url: "https://www.cbsnews.com/latest/rss/main"),
+            SuggestedFeed(name: "NBC News", url: "https://feeds.nbcnews.com/nbcnews/public/news"),
+            SuggestedFeed(name: "CBC Top Stories", url: "https://www.cbc.ca/webfeed/rss/rss-topstories"),
+            SuggestedFeed(name: "PBS NewsHour", url: "https://www.pbs.org/newshour/feeds/rss/headlines"),
+            SuggestedFeed(name: "Euronews", url: "https://www.euronews.com/rss?level=theme&name=news"),
+            SuggestedFeed(name: "Los Angeles Times", url: "https://www.latimes.com/world-nation/rss2.0.xml"),
+            SuggestedFeed(name: "The Conversation", url: "https://theconversation.com/global/articles.atom"),
+            SuggestedFeed(name: "Times of India", url: "https://timesofindia.indiatimes.com/rssfeedstopstories.cms"),
+            SuggestedFeed(name: "CNA", url: "https://www.channelnewsasia.com/api/v1/rss-outbound-feed?_format=xml"),
         ]),
         SuggestedFeedCategory(name: "World", feeds: [
             SuggestedFeed(name: "BBC World", url: "https://feeds.bbci.co.uk/news/world/rss.xml"),
@@ -2883,6 +3054,16 @@ private enum SuggestedFeedCatalog {
             SuggestedFeed(name: "France 24 World", url: "https://www.france24.com/en/rss"),
             SuggestedFeed(name: "DW World", url: "https://rss.dw.com/rdf/rss-en-world"),
             SuggestedFeed(name: "BBC Africa", url: "https://feeds.bbci.co.uk/news/world/africa/rss.xml"),
+            SuggestedFeed(name: "ABC World", url: "https://www.abc.net.au/news/feed/51120/rss.xml"),
+            SuggestedFeed(name: "CBC World", url: "https://www.cbc.ca/webfeed/rss/rss-world"),
+            SuggestedFeed(name: "RFI English", url: "https://www.rfi.fr/en/rss"),
+            SuggestedFeed(name: "NBC World", url: "https://feeds.nbcnews.com/nbcnews/public/world"),
+            SuggestedFeed(name: "Guardian Africa", url: "https://www.theguardian.com/world/africa/rss"),
+            SuggestedFeed(name: "Guardian Asia", url: "https://www.theguardian.com/world/asia/rss"),
+            SuggestedFeed(name: "Guardian Europe", url: "https://www.theguardian.com/world/europe-news/rss"),
+            SuggestedFeed(name: "Guardian Middle East", url: "https://www.theguardian.com/world/middleeast/rss"),
+            SuggestedFeed(name: "Le Monde International", url: "https://www.lemonde.fr/en/international/rss_full.xml"),
+            SuggestedFeed(name: "France 24 Africa", url: "https://www.france24.com/en/africa/rss"),
         ]),
         SuggestedFeedCategory(name: "Politics", feeds: [
             SuggestedFeed(name: "BBC Politics", url: "https://feeds.bbci.co.uk/news/politics/rss.xml"),
@@ -2895,6 +3076,16 @@ private enum SuggestedFeedCatalog {
             SuggestedFeed(name: "Guardian US Politics", url: "https://www.theguardian.com/us-news/us-politics/rss"),
             SuggestedFeed(name: "BBC Europe Politics", url: "https://feeds.bbci.co.uk/news/world/europe/rss.xml"),
             SuggestedFeed(name: "BBC Middle East", url: "https://feeds.bbci.co.uk/news/world/middle_east/rss.xml"),
+            SuggestedFeed(name: "NBC Politics", url: "https://feeds.nbcnews.com/nbcnews/public/politics"),
+            SuggestedFeed(name: "CBS Politics", url: "https://www.cbsnews.com/latest/rss/politics"),
+            SuggestedFeed(name: "ABC Politics", url: "https://abcnews.go.com/abcnews/politicsheadlines"),
+            SuggestedFeed(name: "Vox Politics", url: "https://www.vox.com/rss/politics/index.xml"),
+            SuggestedFeed(name: "The Conversation Politics", url: "https://theconversation.com/us/politics/articles.atom"),
+            SuggestedFeed(name: "ProPublica", url: "https://www.propublica.org/feeds/propublica/main"),
+            SuggestedFeed(name: "Democracy Now", url: "https://www.democracynow.org/democracynow.rss"),
+            SuggestedFeed(name: "Washington Times Politics", url: "https://www.washingtontimes.com/rss/headlines/news/politics/"),
+            SuggestedFeed(name: "Common Dreams", url: "https://www.commondreams.org/rss.xml"),
+            SuggestedFeed(name: "Reason", url: "https://reason.com/feed/"),
         ]),
         SuggestedFeedCategory(name: "Finance", feeds: [
             SuggestedFeed(name: "Financial Times", url: "https://www.ft.com/?format=rss"),
@@ -2907,6 +3098,16 @@ private enum SuggestedFeedCatalog {
             SuggestedFeed(name: "Seeking Alpha", url: "https://seekingalpha.com/market_currents.xml"),
             SuggestedFeed(name: "Investing.com", url: "https://www.investing.com/rss/news_25.rss"),
             SuggestedFeed(name: "CNBC Finance", url: "https://www.cnbc.com/id/10000664/device/rss/rss.html"),
+            SuggestedFeed(name: "WSJ Markets", url: "https://feeds.a.dj.com/rss/RSSMarketsMain.xml"),
+            SuggestedFeed(name: "WSJ Business", url: "https://feeds.a.dj.com/rss/WSJcomUSBusiness.xml"),
+            SuggestedFeed(name: "CNBC Economy", url: "https://www.cnbc.com/id/20910258/device/rss/rss.html"),
+            SuggestedFeed(name: "CNBC Business", url: "https://www.cnbc.com/id/10001147/device/rss/rss.html"),
+            SuggestedFeed(name: "Fortune", url: "https://fortune.com/feed/"),
+            SuggestedFeed(name: "Federal Reserve", url: "https://www.federalreserve.gov/feeds/press_all.xml"),
+            SuggestedFeed(name: "The Motley Fool", url: "https://www.fool.com/feeds/index.aspx"),
+            SuggestedFeed(name: "MarketWatch Market Pulse", url: "https://feeds.marketwatch.com/marketwatch/marketpulse/"),
+            SuggestedFeed(name: "Investor’s Business Daily", url: "https://www.investors.com/feed/"),
+            SuggestedFeed(name: "Benzinga", url: "https://www.benzinga.com/feed"),
         ]),
         SuggestedFeedCategory(name: "Technology", feeds: [
             SuggestedFeed(name: "Ars Technica", url: "https://feeds.arstechnica.com/arstechnica/index"),
@@ -2919,6 +3120,16 @@ private enum SuggestedFeedCatalog {
             SuggestedFeed(name: "The Register", url: "https://www.theregister.com/headlines.atom"),
             SuggestedFeed(name: "ZDNET", url: "https://www.zdnet.com/news/rss.xml"),
             SuggestedFeed(name: "MIT Technology Review", url: "https://www.technologyreview.com/feed/"),
+            SuggestedFeed(name: "MacRumors", url: "https://www.macrumors.com/macrumors.xml"),
+            SuggestedFeed(name: "9to5Mac", url: "https://9to5mac.com/feed/"),
+            SuggestedFeed(name: "Android Authority", url: "https://www.androidauthority.com/feed/"),
+            SuggestedFeed(name: "TechRadar", url: "https://www.techradar.com/rss"),
+            SuggestedFeed(name: "BleepingComputer", url: "https://www.bleepingcomputer.com/feed/"),
+            SuggestedFeed(name: "Tom’s Hardware", url: "https://www.tomshardware.com/feeds/all"),
+            SuggestedFeed(name: "Gizmodo", url: "https://gizmodo.com/rss"),
+            SuggestedFeed(name: "IEEE Spectrum", url: "https://spectrum.ieee.org/feeds/feed.rss"),
+            SuggestedFeed(name: "The Next Web", url: "https://thenextweb.com/feed"),
+            SuggestedFeed(name: "Ars Technica Technology Lab", url: "https://feeds.arstechnica.com/arstechnica/technology-lab"),
         ]),
         SuggestedFeedCategory(name: "Science", feeds: [
             SuggestedFeed(name: "Nature", url: "https://www.nature.com/nature.rss"),
@@ -2931,6 +3142,16 @@ private enum SuggestedFeedCatalog {
             SuggestedFeed(name: "Quanta Magazine", url: "https://www.quantamagazine.org/feed/"),
             SuggestedFeed(name: "BBC Science", url: "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml"),
             SuggestedFeed(name: "Phys.org", url: "https://phys.org/rss-feed/"),
+            SuggestedFeed(name: "Live Science", url: "https://www.livescience.com/feeds/all"),
+            SuggestedFeed(name: "NOAA News", url: "https://www.noaa.gov/news/rss.xml"),
+            SuggestedFeed(name: "NASA Spaceflight", url: "https://www.nasaspaceflight.com/feed/"),
+            SuggestedFeed(name: "ScienceDaily Technology", url: "https://www.sciencedaily.com/rss/top/technology.xml"),
+            SuggestedFeed(name: "Physics World", url: "https://physicsworld.com/feed/"),
+            SuggestedFeed(name: "SpaceNews", url: "https://spacenews.com/feed/"),
+            SuggestedFeed(name: "NASA News Releases", url: "https://www.nasa.gov/news-release/feed/"),
+            SuggestedFeed(name: "ScienceDaily Top Science", url: "https://www.sciencedaily.com/rss/top/science.xml"),
+            SuggestedFeed(name: "Le Monde Science", url: "https://www.lemonde.fr/en/science/rss_full.xml"),
+            SuggestedFeed(name: "Astronomy", url: "https://www.astronomy.com/feed/"),
         ]),
         SuggestedFeedCategory(name: "Health", feeds: [
             SuggestedFeed(name: "BBC Health", url: "https://feeds.bbci.co.uk/news/health/rss.xml"),
@@ -2939,10 +3160,20 @@ private enum SuggestedFeedCatalog {
             SuggestedFeed(name: "Guardian Health", url: "https://www.theguardian.com/society/health/rss"),
             SuggestedFeed(name: "Healthline", url: "https://www.healthline.com/rss/health-news"),
             SuggestedFeed(name: "STAT News", url: "https://www.statnews.com/feed/"),
-            SuggestedFeed(name: "WHO News", url: "https://www.who.int/rss-feeds/news-english.xml"),
+            SuggestedFeed(name: "KFF Health News", url: "https://kffhealthnews.org/feed/"),
             SuggestedFeed(name: "ScienceDaily Health", url: "https://www.sciencedaily.com/rss/health_medicine.xml"),
             SuggestedFeed(name: "NHS News", url: "https://www.england.nhs.uk/feed/"),
             SuggestedFeed(name: "ScienceDaily Nutrition", url: "https://www.sciencedaily.com/rss/health_medicine/nutrition.xml"),
+            SuggestedFeed(name: "FDA MedWatch", url: "https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/medwatch/rss.xml"),
+            SuggestedFeed(name: "MedPage Today", url: "https://www.medpagetoday.com/rss/headlines.xml"),
+            SuggestedFeed(name: "Nature Health Care", url: "https://www.nature.com/subjects/health-care.rss"),
+            SuggestedFeed(name: "Nature Medical Research", url: "https://www.nature.com/subjects/medical-research.rss"),
+            SuggestedFeed(name: "MedlinePlus", url: "https://medlineplus.gov/feeds/whatsnew.xml"),
+            SuggestedFeed(name: "MedicineNet", url: "https://www.medicinenet.com/rss/dailyhealth.xml"),
+            SuggestedFeed(name: "Nature Public Health", url: "https://www.nature.com/subjects/public-health.rss"),
+            SuggestedFeed(name: "ScienceDaily Top Health", url: "https://www.sciencedaily.com/rss/top/health.xml"),
+            SuggestedFeed(name: "Le Monde Health", url: "https://www.lemonde.fr/en/health/rss_full.xml"),
+            SuggestedFeed(name: "The Conversation Health", url: "https://theconversation.com/us/health/articles.atom"),
         ]),
         SuggestedFeedCategory(name: "Environment", feeds: [
             SuggestedFeed(name: "BBC Science & Environment", url: "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml"),
@@ -2955,6 +3186,16 @@ private enum SuggestedFeedCatalog {
             SuggestedFeed(name: "Climate Home News", url: "https://www.climatechangenews.com/feed/"),
             SuggestedFeed(name: "ScienceDaily Environment", url: "https://www.sciencedaily.com/rss/earth_climate.xml"),
             SuggestedFeed(name: "Phys.org Environment", url: "https://phys.org/rss-feed/earth-news/environment/"),
+            SuggestedFeed(name: "Yale Climate Connections", url: "https://yaleclimateconnections.org/feed/"),
+            SuggestedFeed(name: "Greenpeace", url: "https://www.greenpeace.org/international/feed/"),
+            SuggestedFeed(name: "Guardian Climate Crisis", url: "https://www.theguardian.com/environment/climate-crisis/rss"),
+            SuggestedFeed(name: "The Conversation Environment", url: "https://theconversation.com/us/environment/articles.atom"),
+            SuggestedFeed(name: "Earth.org", url: "https://earth.org/feed/"),
+            SuggestedFeed(name: "Le Monde Environment", url: "https://www.lemonde.fr/en/environment/rss_full.xml"),
+            SuggestedFeed(name: "Le Monde Climate", url: "https://www.lemonde.fr/en/climate/rss_full.xml"),
+            SuggestedFeed(name: "Climate Reality Project", url: "https://www.climaterealityproject.org/feed"),
+            SuggestedFeed(name: "ENDS Report", url: "https://www.endsreport.com/rss/news-and-analysis"),
+            SuggestedFeed(name: "NOAA News", url: "https://www.noaa.gov/news/rss.xml"),
         ]),
         SuggestedFeedCategory(name: "Sports", feeds: [
             SuggestedFeed(name: "BBC Sport", url: "https://feeds.bbci.co.uk/sport/rss.xml"),
@@ -2967,6 +3208,16 @@ private enum SuggestedFeedCatalog {
             SuggestedFeed(name: "ESPN MLB", url: "https://www.espn.com/espn/rss/mlb/news"),
             SuggestedFeed(name: "Formula 1", url: "https://www.formula1.com/content/fom-website/en/latest/all.xml"),
             SuggestedFeed(name: "BBC Cricket", url: "https://feeds.bbci.co.uk/sport/cricket/rss.xml"),
+            SuggestedFeed(name: "Guardian Sport", url: "https://www.theguardian.com/sport/rss"),
+            SuggestedFeed(name: "CBS Sports", url: "https://www.cbssports.com/rss/headlines/"),
+            SuggestedFeed(name: "Yahoo Sports", url: "https://sports.yahoo.com/rss/"),
+            SuggestedFeed(name: "Motorsport.com F1", url: "https://www.motorsport.com/rss/f1/news/"),
+            SuggestedFeed(name: "BBC Rugby", url: "https://feeds.bbci.co.uk/sport/rugby-union/rss.xml"),
+            SuggestedFeed(name: "Sports Illustrated", url: "https://www.si.com/feed"),
+            SuggestedFeed(name: "ProFootballTalk", url: "https://www.nbcsports.com/profootballtalk.rss"),
+            SuggestedFeed(name: "Bleacher Report", url: "https://feeds.bleacherreport.com/articles"),
+            SuggestedFeed(name: "ESPNcricinfo", url: "https://www.espncricinfo.com/rss/content/story/feeds/0.xml"),
+            SuggestedFeed(name: "Le Monde Sports", url: "https://www.lemonde.fr/en/sports/rss_full.xml"),
         ]),
         SuggestedFeedCategory(name: "Culture", feeds: [
             SuggestedFeed(name: "BBC Arts", url: "https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml"),
@@ -2979,6 +3230,16 @@ private enum SuggestedFeedCatalog {
             SuggestedFeed(name: "Literary Hub", url: "https://lithub.com/feed/"),
             SuggestedFeed(name: "The Atlantic", url: "https://www.theatlantic.com/feed/all/"),
             SuggestedFeed(name: "Guardian Books", url: "https://www.theguardian.com/books/rss"),
+            SuggestedFeed(name: "Rolling Stone", url: "https://www.rollingstone.com/feed/"),
+            SuggestedFeed(name: "Pitchfork", url: "https://pitchfork.com/rss/news/"),
+            SuggestedFeed(name: "Hollywood Reporter TV", url: "https://www.hollywoodreporter.com/tv/feed/"),
+            SuggestedFeed(name: "ARTnews", url: "https://www.artnews.com/feed/"),
+            SuggestedFeed(name: "Hyperallergic", url: "https://hyperallergic.com/feed/"),
+            SuggestedFeed(name: "Book Riot", url: "https://bookriot.com/feed/"),
+            SuggestedFeed(name: "Guardian Music", url: "https://www.theguardian.com/music/rss"),
+            SuggestedFeed(name: "Guardian Film", url: "https://www.theguardian.com/film/rss"),
+            SuggestedFeed(name: "Slashfilm", url: "https://www.slashfilm.com/feed/"),
+            SuggestedFeed(name: "The Marginalian", url: "https://www.themarginalian.org/feed/"),
         ]),
         SuggestedFeedCategory(name: "Gaming", feeds: [
             SuggestedFeed(name: "Polygon", url: "https://www.polygon.com/rss/index.xml"),
@@ -2991,6 +3252,16 @@ private enum SuggestedFeedCatalog {
             SuggestedFeed(name: "Kotaku", url: "https://kotaku.com/rss"),
             SuggestedFeed(name: "Nintendo Life", url: "https://www.nintendolife.com/feeds/latest"),
             SuggestedFeed(name: "PlayStation Blog", url: "https://blog.playstation.com/feed/"),
+            SuggestedFeed(name: "GamesIndustry.biz", url: "https://www.gamesindustry.biz/feed"),
+            SuggestedFeed(name: "Gematsu", url: "https://www.gematsu.com/feed"),
+            SuggestedFeed(name: "Destructoid", url: "https://www.destructoid.com/feed/"),
+            SuggestedFeed(name: "Nintendo Everything", url: "https://nintendoeverything.com/feed/"),
+            SuggestedFeed(name: "Wccftech Gaming", url: "https://wccftech.com/category/gaming/feed/"),
+            SuggestedFeed(name: "Xbox Wire", url: "https://news.xbox.com/en-us/feed/"),
+            SuggestedFeed(name: "PCGamesN", url: "https://www.pcgamesn.com/mainrss.xml"),
+            SuggestedFeed(name: "Massively Overpowered", url: "https://massivelyop.com/feed/"),
+            SuggestedFeed(name: "GamingOnLinux", url: "https://www.gamingonlinux.com/article_rss.php"),
+            SuggestedFeed(name: "Game Developer", url: "https://www.gamedeveloper.com/rss.xml"),
         ]),
         SuggestedFeedCategory(name: "Food", feeds: [
             SuggestedFeed(name: "Bon Appetit", url: "https://www.bonappetit.com/feed/rss"),
@@ -3003,6 +3274,16 @@ private enum SuggestedFeedCatalog {
             SuggestedFeed(name: "Budget Bytes", url: "https://www.budgetbytes.com/feed/"),
             SuggestedFeed(name: "King Arthur Baking", url: "https://www.kingarthurbaking.com/blog/feed"),
             SuggestedFeed(name: "Taste of Home", url: "https://www.tasteofhome.com/feed/"),
+            SuggestedFeed(name: "Epicurious", url: "https://www.epicurious.com/feed/rss"),
+            SuggestedFeed(name: "Sally’s Baking Addiction", url: "https://sallysbakingaddiction.com/feed/"),
+            SuggestedFeed(name: "Pinch of Yum", url: "https://pinchofyum.com/feed"),
+            SuggestedFeed(name: "David Lebovitz", url: "https://www.davidlebovitz.com/feed/"),
+            SuggestedFeed(name: "Half Baked Harvest", url: "https://www.halfbakedharvest.com/feed/"),
+            SuggestedFeed(name: "The Pioneer Woman", url: "https://www.thepioneerwoman.com/rss/all.xml/"),
+            SuggestedFeed(name: "Mashed", url: "https://www.mashed.com/feed/"),
+            SuggestedFeed(name: "The Mediterranean Dish", url: "https://www.themediterraneandish.com/feed/"),
+            SuggestedFeed(name: "Food Republic", url: "https://www.foodrepublic.com/feed/"),
+            SuggestedFeed(name: "Cookie and Kate", url: "https://cookieandkate.com/feed/"),
         ]),
         SuggestedFeedCategory(name: "Travel", feeds: [
             SuggestedFeed(name: "CNN Travel", url: "http://rss.cnn.com/rss/edition_travel.rss"),
@@ -3011,14 +3292,44 @@ private enum SuggestedFeedCatalog {
             SuggestedFeed(name: "Atlas Obscura", url: "https://www.atlasobscura.com/feeds/latest"),
             SuggestedFeed(name: "Guardian Holidays", url: "https://www.theguardian.com/uk/travel/rss"),
             SuggestedFeed(name: "Matador Network", url: "https://matadornetwork.com/feed/"),
-            SuggestedFeed(name: "The Points Guy", url: "https://thepointsguy.com/feed/"),
+            SuggestedFeed(name: "AFAR", url: "https://www.afar.com/index.rss"),
+            SuggestedFeed(name: "Intrepid Travel", url: "https://www.intrepidtravel.com/adventures/feed/"),
             SuggestedFeed(name: "Outside Online Travel", url: "https://www.outsideonline.com/adventure-travel/feed/"),
             SuggestedFeed(name: "Nomadic Matt", url: "https://www.nomadicmatt.com/feed/"),
             SuggestedFeed(name: "Travel Off Path", url: "https://www.traveloffpath.com/feed/"),
+            SuggestedFeed(name: "Skift", url: "https://skift.com/feed/"),
+            SuggestedFeed(name: "The Travel Hack", url: "https://www.thetravelhack.com/feed/"),
+            SuggestedFeed(name: "Adventure Journal", url: "https://www.adventure-journal.com/feed/"),
+            SuggestedFeed(name: "Adventure.com", url: "https://adventure.com/feed/"),
+            SuggestedFeed(name: "Road Affair", url: "https://www.roadaffair.com/feed/"),
+            SuggestedFeed(name: "Adventurous Kate", url: "https://www.adventurouskate.com/feed/"),
+            SuggestedFeed(name: "Le Monde Travel", url: "https://www.lemonde.fr/en/travel/rss_full.xml"),
+            SuggestedFeed(name: "The Blonde Abroad", url: "https://www.theblondeabroad.com/feed/"),
+            SuggestedFeed(name: "Traveling Lifestyle", url: "https://www.travelinglifestyle.net/feed/"),
         ]),
     ]
     static func category(named name: String) -> SuggestedFeedCategory? {
         categories.first { $0.name == name }
+    }
+}
+
+private struct RSSMark: View {
+    var body: some View {
+        GeometryReader { proxy in
+            let side = min(proxy.size.width, proxy.size.height)
+            ZStack(alignment: .bottomLeading) {
+                Circle()
+                    .frame(width: side * 0.18, height: side * 0.18)
+                    .offset(x: side * 0.12, y: -side * 0.12)
+                Path { path in
+                    path.addArc(center: CGPoint(x: side * 0.12, y: side * 0.88), radius: side * 0.38, startAngle: .degrees(270), endAngle: .degrees(360), clockwise: false)
+                    path.addArc(center: CGPoint(x: side * 0.12, y: side * 0.88), radius: side * 0.72, startAngle: .degrees(270), endAngle: .degrees(360), clockwise: false)
+                }
+                .stroke(style: StrokeStyle(lineWidth: side * 0.12, lineCap: .round))
+                .frame(width: side, height: side)
+            }
+        }
+        .accessibilityLabel("RSS feeds")
     }
 }
 

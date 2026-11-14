@@ -2009,6 +2009,9 @@
         }
       }
     },
+    "ALREADY IN YOUR FEEDS" : {
+
+    },
     "any" : {
       "localizations" : {
         "ar" : {
@@ -10670,6 +10673,9 @@
           }
         }
       }
+    },
+    "This removes the feed and all its saved articles from Precis. Feeds synced from Feedbin or The Old Reader will also be unsubscribed." : {
+
     },
     "Today's Precis" : {
       "localizations" : {

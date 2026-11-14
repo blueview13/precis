@@ -574,9 +574,14 @@ public final class ArticleListViewModel: ObservableObject {
         storyObserver = NotificationCenter.default.addObserver(forName: .storyClustersDidChange, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor [weak self] in
                 guard let self else { return }
-                let ids = Set(items.map(\.id))
+                // Use the live library here. The initializer's `items`
+                // parameter shadows the property and only contains the seed
+                // articles; capturing it would clear real memberships after
+                // every clustering update.
+                let ids = Set(self.items.map(\.id))
                 let groups = await StoryClusterService.shared.memberships(for: ids)
-                storyGroups = groups.filter { ids.contains($0.key) }
+                let currentIDs = Set(self.items.map(\.id))
+                self.storyGroups = groups.filter { currentIDs.contains($0.key) }
             }
         }
 
