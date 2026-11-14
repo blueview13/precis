@@ -787,6 +787,19 @@
         }
       }
     },
+    "%@ related %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ related %2$@"
+          }
+        }
+      }
+    },
+    "%@ selected" : {
+
+    },
     "%@ sources" : {
       "localizations" : {
         "ar" : {
@@ -1310,6 +1323,7 @@
       }
     },
     "Add Feed" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -1412,6 +1426,9 @@
           }
         }
       }
+    },
+    "Add Manual Feed" : {
+
     },
     "Add New Tag…" : {
       "extractionState" : "stale",
@@ -2625,6 +2642,7 @@
       }
     },
     "Browse by category..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -7271,6 +7289,9 @@
         }
       }
     },
+    "No working feeds found for this topic." : {
+
+    },
     "Not connected" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -7642,6 +7663,7 @@
       }
     },
     "Or add a feed manually" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -7853,6 +7875,7 @@
       }
     },
     "Paste a URL — supports RSS, YouTube, Reddit, Google News, X, Facebook, Bluesky, GitHub, TikTok, and more" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -9861,6 +9884,7 @@
       }
     },
     "SUGGESTED FEEDS" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {

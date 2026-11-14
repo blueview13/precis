@@ -2365,7 +2365,6 @@ struct MainWindowLayout: View {
                 importStatusKind: $importStatusKind,
                 canAddToFeedbin: hasFeedbinCredentials,
                 onAdd: { feedURL, target in
-                    Task {
                         isImporting = true
                         importStatus = ""
                         importStatusKind = .neutral
@@ -2416,7 +2415,6 @@ struct MainWindowLayout: View {
                             importStatusKind = .error
                         }
                         isImporting = false
-                    }
                 }
             )
         }
@@ -2474,9 +2472,13 @@ private struct AddFeedSheet: View {
     @Binding var importStatus: String
     @Binding var importStatusKind: ImportStatusKind
     let canAddToFeedbin: Bool
-    let onAdd: (String, FeedAddTarget) -> Void
+    let onAdd: (String, FeedAddTarget) async -> Void
     @State private var didImport = false
-    @State private var selectedFeedURL = ""
+    @State private var selectedFeedURLs: Set<String> = []
+    @State private var topicSearch = ""
+    @State private var topicSearchFeeds: [SuggestedFeed] = []
+    @State private var isSearchingTopics = false
+    @State private var feedPickerPresentation: FeedPickerPresentation?
     @State private var addTarget: FeedAddTarget = .precis
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
@@ -2485,7 +2487,7 @@ private struct AddFeedSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: PrecisSpacing.md) {
             HStack {
-                Text("Add Feed")
+                Text("Add Manual Feed")
                     .font(PrecisTypography.headline)
                     .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
                 Spacer()
@@ -2496,21 +2498,13 @@ private struct AddFeedSheet: View {
                 .buttonStyle(.plain)
             }
 
-            Text("Paste a URL — supports RSS, YouTube, Reddit, Google News, X, Facebook, Bluesky, GitHub, TikTok, and more")
-                .font(PrecisTypography.metadata)
-                .foregroundStyle(PrecisDesignSystem.marginalia)
-
-            Text("Or add a feed manually")
-                .font(PrecisTypography.metadata.weight(.medium))
-                .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
-
             TextField("", text: $feedURLInput, prompt: isURLEntryFocused
                 ? nil
                 : Text("https://example.com/feed.xml or any supported URL"))
                 .textFieldStyle(.roundedBorder)
                 .font(PrecisTypography.body)
                 .focused($isURLEntryFocused)
-                .onSubmit { onAdd(feedURLInput, addTarget) }
+                .onSubmit { Task { await onAdd(feedURLInput, addTarget) } }
 
             if canAddToFeedbin {
                 Picker("Add to", selection: $addTarget) {
@@ -2526,7 +2520,7 @@ private struct AddFeedSheet: View {
             }
 
             HStack(spacing: 12) {
-                Button(action: { onAdd(feedURLInput, addTarget) }) {
+                Button(action: { Task { await onAdd(feedURLInput, addTarget) } }) {
                     HStack {
                         if isImporting {
                             ProgressView()
@@ -2553,29 +2547,38 @@ private struct AddFeedSheet: View {
 
             Divider()
 
-            VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
-                Text("SUGGESTED FEEDS")
-                    .font(PrecisTypography.caption)
-                    .foregroundStyle(PrecisDesignSystem.marginalia)
-
-                Picker("", selection: $selectedFeedURL) {
-                    Text("Browse by category...").tag("")
+            VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
+                Label("Discover Feeds", systemImage: "dot.radiowaves.left.and.right")
+                    .font(PrecisTypography.headline)
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                     ForEach(SuggestedFeedCatalog.categories) { category in
-                        Section(category.name) {
-                            ForEach(category.feeds) { feed in
-                                Text(feed.name).tag(feed.url)
-                            }
+                        Button {
+                            feedPickerPresentation = FeedPickerPresentation(title: category.name, feeds: category.feeds)
+                        } label: {
+                            Text(category.name)
+                                .font(PrecisTypography.metadata)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(9)
+                                .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
                         }
+                        .buttonStyle(.plain)
                     }
                 }
-                .pickerStyle(.menu)
-                .labelsHidden()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .onChange(of: selectedFeedURL) { _, url in
-                    guard !url.isEmpty else { return }
-                    feedURLInput = url
-                    importStatus = ""
-                    importStatusKind = .neutral
+                HStack {
+                    TextField("Search feeds by topic (e.g. Formula One)", text: $topicSearch)
+                        .textFieldStyle(.roundedBorder)
+                        .onSubmit { searchForTopicFeeds() }
+                    Button("Search") { searchForTopicFeeds() }
+                        .disabled(topicSearch.trimmingCharacters(in: .whitespacesAndNewlines).count < 2 || isSearchingTopics)
+                }
+                if isSearchingTopics {
+                    ProgressView("Finding feeds…")
+                        .font(PrecisTypography.metadata)
+                }
+                if !topicSearch.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isSearchingTopics && topicSearchFeeds.isEmpty {
+                    Text("No working feeds found for this topic.")
+                        .font(PrecisTypography.metadata)
+                        .foregroundStyle(PrecisDesignSystem.marginalia)
                 }
             }
 
@@ -2587,7 +2590,7 @@ private struct AddFeedSheet: View {
             }
         }
         .padding(PrecisSpacing.lg)
-        .frame(width: 460)
+        .frame(width: 560)
         .onAppear {
             // Fresh sheet state on every presentation.
             importStatus = ""
@@ -2601,6 +2604,35 @@ private struct AddFeedSheet: View {
                 didImport = true
                 // Ready the field for the next feed URL.
                 isURLEntryFocused = true
+            }
+        }
+        .sheet(item: $feedPickerPresentation) { presentation in
+            SuggestedFeedsPickerSheet(
+                title: presentation.title,
+                feeds: presentation.feeds,
+                selectedURLs: $selectedFeedURLs,
+                isImporting: $isImporting,
+                onAdd: { urls in
+                    for url in urls { await onAdd(url, addTarget) }
+                }
+            )
+        }
+    }
+
+    private func searchForTopicFeeds() {
+        let query = topicSearch.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard query.count >= 2 else { return }
+        Task {
+            isSearchingTopics = true
+            let results = await SuggestedFeedCatalog.search(topic: query)
+            guard topicSearch.trimmingCharacters(in: .whitespacesAndNewlines) == query else {
+                isSearchingTopics = false
+                return
+            }
+            topicSearchFeeds = results
+            isSearchingTopics = false
+            if !results.isEmpty {
+                feedPickerPresentation = FeedPickerPresentation(title: "Search: \(query)", feeds: results)
             }
         }
     }
@@ -2625,7 +2657,73 @@ private struct AddFeedSheet: View {
     }
 }
 
-private struct SuggestedFeed: Identifiable {
+private struct FeedPickerPresentation: Identifiable {
+    let title: String
+    let feeds: [SuggestedFeed]
+    var id: String { title }
+}
+
+private struct SuggestedFeedsPickerSheet: View {
+    let title: String
+    let feeds: [SuggestedFeed]
+    @Binding var selectedURLs: Set<String>
+    @Binding var isImporting: Bool
+    let onAdd: ([String]) async -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: PrecisSpacing.md) {
+            HStack {
+                Text(title)
+                    .font(PrecisTypography.headline)
+                Spacer()
+                Button("Done") { dismiss() }
+            }
+            ScrollView {
+                VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
+                    ForEach(feeds) { feed in
+                        Toggle(isOn: Binding(
+                            get: { selectedURLs.contains(feed.url) },
+                            set: { selected in
+                                if selected { selectedURLs.insert(feed.url) }
+                                else { selectedURLs.remove(feed.url) }
+                            }
+                        )) {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(feed.name)
+                                Text(feed.url)
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
+                        }
+                        .toggleStyle(.checkbox)
+                        .tint(Color.green)
+                    }
+                }
+            }
+            HStack {
+                Text("\(selectedURLs.count) selected")
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button("Add Selected Feeds") {
+                    let urls = selectedURLs.sorted()
+                    Task {
+                        await onAdd(urls)
+                        selectedURLs.subtract(urls)
+                        dismiss()
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(selectedURLs.isEmpty || isImporting)
+            }
+        }
+        .padding(PrecisSpacing.lg)
+        .frame(width: 560, height: 620)
+    }
+}
+
+private struct SuggestedFeed: Identifiable, Sendable {
     let name: String
     let url: String
 
@@ -2640,24 +2738,175 @@ private struct SuggestedFeedCategory: Identifiable {
 }
 
 private enum SuggestedFeedCatalog {
+    static func search(topic: String) async -> [SuggestedFeed] {
+        var components = URLComponents(string: "https://lite.duckduckgo.com/lite/")!
+        components.queryItems = [URLQueryItem(name: "q", value: "\(topic) RSS feed -site:feedspot.com -site:feeder.co -site:rsscatalog.com")]
+        guard let searchURL = components.url,
+              let (data, response) = try? await URLSession.shared.data(from: searchURL),
+              (response as? HTTPURLResponse).map({ (200..<300).contains($0.statusCode) }) == true,
+              let html = String(data: data, encoding: .utf8) else { return [] }
+
+        let candidates = searchResultLinks(in: html)
+            .filter { !isFeedDirectory($0.url.host ?? "") }
+            .prefix(12)
+        let results = await withTaskGroup(of: (Int, SuggestedFeed?).self, returning: [(Int, SuggestedFeed?)].self) { group in
+            for (index, candidate) in candidates.enumerated() {
+                group.addTask {
+                    guard let feed = await validatedSourceFeed(from: candidate.url, suggestedTitle: candidate.title) else { return (index, nil) }
+                    return (index, feed)
+                }
+            }
+            var found: [(Int, SuggestedFeed?)] = []
+            for await result in group { found.append(result) }
+            return found
+        }
+        var seen = Set<String>()
+        return results.sorted { $0.0 < $1.0 }.compactMap(\.1).filter { seen.insert($0.url).inserted }
+    }
+
+    private static func searchResultLinks(in html: String) -> [(title: String, url: URL)] {
+        guard let anchorRegex = try? NSRegularExpression(pattern: #"<a\b([^>]*)>([\s\S]*?)</a>"#, options: [.caseInsensitive]),
+              let classRegex = try? NSRegularExpression(pattern: #"class\s*=\s*['\"][^'\"]*result-link[^'\"]*['\"]"#, options: [.caseInsensitive]),
+              let hrefRegex = try? NSRegularExpression(pattern: #"href\s*=\s*['\"]([^'\"]+)['\"]"#, options: [.caseInsensitive]) else { return [] }
+        let fullRange = NSRange(html.startIndex..<html.endIndex, in: html)
+        return anchorRegex.matches(in: html, range: fullRange).compactMap { match in
+            guard let attrsRange = Range(match.range(at: 1), in: html),
+                  let titleRange = Range(match.range(at: 2), in: html) else { return nil }
+            let attributes = String(html[attrsRange])
+            guard classRegex.firstMatch(in: attributes, range: NSRange(attributes.startIndex..<attributes.endIndex, in: attributes)) != nil,
+                  let hrefMatch = hrefRegex.firstMatch(in: attributes, range: NSRange(attributes.startIndex..<attributes.endIndex, in: attributes)),
+                  let hrefRange = Range(hrefMatch.range(at: 1), in: attributes) else { return nil }
+            let href = decodeSearchHTML(String(attributes[hrefRange]))
+            let resolved: URL?
+            if href.hasPrefix("//"), let wrapped = URLComponents(string: "https:\(href)"),
+               let redirect = wrapped.queryItems?.first(where: { $0.name == "uddg" })?.value {
+                resolved = URL(string: redirect)
+            } else if let link = URL(string: href), link.host?.contains("duckduckgo.com") == true,
+                      let redirect = URLComponents(url: link, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "uddg" })?.value {
+                resolved = URL(string: redirect)
+            } else {
+                resolved = URL(string: href)
+            }
+            guard let resolved, ["http", "https"].contains(resolved.scheme?.lowercased() ?? "") else { return nil }
+            let titleHTML = String(html[titleRange]).replacingOccurrences(of: #"<[^>]+>"#, with: "", options: .regularExpression)
+            return (decodeSearchHTML(titleHTML), resolved)
+        }
+    }
+
+    private static func validatedSourceFeed(from sourceURL: URL, suggestedTitle: String) async -> SuggestedFeed? {
+        let service = FeedDiscoveryService()
+        let resolved = await FeedDiscoveryService.resolveFeedURL(sourceURL)
+        var feedURLs = [resolved]
+
+        // RSS directory pages often list the publisher's actual XML endpoints.
+        // Inspect those links when the search result itself isn't a feed.
+        let resolvedIsFeed = await parsesAsFeed(resolved)
+        if resolved == sourceURL || !resolvedIsFeed {
+            if let (pageData, _) = try? await URLSession.shared.data(from: sourceURL),
+               let page = String(data: pageData, encoding: .utf8) {
+                feedURLs.append(contentsOf: linkedFeedURLs(in: page, baseURL: sourceURL, service: service))
+            }
+        }
+
+        var seen = Set<String>()
+        for url in feedURLs where seen.insert(url.absoluteString).inserted {
+            guard !isFeedDirectory(url.host ?? ""), let parsed = await parseFeed(url), !parsed.entries.isEmpty else { continue }
+            let name = parsed.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            return SuggestedFeed(name: name.isEmpty ? suggestedTitle : name, url: url.absoluteString)
+        }
+        return nil
+    }
+
+    private static func parsesAsFeed(_ url: URL) async -> Bool {
+        await parseFeed(url)?.entries.isEmpty == false
+    }
+
+    private static func parseFeed(_ url: URL) async -> ParsedFeedResult? {
+        do {
+            var request = URLRequest(url: url)
+            request.timeoutInterval = 15
+            request.setValue("Precis Feed Search/1.0", forHTTPHeaderField: "User-Agent")
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let response = response as? HTTPURLResponse, (200..<300).contains(response.statusCode) else { return nil }
+            let parsed = try await FeedParserService().parse(data: data, url: url)
+            return parsed.entries.isEmpty ? nil : parsed
+        } catch {
+            return nil
+        }
+    }
+
+    private static func linkedFeedURLs(in html: String, baseURL: URL, service: FeedDiscoveryService) -> [URL] {
+        guard let regex = try? NSRegularExpression(pattern: #"href\s*=\s*['\"]([^'\"]+)['\"]"#, options: [.caseInsensitive]) else { return [] }
+        let range = NSRange(html.startIndex..<html.endIndex, in: html)
+        return regex.matches(in: html, range: range).compactMap { match in
+            guard let valueRange = Range(match.range(at: 1), in: html) else { return nil }
+            let raw = decodeSearchHTML(String(html[valueRange]))
+            guard let url = URL(string: raw, relativeTo: baseURL)?.absoluteURL,
+                  service.validateFeedURL(url) else { return nil }
+            return url
+        }
+    }
+
+    private static func isFeedDirectory(_ host: String) -> Bool {
+        let host = host.lowercased()
+        return ["feedspot.com", "feeder.co", "rsscatalog.com", "feedly.com", "blogtrottr.com", "feedrabbit.com"].contains { host == $0 || host.hasSuffix(".\($0)") }
+    }
+
+    private static func decodeSearchHTML(_ value: String) -> String {
+        value.replacingOccurrences(of: "&amp;", with: "&")
+            .replacingOccurrences(of: "&quot;", with: "\"")
+            .replacingOccurrences(of: "&#39;", with: "'")
+            .replacingOccurrences(of: "&lt;", with: "<")
+            .replacingOccurrences(of: "&gt;", with: ">")
+    }
     static let categories = [
-        SuggestedFeedCategory(name: "News", feeds: [
-            SuggestedFeed(name: "BBC World News", url: "https://feeds.bbci.co.uk/news/world/rss.xml"),
-            SuggestedFeed(name: "The Guardian: World", url: "https://www.theguardian.com/world/rss"),
+        SuggestedFeedCategory(name: "General News", feeds: [
+            SuggestedFeed(name: "BBC News", url: "https://feeds.bbci.co.uk/news/rss.xml"),
+            SuggestedFeed(name: "The Guardian", url: "https://www.theguardian.com/international/rss"),
             SuggestedFeed(name: "NPR News", url: "https://feeds.npr.org/1001/rss.xml"),
-            SuggestedFeed(name: "CNN: World", url: "http://rss.cnn.com/rss/edition_world.rss"),
-            SuggestedFeed(name: "The New York Times: Top Stories", url: "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml"),
-            SuggestedFeed(name: "Sky News: World", url: "https://feeds.skynews.com/feeds/rss/world.xml"),
-            SuggestedFeed(name: "Google News", url: "https://news.google.com/rss")
+            SuggestedFeed(name: "CNN Top Stories", url: "http://rss.cnn.com/rss/edition.rss"),
+            SuggestedFeed(name: "New York Times Top Stories", url: "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml"),
+            SuggestedFeed(name: "Sky News", url: "https://feeds.skynews.com/feeds/rss/home.xml"),
+            SuggestedFeed(name: "Al Jazeera", url: "https://www.aljazeera.com/xml/rss/all.xml"),
+            SuggestedFeed(name: "France 24", url: "https://www.france24.com/en/rss"),
+            SuggestedFeed(name: "DW News", url: "https://rss.dw.com/rdf/rss-en-all"),
+            SuggestedFeed(name: "BBC UK", url: "https://feeds.bbci.co.uk/news/uk/rss.xml"),
         ]),
-        SuggestedFeedCategory(name: "Sports", feeds: [
-            SuggestedFeed(name: "BBC Sport", url: "https://feeds.bbci.co.uk/sport/rss.xml"),
-            SuggestedFeed(name: "ESPN Top Headlines", url: "https://www.espn.com/espn/rss/news"),
-            SuggestedFeed(name: "BBC Football", url: "https://feeds.bbci.co.uk/sport/football/rss.xml"),
-            SuggestedFeed(name: "Sky Sports: Football", url: "https://www.skysports.com/rss/12040"),
-            SuggestedFeed(name: "ESPN: Soccer", url: "https://www.espn.com/espn/rss/soccer/news"),
-            SuggestedFeed(name: "ESPN: NBA", url: "https://www.espn.com/espn/rss/nba/news"),
-            SuggestedFeed(name: "ESPN: NFL", url: "https://www.espn.com/espn/rss/nfl/news")
+        SuggestedFeedCategory(name: "World", feeds: [
+            SuggestedFeed(name: "BBC World", url: "https://feeds.bbci.co.uk/news/world/rss.xml"),
+            SuggestedFeed(name: "Guardian World", url: "https://www.theguardian.com/world/rss"),
+            SuggestedFeed(name: "NPR World", url: "https://feeds.npr.org/1004/rss.xml"),
+            SuggestedFeed(name: "CNN World", url: "http://rss.cnn.com/rss/edition_world.rss"),
+            SuggestedFeed(name: "NYT World", url: "https://rss.nytimes.com/services/xml/rss/nyt/World.xml"),
+            SuggestedFeed(name: "Sky News World", url: "https://feeds.skynews.com/feeds/rss/world.xml"),
+            SuggestedFeed(name: "Al Jazeera World", url: "https://www.aljazeera.com/xml/rss/all.xml"),
+            SuggestedFeed(name: "France 24 World", url: "https://www.france24.com/en/rss"),
+            SuggestedFeed(name: "DW World", url: "https://rss.dw.com/rdf/rss-en-world"),
+            SuggestedFeed(name: "BBC Africa", url: "https://feeds.bbci.co.uk/news/world/africa/rss.xml"),
+        ]),
+        SuggestedFeedCategory(name: "Politics", feeds: [
+            SuggestedFeed(name: "BBC Politics", url: "https://feeds.bbci.co.uk/news/politics/rss.xml"),
+            SuggestedFeed(name: "Guardian Politics", url: "https://www.theguardian.com/politics/rss"),
+            SuggestedFeed(name: "NPR Politics", url: "https://feeds.npr.org/1014/rss.xml"),
+            SuggestedFeed(name: "CNN Politics", url: "http://rss.cnn.com/rss/cnn_allpolitics.rss"),
+            SuggestedFeed(name: "NYT Politics", url: "https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml"),
+            SuggestedFeed(name: "The Hill", url: "https://thehill.com/feed/"),
+            SuggestedFeed(name: "BBC US & Canada", url: "https://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml"),
+            SuggestedFeed(name: "Guardian US Politics", url: "https://www.theguardian.com/us-news/us-politics/rss"),
+            SuggestedFeed(name: "BBC Europe Politics", url: "https://feeds.bbci.co.uk/news/world/europe/rss.xml"),
+            SuggestedFeed(name: "BBC Middle East", url: "https://feeds.bbci.co.uk/news/world/middle_east/rss.xml"),
+        ]),
+        SuggestedFeedCategory(name: "Finance", feeds: [
+            SuggestedFeed(name: "Financial Times", url: "https://www.ft.com/?format=rss"),
+            SuggestedFeed(name: "Bloomberg Markets", url: "https://feeds.bloomberg.com/markets/news.rss"),
+            SuggestedFeed(name: "CNBC Top News", url: "https://www.cnbc.com/id/100003114/device/rss/rss.html"),
+            SuggestedFeed(name: "MarketWatch", url: "https://www.marketwatch.com/rss/topstories"),
+            SuggestedFeed(name: "Forbes", url: "https://www.forbes.com/business/feed/"),
+            SuggestedFeed(name: "The Economist Business", url: "https://www.economist.com/business/rss.xml"),
+            SuggestedFeed(name: "The Guardian Business", url: "https://www.theguardian.com/business/rss"),
+            SuggestedFeed(name: "Seeking Alpha", url: "https://seekingalpha.com/market_currents.xml"),
+            SuggestedFeed(name: "Investing.com", url: "https://www.investing.com/rss/news_25.rss"),
+            SuggestedFeed(name: "CNBC Finance", url: "https://www.cnbc.com/id/10000664/device/rss/rss.html"),
         ]),
         SuggestedFeedCategory(name: "Technology", feeds: [
             SuggestedFeed(name: "Ars Technica", url: "https://feeds.arstechnica.com/arstechnica/index"),
@@ -2666,59 +2915,70 @@ private enum SuggestedFeedCatalog {
             SuggestedFeed(name: "TechCrunch", url: "https://techcrunch.com/feed/"),
             SuggestedFeed(name: "WIRED", url: "https://www.wired.com/feed/rss"),
             SuggestedFeed(name: "Engadget", url: "https://www.engadget.com/rss.xml"),
-            SuggestedFeed(name: "CNET News", url: "https://www.cnet.com/rss/news/")
-        ]),
-        SuggestedFeedCategory(name: "AI", feeds: [
-            SuggestedFeed(name: "The Decoder", url: "https://the-decoder.com/feed/"),
-            SuggestedFeed(name: "Hugging Face Blog", url: "https://huggingface.co/blog/feed.xml"),
-            SuggestedFeed(name: "MIT Technology Review: AI", url: "https://www.technologyreview.com/topic/artificial-intelligence/feed/"),
-            SuggestedFeed(name: "MarkTechPost", url: "https://www.marktechpost.com/feed/"),
-            SuggestedFeed(name: "Import AI", url: "https://importai.substack.com/feed"),
-            SuggestedFeed(name: "Latent Space", url: "https://www.latent.space/feed"),
-            SuggestedFeed(name: "Google Research Blog", url: "https://blog.research.google/feeds/posts/default?alt=rss")
-        ]),
-        SuggestedFeedCategory(name: "Business", feeds: [
-            SuggestedFeed(name: "Axios", url: "https://api.axios.com/feed/"),
-            SuggestedFeed(name: "Financial Times", url: "https://www.ft.com/?format=rss"),
-            SuggestedFeed(name: "Bloomberg Markets", url: "https://feeds.bloomberg.com/markets/news.rss"),
-            SuggestedFeed(name: "MarketWatch: Top Stories", url: "https://www.marketwatch.com/rss/topstories"),
-            SuggestedFeed(name: "Business Insider", url: "https://www.businessinsider.com/rss"),
-            SuggestedFeed(name: "The Economist: Business", url: "https://www.economist.com/business/rss.xml")
+            SuggestedFeed(name: "CNET", url: "https://www.cnet.com/rss/news/"),
+            SuggestedFeed(name: "The Register", url: "https://www.theregister.com/headlines.atom"),
+            SuggestedFeed(name: "ZDNET", url: "https://www.zdnet.com/news/rss.xml"),
+            SuggestedFeed(name: "MIT Technology Review", url: "https://www.technologyreview.com/feed/"),
         ]),
         SuggestedFeedCategory(name: "Science", feeds: [
             SuggestedFeed(name: "Nature", url: "https://www.nature.com/nature.rss"),
             SuggestedFeed(name: "ScienceDaily", url: "https://www.sciencedaily.com/rss/all.xml"),
             SuggestedFeed(name: "ScienceAlert", url: "https://www.sciencealert.com/feed"),
-            SuggestedFeed(name: "NASA Breaking News", url: "https://www.nasa.gov/rss/dyn/breaking_news.rss"),
-            SuggestedFeed(name: "Scientific American", url: "http://rss.sciam.com/ScientificAmerican-Global"),
+            SuggestedFeed(name: "NASA", url: "https://www.nasa.gov/rss/dyn/breaking_news.rss"),
             SuggestedFeed(name: "Space.com", url: "https://www.space.com/feeds/all"),
             SuggestedFeed(name: "New Scientist", url: "https://www.newscientist.com/feed/"),
             SuggestedFeed(name: "Science News", url: "https://www.sciencenews.org/feed"),
             SuggestedFeed(name: "Quanta Magazine", url: "https://www.quantamagazine.org/feed/"),
-            SuggestedFeed(name: "BBC Science & Environment", url: "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml")
+            SuggestedFeed(name: "BBC Science", url: "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml"),
+            SuggestedFeed(name: "Phys.org", url: "https://phys.org/rss-feed/"),
         ]),
-        SuggestedFeedCategory(name: "Movies", feeds: [
-            SuggestedFeed(name: "Variety: Film", url: "https://variety.com/feed/"),
-            SuggestedFeed(name: "Deadline", url: "https://deadline.com/feed/"),
-            SuggestedFeed(name: "IndieWire", url: "https://www.indiewire.com/feed/"),
-            SuggestedFeed(name: "Slashfilm", url: "https://www.slashfilm.com/feed/"),
-            SuggestedFeed(name: "ComingSoon", url: "https://www.comingsoon.net/feed")
+        SuggestedFeedCategory(name: "Health", feeds: [
+            SuggestedFeed(name: "BBC Health", url: "https://feeds.bbci.co.uk/news/health/rss.xml"),
+            SuggestedFeed(name: "NPR Health", url: "https://feeds.npr.org/1128/rss.xml"),
+            SuggestedFeed(name: "CNN Health", url: "http://rss.cnn.com/rss/cnn_health.rss"),
+            SuggestedFeed(name: "Guardian Health", url: "https://www.theguardian.com/society/health/rss"),
+            SuggestedFeed(name: "Healthline", url: "https://www.healthline.com/rss/health-news"),
+            SuggestedFeed(name: "STAT News", url: "https://www.statnews.com/feed/"),
+            SuggestedFeed(name: "WHO News", url: "https://www.who.int/rss-feeds/news-english.xml"),
+            SuggestedFeed(name: "ScienceDaily Health", url: "https://www.sciencedaily.com/rss/health_medicine.xml"),
+            SuggestedFeed(name: "NHS News", url: "https://www.england.nhs.uk/feed/"),
+            SuggestedFeed(name: "ScienceDaily Nutrition", url: "https://www.sciencedaily.com/rss/health_medicine/nutrition.xml"),
         ]),
-        SuggestedFeedCategory(name: "Music", feeds: [
-            SuggestedFeed(name: "Pitchfork: News", url: "https://pitchfork.com/feed/feed-news/rss"),
-            SuggestedFeed(name: "Consequence", url: "https://consequence.net/feed/"),
-            SuggestedFeed(name: "Stereogum", url: "https://stereogum.com/feed"),
-            SuggestedFeed(name: "NPR Music", url: "https://feeds.npr.org/1039/rss.xml"),
-            SuggestedFeed(name: "Music Business Worldwide", url: "https://www.musicbusinessworldwide.com/feed/"),
-            SuggestedFeed(name: "The Guardian: Music", url: "https://www.theguardian.com/music/rss")
+        SuggestedFeedCategory(name: "Environment", feeds: [
+            SuggestedFeed(name: "BBC Science & Environment", url: "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml"),
+            SuggestedFeed(name: "Guardian Environment", url: "https://www.theguardian.com/environment/rss"),
+            SuggestedFeed(name: "Yale Environment 360", url: "https://e360.yale.edu/feed.xml"),
+            SuggestedFeed(name: "Grist", url: "https://grist.org/feed/"),
+            SuggestedFeed(name: "Mongabay", url: "https://news.mongabay.com/feed/"),
+            SuggestedFeed(name: "Inside Climate News", url: "https://insideclimatenews.org/feed/"),
+            SuggestedFeed(name: "Carbon Brief", url: "https://www.carbonbrief.org/feed/"),
+            SuggestedFeed(name: "Climate Home News", url: "https://www.climatechangenews.com/feed/"),
+            SuggestedFeed(name: "ScienceDaily Environment", url: "https://www.sciencedaily.com/rss/earth_climate.xml"),
+            SuggestedFeed(name: "Phys.org Environment", url: "https://phys.org/rss-feed/earth-news/environment/"),
         ]),
-        SuggestedFeedCategory(name: "Photography", feeds: [
-            SuggestedFeed(name: "PetaPixel", url: "https://petapixel.com/feed/"),
-            SuggestedFeed(name: "Fstoppers", url: "https://fstoppers.com/feed"),
-            SuggestedFeed(name: "DIY Photography", url: "https://www.diyphotography.net/feed/"),
-            SuggestedFeed(name: "Digital Photography School", url: "https://digital-photography-school.com/feed/"),
-            SuggestedFeed(name: "Canon Rumors", url: "https://www.canonrumors.com/feed/"),
-            SuggestedFeed(name: "DPReview", url: "https://www.dpreview.com/feed/")
+        SuggestedFeedCategory(name: "Sports", feeds: [
+            SuggestedFeed(name: "BBC Sport", url: "https://feeds.bbci.co.uk/sport/rss.xml"),
+            SuggestedFeed(name: "ESPN Top Headlines", url: "https://www.espn.com/espn/rss/news"),
+            SuggestedFeed(name: "BBC Football", url: "https://feeds.bbci.co.uk/sport/football/rss.xml"),
+            SuggestedFeed(name: "Sky Sports Football", url: "https://www.skysports.com/rss/12040"),
+            SuggestedFeed(name: "ESPN Soccer", url: "https://www.espn.com/espn/rss/soccer/news"),
+            SuggestedFeed(name: "ESPN NBA", url: "https://www.espn.com/espn/rss/nba/news"),
+            SuggestedFeed(name: "ESPN NFL", url: "https://www.espn.com/espn/rss/nfl/news"),
+            SuggestedFeed(name: "ESPN MLB", url: "https://www.espn.com/espn/rss/mlb/news"),
+            SuggestedFeed(name: "Formula 1", url: "https://www.formula1.com/content/fom-website/en/latest/all.xml"),
+            SuggestedFeed(name: "BBC Cricket", url: "https://feeds.bbci.co.uk/sport/cricket/rss.xml"),
+        ]),
+        SuggestedFeedCategory(name: "Culture", feeds: [
+            SuggestedFeed(name: "BBC Arts", url: "https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml"),
+            SuggestedFeed(name: "Guardian Culture", url: "https://www.theguardian.com/culture/rss"),
+            SuggestedFeed(name: "NPR Arts", url: "https://feeds.npr.org/1008/rss.xml"),
+            SuggestedFeed(name: "New York Times Arts", url: "https://rss.nytimes.com/services/xml/rss/nyt/Arts.xml"),
+            SuggestedFeed(name: "The New Yorker", url: "https://www.newyorker.com/feed/everything"),
+            SuggestedFeed(name: "Variety", url: "https://variety.com/feed/"),
+            SuggestedFeed(name: "Smithsonian Magazine", url: "https://www.smithsonianmag.com/rss/latest_articles/"),
+            SuggestedFeed(name: "Literary Hub", url: "https://lithub.com/feed/"),
+            SuggestedFeed(name: "The Atlantic", url: "https://www.theatlantic.com/feed/all/"),
+            SuggestedFeed(name: "Guardian Books", url: "https://www.theguardian.com/books/rss"),
         ]),
         SuggestedFeedCategory(name: "Gaming", feeds: [
             SuggestedFeed(name: "Polygon", url: "https://www.polygon.com/rss/index.xml"),
@@ -2726,18 +2986,37 @@ private enum SuggestedFeedCatalog {
             SuggestedFeed(name: "PC Gamer", url: "https://www.pcgamer.com/rss/"),
             SuggestedFeed(name: "Rock Paper Shotgun", url: "https://www.rockpapershotgun.com/feed"),
             SuggestedFeed(name: "Eurogamer", url: "https://www.eurogamer.net/?format=rss"),
-            SuggestedFeed(name: "Steam News", url: "https://store.steampowered.com/feeds/news.xml")
+            SuggestedFeed(name: "Steam News", url: "https://store.steampowered.com/feeds/news.xml"),
+            SuggestedFeed(name: "IGN", url: "https://feeds.feedburner.com/ign/all"),
+            SuggestedFeed(name: "Kotaku", url: "https://kotaku.com/rss"),
+            SuggestedFeed(name: "Nintendo Life", url: "https://www.nintendolife.com/feeds/latest"),
+            SuggestedFeed(name: "PlayStation Blog", url: "https://blog.playstation.com/feed/"),
         ]),
-        SuggestedFeedCategory(name: "Apple", feeds: [
-            SuggestedFeed(name: "9to5Mac", url: "https://9to5mac.com/feed/"),
-            SuggestedFeed(name: "Apple Newsroom", url: "https://www.apple.com/newsroom/rss-feed.rss"),
-            SuggestedFeed(name: "AppleInsider", url: "https://appleinsider.com/rss/news/"),
-            SuggestedFeed(name: "MacRumors", url: "https://feeds.macrumors.com/MacRumors-All"),
-            SuggestedFeed(name: "MacStories", url: "https://www.macstories.net/feed/"),
-            SuggestedFeed(name: "Daring Fireball", url: "https://daringfireball.net/feeds/main")
-        ])
+        SuggestedFeedCategory(name: "Food", feeds: [
+            SuggestedFeed(name: "Bon Appetit", url: "https://www.bonappetit.com/feed/rss"),
+            SuggestedFeed(name: "Guardian Food", url: "https://www.theguardian.com/food/rss"),
+            SuggestedFeed(name: "NYT Cooking", url: "https://rss.nytimes.com/services/xml/rss/nyt/DiningandWine.xml"),
+            SuggestedFeed(name: "Eater", url: "https://www.eater.com/rss/index.xml"),
+            SuggestedFeed(name: "The Kitchn", url: "https://www.thekitchn.com/main.rss"),
+            SuggestedFeed(name: "Delish", url: "https://www.delish.com/rss/all.xml/"),
+            SuggestedFeed(name: "Smitten Kitchen", url: "https://smittenkitchen.com/feed/"),
+            SuggestedFeed(name: "Budget Bytes", url: "https://www.budgetbytes.com/feed/"),
+            SuggestedFeed(name: "King Arthur Baking", url: "https://www.kingarthurbaking.com/blog/feed"),
+            SuggestedFeed(name: "Taste of Home", url: "https://www.tasteofhome.com/feed/"),
+        ]),
+        SuggestedFeedCategory(name: "Travel", feeds: [
+            SuggestedFeed(name: "CNN Travel", url: "http://rss.cnn.com/rss/edition_travel.rss"),
+            SuggestedFeed(name: "Condé Nast Traveler", url: "https://www.cntraveler.com/feed/rss"),
+            SuggestedFeed(name: "Guardian Travel", url: "https://www.theguardian.com/travel/rss"),
+            SuggestedFeed(name: "Atlas Obscura", url: "https://www.atlasobscura.com/feeds/latest"),
+            SuggestedFeed(name: "Guardian Holidays", url: "https://www.theguardian.com/uk/travel/rss"),
+            SuggestedFeed(name: "Matador Network", url: "https://matadornetwork.com/feed/"),
+            SuggestedFeed(name: "The Points Guy", url: "https://thepointsguy.com/feed/"),
+            SuggestedFeed(name: "Outside Online Travel", url: "https://www.outsideonline.com/adventure-travel/feed/"),
+            SuggestedFeed(name: "Nomadic Matt", url: "https://www.nomadicmatt.com/feed/"),
+            SuggestedFeed(name: "Travel Off Path", url: "https://www.traveloffpath.com/feed/"),
+        ]),
     ]
-
     static func category(named name: String) -> SuggestedFeedCategory? {
         categories.first { $0.name == name }
     }
