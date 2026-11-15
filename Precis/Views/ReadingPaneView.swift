@@ -388,7 +388,7 @@ struct ReadingPaneView: View {
                 if isGeneratingSummary
                     || showsGenerateSummaryButton
                     || !(feedWideSummary?.isEmpty ?? true) {
-                    VStack(alignment: .leading, spacing: PrecisSpacing.sm) {
+                    VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
                         Button {
                             withAnimation(.easeInOut(duration: 0.2)) {
                                 isDigestExpanded.toggle()
@@ -414,15 +414,15 @@ struct ReadingPaneView: View {
                                                 .mask(alignment: .leading) { progressMask }
                                         }
                                     }
-                                    .frame(width: isDigestExpanded ? 42 : 28, height: isDigestExpanded ? 42 : 28)
+                                    .frame(width: isDigestExpanded ? 32 : 24, height: isDigestExpanded ? 32 : 24)
                                     .clipShape(RoundedRectangle(cornerRadius: 5))
                                     .animation(.easeInOut(duration: 0.3), value: isGeneratingSummary)
                                     .accessibilityHidden(true)
                                 } else {
                                     Image(systemName: "dot.radiowaves.left.and.right")
-                                        .font(.system(size: isDigestExpanded ? 28 : 18))
+                                        .font(.system(size: isDigestExpanded ? 22 : 16))
                                         .foregroundStyle(PrecisDesignSystem.marginalia)
-                                        .frame(width: isDigestExpanded ? 42 : 28, height: isDigestExpanded ? 42 : 28)
+                                        .frame(width: isDigestExpanded ? 32 : 24, height: isDigestExpanded ? 32 : 24)
                                         .accessibilityHidden(true)
                                 }
                                 Text("Today's Precis")
@@ -475,7 +475,7 @@ struct ReadingPaneView: View {
                     // Collapsed, the block is just its header row — keep the
                     // padding slim so it reads as a thin bar, not a card.
                     .padding(.horizontal, PrecisSpacing.md)
-                    .padding(.vertical, isDigestExpanded ? PrecisSpacing.md : PrecisSpacing.xs)
+                    .padding(.vertical, PrecisSpacing.sm)
                     .background(PrecisDesignSystem.marginalia.opacity(0.08))
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                     .padding(.bottom, PrecisSpacing.lg)
@@ -785,7 +785,7 @@ struct ReadingPaneView: View {
             }
             .foregroundStyle(Color.accentColor)
             .padding(.horizontal, 12)
-            .padding(.vertical, 6)
+            .padding(.vertical, 4)
             .background(Capsule().fill(Color.accentColor.opacity(isHoveringGenerate ? 0.24 : 0.12)))
         }
         .buttonStyle(.plain)
