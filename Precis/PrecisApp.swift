@@ -507,10 +507,10 @@ private struct DesktopFeedPanelView: View {
                     .resizable()
                     .scaledToFit()
                     .frame(width: 22, height: 22)
-                    .foregroundStyle(PrecisDesignSystem.marginalia)
+                    .foregroundStyle(panelText)
                 Text("Precis")
                     .font(PrecisTypography.headline)
-                    .foregroundStyle(PrecisDesignSystem.foreground(for: .light))
+                    .foregroundStyle(panelText)
                 Spacer(minLength: 0)
                 Button(action: onClose) {
                     Image(systemName: "xmark")
