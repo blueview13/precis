@@ -748,15 +748,15 @@ private struct StorySourceMark: View {
                 Image(nsImage: image)
                     .resizable()
                     .scaledToFit()
-                    .padding(2)
+                    .padding(1.5)
             } else {
                 Text(fallbackLetter)
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.system(size: 9, weight: .bold))
                     .foregroundStyle(PrecisDesignSystem.marginalia)
             }
         }
-        .frame(width: 26, height: 26)
-        .clipShape(RoundedRectangle(cornerRadius: 5))
+        .frame(width: 19.5, height: 19.5)
+        .clipShape(RoundedRectangle(cornerRadius: 4))
         .accessibilityHidden(true)
         .task(id: source.feedURL) {
             guard let feedURL = source.feedURL else { return }

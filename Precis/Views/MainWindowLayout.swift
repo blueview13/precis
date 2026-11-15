@@ -832,7 +832,7 @@ struct MainWindowLayout: View {
                 let matchingArticleIDs = viewModel.smartCategoryArticleIDs(for: smartCategory.id) ?? []
                 let matchingFeedIDs = Set(viewModel.items.filter { matchingArticleIDs.contains($0.id) }.compactMap(\.feedID))
                 let matchingFeeds = importedFeeds.filter { matchingFeedIDs.contains($0.id) }
-                HStack(spacing: 5) {
+                HStack(spacing: 0) {
                     Button {
                         if isExpanded { collapsedSmartCategoryIDs.insert(smartCategory.id) }
                         else { collapsedSmartCategoryIDs.remove(smartCategory.id) }
@@ -858,6 +858,7 @@ struct MainWindowLayout: View {
                                 .foregroundStyle(tint ?? (isSelected ? PrecisDesignSystem.flag : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.6)))
                             Text(LocalizedStringKey(smartCategory.name))
                                 .font(PrecisTypography.body)
+                                .fontWeight(.bold)
                                 .foregroundStyle(tint ?? (isSelected ? PrecisDesignSystem.foreground(for: colorScheme) : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.75)))
                             let unreadCount = sidebarCount(viewModel.unreadCount(inSmartCategory: smartCategory.id))
                             if unreadCount > 0 {
@@ -867,7 +868,9 @@ struct MainWindowLayout: View {
                             }
                             Spacer(minLength: 4)
                         }
-                        .padding(.vertical, 6)
+                        // Keep the heading's top inset, but let the stack's
+                        // regular row spacing control the gap before feeds.
+                        .padding(.top, 6)
                         .padding(.horizontal, 4)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(isSelected ? PrecisDesignSystem.surface(for: colorScheme).opacity(0.8) : Color.clear)
@@ -889,7 +892,6 @@ struct MainWindowLayout: View {
                         }
                     }
                     Divider()
-                    Button("New Smart Category…") { editingSmartCategory = nil; showSmartCategoryEditor = true }
                     Button("Delete Smart Category", role: .destructive) {
                         smartCategoryStore.remove(id: smartCategory.id); viewModel.invalidateSmartCategoryCaches()
                         if viewModel.selectedSidebarFilter == .smartCategory(smartCategory.id) { viewModel.selectedSidebarFilter = .all; selectedSidebarItem = "All Articles" }
@@ -2184,7 +2186,7 @@ struct MainWindowLayout: View {
                         let customTint = category.colorHex.flatMap { PrecisDesignSystem.color(hex: $0) }
                         let categoryIconColor = customTint ?? (isCategorySelected ? Color.accentColor : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.6))
                         let categoryTextColor = customTint ?? (isCategorySelected ? Color.accentColor : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.75))
-                        HStack(spacing: 5) {
+                        HStack(spacing: 0) {
                             Button {
                                 if collapsedCategoryIDs.contains(category.id) {
                                     collapsedCategoryIDs.remove(category.id)
@@ -2208,12 +2210,13 @@ struct MainWindowLayout: View {
 
                             Text(category.name)
                                 .font(PrecisTypography.body)
-                                .fontWeight(isCategorySelected ? .semibold : nil)
+                                .fontWeight(.bold)
                                 .foregroundStyle(categoryTextColor)
 
                             Spacer(minLength: 0)
                         }
-                        .padding(.vertical, 6)
+                        // Match the feed-to-feed rhythm below this heading.
+                        .padding(.top, 6)
                         .padding(.horizontal, 4)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .contentShape(Rectangle())
@@ -3437,7 +3440,7 @@ private struct SidebarSection: View {
         HStack(spacing: 8) {
             Text(LocalizedStringKey(title))
                 .font(PrecisTypography.caption)
-                .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.6))
+                .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.7))
                 .textCase(.uppercase)
                 .tracking(1.2)
 

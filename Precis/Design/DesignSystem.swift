@@ -121,6 +121,11 @@ enum ReadingTypeface: String, CaseIterable, Identifiable {
     case baskerville
     case avenirNext
     case helveticaNeue
+    case arial
+    case verdana
+    case timesNewRoman
+    case trebuchetMS
+    case optima
 
     var id: String { rawValue }
 
@@ -132,6 +137,11 @@ enum ReadingTypeface: String, CaseIterable, Identifiable {
         case .baskerville: "Baskerville"
         case .avenirNext: "Avenir Next"
         case .helveticaNeue: "Helvetica Neue"
+        case .arial: "Arial"
+        case .verdana: "Verdana"
+        case .timesNewRoman: "Times New Roman"
+        case .trebuchetMS: "Trebuchet MS"
+        case .optima: "Optima"
         }
     }
 
@@ -143,6 +153,11 @@ enum ReadingTypeface: String, CaseIterable, Identifiable {
         case .baskerville: "Baskerville, serif"
         case .avenirNext: "Avenir Next, sans-serif"
         case .helveticaNeue: "Helvetica Neue, sans-serif"
+        case .arial: "Arial, sans-serif"
+        case .verdana: "Verdana, sans-serif"
+        case .timesNewRoman: "Times New Roman, serif"
+        case .trebuchetMS: "Trebuchet MS, sans-serif"
+        case .optima: "Optima, sans-serif"
         }
     }
 
@@ -154,6 +169,11 @@ enum ReadingTypeface: String, CaseIterable, Identifiable {
         case .baskerville: "Baskerville"
         case .avenirNext: "Avenir Next"
         case .helveticaNeue: "Helvetica Neue"
+        case .arial: "Arial"
+        case .verdana: "Verdana"
+        case .timesNewRoman: "Times New Roman"
+        case .trebuchetMS: "Trebuchet MS"
+        case .optima: "Optima"
         }
     }
 
