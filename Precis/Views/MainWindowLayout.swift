@@ -864,9 +864,10 @@ struct MainWindowLayout: View {
                         else { collapsedSmartCategoryIDs.remove(smartCategory.id) }
                     } label: {
                         Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                            .font(.system(size: 10, weight: .semibold))
+                            .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(PrecisDesignSystem.marginalia)
-                            .frame(width: 18, height: 24)
+                            .frame(width: 24, height: 28)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .help(isExpanded ? "Collapse smart category feeds" : "Expand smart category feeds")
@@ -921,9 +922,10 @@ struct MainWindowLayout: View {
                     isFeedbinExpanded.toggle()
                 } label: {
                     Image(systemName: isFeedbinExpanded ? "chevron.down" : "chevron.right")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(PrecisDesignSystem.marginalia)
-                        .frame(width: 18, height: 26)
+                        .frame(width: 24, height: 28)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .help(isFeedbinExpanded ? "Collapse Feedbin feeds" : "Expand Feedbin feeds")
@@ -1015,9 +1017,10 @@ struct MainWindowLayout: View {
                     isOldReaderExpanded.toggle()
                 } label: {
                     Image(systemName: isOldReaderExpanded ? "chevron.down" : "chevron.right")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(PrecisDesignSystem.marginalia)
-                        .frame(width: 18, height: 26)
+                        .frame(width: 24, height: 28)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .help(isOldReaderExpanded ? "Collapse Oldreader feeds" : "Expand Oldreader feeds")
@@ -2190,9 +2193,9 @@ struct MainWindowLayout: View {
                                 }
                             } label: {
                                 Image(systemName: collapsedCategoryIDs.contains(category.id) ? "chevron.right" : "chevron.down")
-                                    .font(.system(size: 10, weight: .semibold))
+                                    .font(.system(size: 12, weight: .semibold))
                                     .foregroundStyle(PrecisDesignSystem.marginalia)
-                                    .frame(width: 14, height: 18)
+                                    .frame(width: 24, height: 28)
                                     .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
@@ -2363,14 +2366,14 @@ struct MainWindowLayout: View {
                             isUncategorizedFeedsExpanded.toggle()
                         } label: {
                             Image(systemName: isUncategorizedFeedsExpanded ? "chevron.down" : "chevron.right")
-                                .font(.system(size: 10, weight: .semibold))
+                                .font(.system(size: 12, weight: .semibold))
                                 .foregroundStyle(PrecisDesignSystem.marginalia)
-                                .frame(width: 18, height: 22)
+                                .frame(width: 24, height: 28)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .help(isUncategorizedFeedsExpanded ? "Collapse feeds" : "Expand feeds")
                         SidebarSection(title: "Feeds")
-                            .onTapGesture { isUncategorizedFeedsExpanded.toggle() }
                     }
                 }
 
@@ -2521,6 +2524,7 @@ private struct AddFeedSheet: View {
     @State private var topicSearch = ""
     @State private var topicSearchFeeds: [SuggestedFeed] = []
     @State private var isSearchingTopics = false
+    @State private var topicSearchProgress = 0.0
     @State private var feedPickerPresentation: FeedPickerPresentation?
     @State private var addTarget: FeedAddTarget = .precis
     @State private var hoveredCategory: String?
@@ -2629,8 +2633,14 @@ private struct AddFeedSheet: View {
                         .disabled(topicSearch.trimmingCharacters(in: .whitespacesAndNewlines).count < 2 || isSearchingTopics)
                 }
                 if isSearchingTopics {
-                    ProgressView("Finding feeds…")
-                        .font(PrecisTypography.metadata)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Finding feeds…")
+                            .font(PrecisTypography.metadata)
+                            .foregroundStyle(PrecisDesignSystem.marginalia)
+                        ProgressView(value: topicSearchProgress)
+                            .progressViewStyle(.linear)
+                    }
+                    .frame(maxWidth: .infinity)
                 }
                 if !topicSearch.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isSearchingTopics && topicSearchFeeds.isEmpty {
                     Text("No working feeds found for this topic.")
@@ -2642,13 +2652,17 @@ private struct AddFeedSheet: View {
             if !importStatus.isEmpty {
                 Text(importStatus)
                     .font(PrecisTypography.metadata)
-                    .foregroundStyle(importStatusKind == .success ? Color.accentColor : (importStatusKind == .error ? .red : PrecisDesignSystem.marginalia))
+                    .foregroundStyle(importStatusKind == .success ? selectedTheme.accent : (importStatusKind == .error ? .red : PrecisDesignSystem.marginalia))
                     .lineLimit(2)
             }
         }
         .padding(PrecisSpacing.lg)
         .frame(width: 560)
+        .foregroundStyle(selectedTheme.foreground)
+        .background(selectedTheme.background)
         .tint(selectedTheme.accent)
+        .preferredColorScheme(selectedTheme.colorScheme)
+        .presentationBackground(selectedTheme.background)
         .onAppear {
             // Fresh sheet state on every presentation.
             importStatus = ""
@@ -2703,7 +2717,10 @@ private struct AddFeedSheet: View {
         guard query.count >= 2 else { return }
         Task {
             isSearchingTopics = true
-            let results = await SuggestedFeedCatalog.search(topic: query)
+            topicSearchProgress = 0.05
+            let results = await SuggestedFeedCatalog.search(topic: query) { progress in
+                await MainActor.run { topicSearchProgress = progress }
+            }
             guard topicSearch.trimmingCharacters(in: .whitespacesAndNewlines) == query else {
                 isSearchingTopics = false
                 return
@@ -2849,7 +2866,11 @@ private struct SuggestedFeedsPickerSheet: View {
         }
         .padding(PrecisSpacing.lg)
         .frame(width: 560, height: 620)
+        .foregroundStyle(selectedTheme.foreground)
+        .background(selectedTheme.background)
         .tint(selectedTheme.accent)
+        .preferredColorScheme(selectedTheme.colorScheme)
+        .presentationBackground(selectedTheme.background)
         .alert("Remove \(feedPendingRemoval?.name ?? "feed")?", isPresented: Binding(
             get: { feedPendingRemoval != nil },
             set: { if !$0 { feedPendingRemoval = nil } }
@@ -2899,17 +2920,25 @@ private struct SuggestedFeedCategory: Identifiable {
 }
 
 private enum SuggestedFeedCatalog {
-    static func search(topic: String) async -> [SuggestedFeed] {
+    static func search(topic: String, onProgress: @Sendable (Double) async -> Void) async -> [SuggestedFeed] {
         var components = URLComponents(string: "https://lite.duckduckgo.com/lite/")!
         components.queryItems = [URLQueryItem(name: "q", value: "\(topic) RSS feed -site:feedspot.com -site:feeder.co -site:rsscatalog.com")]
         guard let searchURL = components.url,
               let (data, response) = try? await URLSession.shared.data(from: searchURL),
               (response as? HTTPURLResponse).map({ (200..<300).contains($0.statusCode) }) == true,
-              let html = String(data: data, encoding: .utf8) else { return [] }
+              let html = String(data: data, encoding: .utf8) else {
+            await onProgress(1)
+            return []
+        }
 
         let candidates = searchResultLinks(in: html)
             .filter { !isFeedDirectory($0.url.host ?? "") }
             .prefix(12)
+        await onProgress(0.2)
+        guard !candidates.isEmpty else {
+            await onProgress(1)
+            return []
+        }
         let results = await withTaskGroup(of: (Int, SuggestedFeed?).self, returning: [(Int, SuggestedFeed?)].self) { group in
             for (index, candidate) in candidates.enumerated() {
                 group.addTask {
@@ -2918,7 +2947,10 @@ private enum SuggestedFeedCatalog {
                 }
             }
             var found: [(Int, SuggestedFeed?)] = []
-            for await result in group { found.append(result) }
+            for await result in group {
+                found.append(result)
+                await onProgress(0.2 + 0.8 * Double(found.count) / Double(candidates.count))
+            }
             return found
         }
         var seen = Set<String>()
