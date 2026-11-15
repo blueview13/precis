@@ -62,6 +62,14 @@ struct PrecisApp: App {
             .preferredColorScheme(selectedTheme.colorScheme)
             .tint(selectedTheme.accent)
         }
+        .commands {
+            CommandGroup(replacing: .appSettings) {
+                Button("Settings…") {
+                    NotificationCenter.default.post(name: .precisOpenSettings, object: nil)
+                }
+                .keyboardShortcut(",", modifiers: .command)
+            }
+        }
 
         Window(helpWindowTitle, id: "help") {
             HelpWindowView()
@@ -103,6 +111,8 @@ final class PrecisApplicationDelegate: NSObject, NSApplicationDelegate {
 }
 
 extension Notification.Name {
+    /// Opens Settings using the active reader window's presentation mode.
+    static let precisOpenSettings = Notification.Name("PrecisOpenSettings")
     /// Posted by the Help menu command; the main window opens the Help scene.
     static let precisOpenHelp = Notification.Name("PrecisOpenHelp")
     /// Posted after an OPML import completes in the Settings window so the

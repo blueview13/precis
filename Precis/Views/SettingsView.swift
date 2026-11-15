@@ -93,25 +93,6 @@ private struct WindowWillCloseObserver: NSViewRepresentable {
     }
 }
 
-/// Lets the native Settings window join the reader's Space while it is in
-/// full-screen mode, instead of opening Settings on the desktop Space alone.
-private struct FullScreenAuxiliarySettingsWindow: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSView {
-        FullScreenAuxiliaryView()
-    }
-
-    func updateNSView(_ nsView: NSView, context: Context) {
-        nsView.window?.collectionBehavior.insert(.fullScreenAuxiliary)
-    }
-
-    private final class FullScreenAuxiliaryView: NSView {
-        override func viewDidMoveToWindow() {
-            super.viewDidMoveToWindow()
-            window?.collectionBehavior.insert(.fullScreenAuxiliary)
-        }
-    }
-}
-
 struct SettingsView: View {
     private struct InterfaceLanguage: Identifiable {
         let code: String
@@ -795,7 +776,6 @@ struct SettingsView: View {
             // desktop after its owner window is gone.
             NSColorPanel.shared.close()
         })
-        .background(FullScreenAuxiliarySettingsWindow())
     }
 
     private var desktopPanelColor: Binding<Color> {

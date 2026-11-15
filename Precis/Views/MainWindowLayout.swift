@@ -91,6 +91,10 @@ struct MainWindowLayout: View {
     /// is what keeps the chrome off the header rows without leaving a band of
     /// empty space above them the rest of the time.
     @State private var hostingWindow: NSWindow?
+    /// A native Settings scene lives in its own window/Space. When the reader
+    /// is full screen, present Settings as a sheet attached to that window so
+    /// macOS cannot switch to the Settings window's desktop Space.
+    @State private var isPresentingFullScreenSettings = false
     /// True while the auto-hidden chrome is revealed over the window's content —
     /// set from the pointer reaching the window's top edge, which is where the
     /// menu bar reveals when the window is flush with the display's top.
@@ -257,9 +261,21 @@ struct MainWindowLayout: View {
             readingPane: readingPaneView
         )
         .background(PrecisDesignSystem.background(for: colorScheme))
+        .sheet(isPresented: $isPresentingFullScreenSettings) {
+            SettingsView(
+                onImportOPML: nil,
+                onExportOPML: nil,
+                hasFeeds: !importedFeeds.isEmpty
+            )
+            .frame(width: 480, height: 560)
+        }
         // Drives the sidebar slide-in/slide-out; every layout change keyed to
         // `isSidebarHidden` (sidebar slot, drag handle) animates together.
         .animation(.easeInOut(duration: 0.3), value: isSidebarHidden)
+        .onReceive(NotificationCenter.default.publisher(for: .precisOpenSettings)) { _ in
+            guard hostingWindow?.isKeyWindow == true else { return }
+            presentSettings()
+        }
         .onChange(of: viewModel.selectedItemID) { _, _ in
             // A new story is being read — pull its full page (once per
             // article) so the pane shows the complete formatted article
@@ -546,10 +562,16 @@ struct MainWindowLayout: View {
 
     // MARK: - Settings
 
-    /// Uses the native Settings scene so macOS manages its relationship to
-    /// the main app window and its standard app-menu command.
+    /// Use a sheet while the reader owns a full-screen Space. The Settings
+    /// scene is a separate top-level window, so opening it can activate its
+    /// desktop Space and leave the reader's Space behind. Outside full screen,
+    /// keep the standard macOS Settings window and command behavior.
     private func presentSettings() {
-        openSettings()
+        if hostingWindow?.styleMask.contains(.fullScreen) == true {
+            isPresentingFullScreenSettings = true
+        } else {
+            openSettings()
+        }
     }
 
     // MARK: - Spacebar "next article"
