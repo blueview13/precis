@@ -32,7 +32,7 @@ Turn on new-article notifications. macOS may ask you to allow notifications for 
 
 ## Side Panel
 
-Enable **Show menu bar headlines** to show a compact panel at the left or right screen edge. Choose its background and text colors, opacity, and the number of articles to show. Select the feeds or Smart Categories to include, then drag the panel's resize edge to adjust its width.
+Enable **Show menu bar headlines** to show a compact panel at the left or right screen edge. Choose its width, background and text colors, opacity, and the number of articles to show. Select the feeds or Smart Categories to include. You can also drag the panel's resize edge to adjust its width.
 
 ## OPML
 

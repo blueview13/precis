@@ -154,6 +154,7 @@ struct SettingsView: View {
     @AppStorage("notifyOnNewArticles") private var notifyOnNewArticles = false
     @AppStorage("desktopPanelEnabled") private var desktopPanelEnabled = false
     @AppStorage("desktopPanelEdge") private var desktopPanelEdge = "right"
+    @AppStorage("desktopPanelWidth") private var desktopPanelWidth = Double(DesktopPanelPlacement.defaultWidth)
     @AppStorage("desktopPanelBackground") private var desktopPanelBackground = "#FFFFFF"
     @AppStorage("desktopPanelTextColor") private var desktopPanelTextColor = "#000000"
     @AppStorage("desktopPanelOpacity") private var desktopPanelOpacity = 0.7
@@ -577,6 +578,22 @@ struct SettingsView: View {
                                 Text("Right").tag("right")
                             }
                             .pickerStyle(.segmented)
+
+                            VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
+                                HStack {
+                                    Text("Panel width")
+                                    Spacer()
+                                    Text("\(Int(desktopPanelWidth.rounded())) pt")
+                                        .foregroundStyle(PrecisDesignSystem.marginalia)
+                                        .monospacedDigit()
+                                }
+                                Slider(
+                                    value: $desktopPanelWidth,
+                                    in: Double(DesktopPanelPlacement.widthRange.lowerBound)...Double(DesktopPanelPlacement.widthRange.upperBound),
+                                    step: 1
+                                )
+                                .accessibilityLabel("Side panel width")
+                            }
 
                             VStack(alignment: .leading, spacing: PrecisSpacing.xs) {
                                 HStack {

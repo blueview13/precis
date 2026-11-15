@@ -2712,6 +2712,7 @@ private struct AddFeedSheet: View {
         case "Health": "cross.case"
         case "Environment": "leaf"
         case "Sports": "sportscourt"
+        case "Music": "music.note"
         case "Culture": "theatermasks"
         case "Gaming": "gamecontroller"
         case "Food": "fork.knife"
@@ -3314,6 +3315,33 @@ private enum SuggestedFeedCatalog {
             SuggestedFeed(name: "CBS Sports Soccer", url: "https://www.cbssports.com/rss/headlines/soccer/"),
             SuggestedFeed(name: "The Athletic", url: "https://www.nytimes.com/athletic/rss/news/"),
             SuggestedFeed(name: "CBS Sports NFL", url: "https://www.cbssports.com/rss/headlines/nfl/"),
+        ]),
+        SuggestedFeedCategory(name: "Music", feeds: [
+            SuggestedFeed(name: "Rolling Stone Music News", url: "https://www.rollingstone.com/music/music-news/feed/"),
+            SuggestedFeed(name: "NME Music", url: "https://www.nme.com/news/music/feed"),
+            SuggestedFeed(name: "Consequence", url: "https://consequence.net/feed/"),
+            SuggestedFeed(name: "BrooklynVegan", url: "https://www.brooklynvegan.com/feed/"),
+            SuggestedFeed(name: "Variety Music", url: "https://variety.com/v/music/feed/"),
+            SuggestedFeed(name: "Music Business Worldwide", url: "https://www.musicbusinessworldwide.com/feed/"),
+            SuggestedFeed(name: "Music Ally", url: "https://musically.com/feed/"),
+            SuggestedFeed(name: "NPR Music", url: "https://feeds.npr.org/1039/rss.xml"),
+            SuggestedFeed(name: "MusicRadar", url: "https://www.musicradar.com/rss"),
+            SuggestedFeed(name: "Slipped Disc", url: "https://slippedisc.com/feed/"),
+            SuggestedFeed(name: "JazzTimes", url: "https://jazztimes.com/feed/"),
+            SuggestedFeed(name: "The Line of Best Fit", url: "https://www.thelineofbestfit.com/feed"),
+            SuggestedFeed(name: "The Wire", url: "https://www.thewire.co.uk/rss"),
+            SuggestedFeed(name: "Metal Injection", url: "https://metalinjection.net/feed"),
+            SuggestedFeed(name: "Louder Sound", url: "https://www.loudersound.com/feeds/all"),
+            SuggestedFeed(name: "Decibel Magazine", url: "https://www.decibelmagazine.com/feed/"),
+            SuggestedFeed(name: "MetalSucks", url: "https://www.metalsucks.net/feed/"),
+            SuggestedFeed(name: "MusicTech", url: "https://musictech.com/feed/"),
+            SuggestedFeed(name: "Ultimate Classic Rock", url: "https://ultimateclassicrock.com/feed/"),
+            SuggestedFeed(name: "OperaWire", url: "https://operawire.com/feed/"),
+            SuggestedFeed(name: "The Quietus", url: "https://thequietus.com/feed/"),
+            SuggestedFeed(name: "Aquarium Drunkard", url: "https://aquariumdrunkard.com/feed/"),
+            SuggestedFeed(name: "Bandcamp Daily", url: "https://daily.bandcamp.com/feed"),
+            SuggestedFeed(name: "The FADER", url: "https://www.thefader.com/feed.rss"),
+            SuggestedFeed(name: "Le Monde Music", url: "https://www.lemonde.fr/en/music/rss_full.xml"),
         ]),
         SuggestedFeedCategory(name: "Culture", feeds: [
             SuggestedFeed(name: "BBC Arts", url: "https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml"),

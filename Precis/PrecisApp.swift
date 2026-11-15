@@ -493,8 +493,8 @@ private struct DesktopFeedPanelView: View {
         PrecisDesignSystem.color(hex: backgroundHex) ?? .white
     }
 
-    /// Article title/summary ink — the Settings "Text color" swatch, falling
-    /// back to the theme foreground until the user picks one.
+    /// Feed names and article text use the Settings "Text color" swatch,
+    /// falling back to the theme foreground until the user picks one.
     private var panelText: Color {
         PrecisDesignSystem.color(hex: textHex) ?? .black
     }
@@ -687,7 +687,7 @@ private struct DesktopFeedPanelView: View {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(article.feed?.title ?? "Feed")
                     .font(PrecisTypography.caption)
-                    .foregroundStyle(PrecisDesignSystem.marginalia)
+                    .foregroundStyle(panelText)
                     .lineLimit(1)
                 Spacer(minLength: 0)
                 if !article.isRead {
