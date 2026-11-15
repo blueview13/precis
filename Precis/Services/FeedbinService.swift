@@ -2,6 +2,53 @@ import Foundation
 import Security
 import SwiftData
 
+/// Debug builds use a per-user file to avoid Keychain's repeated access prompts
+/// for ad-hoc signed development builds. Release builds continue to use Keychain.
+private enum DevelopmentCredentialFile {
+    private static let directoryComponents = ["Precis", "DevelopmentCredentials"]
+
+    static func load<Value: Decodable & Sendable>(_ type: Value.Type, fileName: String) -> Value? {
+        guard let url = try? fileURL(fileName: fileName),
+              let data = try? Data(contentsOf: url) else { return nil }
+        return try? JSONDecoder().decode(type, from: data)
+    }
+
+    static func save(_ data: Data, fileName: String) throws {
+        let directoryURL = try directoryURL()
+        let fileURL = directoryURL.appendingPathComponent(fileName, isDirectory: false)
+        try data.write(to: fileURL, options: .atomic)
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: fileURL.path)
+    }
+
+    static func delete(fileName: String) {
+        guard let url = try? fileURL(fileName: fileName) else { return }
+        try? FileManager.default.removeItem(at: url)
+    }
+
+    private static func fileURL(fileName: String) throws -> URL {
+        try directoryURL().appendingPathComponent(fileName, isDirectory: false)
+    }
+
+    private static func directoryURL() throws -> URL {
+        guard let applicationSupportURL = FileManager.default.urls(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask
+        ).first else {
+            throw CocoaError(.fileNoSuchFile)
+        }
+        let directoryURL = directoryComponents.reduce(applicationSupportURL) {
+            $0.appendingPathComponent($1, isDirectory: true)
+        }
+        try FileManager.default.createDirectory(
+            at: directoryURL,
+            withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
+        )
+        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: directoryURL.path)
+        return directoryURL
+    }
+}
+
 public struct FeedbinCredentials: Equatable, Sendable {
     public var username: String
     public var password: String
@@ -27,7 +74,8 @@ public enum FeedbinError: LocalizedError {
     }
 }
 
-/// Credentials stay in the macOS Keychain; the API client never writes them to preferences.
+/// Debug builds use a local development file; Release credentials stay in Keychain.
+/// The API client never writes credentials to preferences.
 public enum FeedbinCredentialStore {
     private static let service = "com.precis.feedbin"
     private static let account = "credentials"
@@ -54,19 +102,33 @@ public enum FeedbinCredentialStore {
         await SessionCache.shared.get()
     }
     private static func loadSync() -> FeedbinCredentials? {
+        #if DEBUG
+        guard let pair = DevelopmentCredentialFile.load(FeedbinCredentialsPayload.self, fileName: "feedbin.json") else { return nil }
+        #else
         guard let data = read(account: account),
               let pair = try? JSONDecoder().decode(FeedbinCredentialsPayload.self, from: data) else { return nil }
+        #endif
         return FeedbinCredentials(username: pair.username, password: pair.password)
     }
     public static func save(_ credentials: FeedbinCredentials) async throws {
         let payload = try JSONEncoder().encode(FeedbinCredentialsPayload(username: credentials.username, password: credentials.password))
         try await Task.detached(priority: .userInitiated) {
+            #if DEBUG
+            try DevelopmentCredentialFile.save(payload, fileName: "feedbin.json")
+            #else
             try write(payload, account: account)
+            #endif
         }.value
         await SessionCache.shared.set(credentials)
     }
     public static func delete() async {
-        await Task.detached(priority: .userInitiated) { deleteSync(account: account) }.value
+        await Task.detached(priority: .userInitiated) {
+            #if DEBUG
+            DevelopmentCredentialFile.delete(fileName: "feedbin.json")
+            #else
+            deleteSync(account: account)
+            #endif
+        }.value
         await SessionCache.shared.set(nil)
     }
     private struct FeedbinCredentialsPayload: Codable, Sendable {
@@ -209,20 +271,34 @@ public enum OldReaderCredentialStore {
 
     public static func load() async -> OldReaderCredentials? {
         await Task.detached(priority: .userInitiated) {
+            #if DEBUG
+            guard let payload = DevelopmentCredentialFile.load(Payload.self, fileName: "oldreader.json") else { return nil }
+            #else
             guard let data = read(),
                   let payload = try? JSONDecoder().decode(Payload.self, from: data) else { return nil }
+            #endif
             return OldReaderCredentials(username: payload.username, password: payload.password)
         }.value
     }
 
     public static func save(_ credentials: OldReaderCredentials) async throws {
         let data = try JSONEncoder().encode(Payload(username: credentials.username, password: credentials.password))
-        try await Task.detached(priority: .userInitiated) { try write(data) }.value
+        try await Task.detached(priority: .userInitiated) {
+            #if DEBUG
+            try DevelopmentCredentialFile.save(data, fileName: "oldreader.json")
+            #else
+            try write(data)
+            #endif
+        }.value
     }
 
     public static func delete() async {
         await Task.detached(priority: .userInitiated) {
+            #if DEBUG
+            DevelopmentCredentialFile.delete(fileName: "oldreader.json")
+            #else
             _ = SecItemDelete([kSecClass: kSecClassGenericPassword, kSecAttrService: service, kSecAttrAccount: account] as CFDictionary)
+            #endif
         }.value
     }
 

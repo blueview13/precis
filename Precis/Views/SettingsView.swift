@@ -639,6 +639,11 @@ struct SettingsView: View {
                                 .help("Choose article text color")
                             }
 
+                            Text("Feeds to display")
+                                .font(PrecisTypography.body)
+                                .fontWeight(.semibold)
+                                .padding(.top, PrecisSpacing.xs)
+
                             if !smartCategoryStore.categories.filter({ !$0.isDeleted }).isEmpty {
                                 sourceDisclosure(
                                     "Smart Categories",
@@ -654,7 +659,7 @@ struct SettingsView: View {
 
                             if !desktopPanelFolders.isEmpty {
                                 sourceDisclosure(
-                                    "Folders",
+                                    "Categories",
                                     isExpanded: $isDesktopPanelFoldersExpanded
                                 ) {
                                     VStack(alignment: .leading, spacing: PrecisSpacing.xs) {

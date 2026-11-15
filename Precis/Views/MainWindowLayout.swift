@@ -2619,7 +2619,12 @@ private struct AddFeedSheet: View {
                             }
                             .padding(10)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(selectedTheme.accent.opacity(hoveredCategory == category.name ? 0.22 : 0.10), in: RoundedRectangle(cornerRadius: 8))
+                            .background(
+                                hoveredCategory == category.name
+                                    ? selectedTheme.accent.opacity(0.18)
+                                    : selectedTheme.surface,
+                                in: RoundedRectangle(cornerRadius: 8)
+                            )
                         }
                         .buttonStyle(.plain)
                         .onHover { hovering in hoveredCategory = hovering ? category.name : nil }
@@ -2659,10 +2664,10 @@ private struct AddFeedSheet: View {
         .padding(PrecisSpacing.lg)
         .frame(width: 560)
         .foregroundStyle(selectedTheme.foreground)
-        .background(selectedTheme.background)
+        .background(selectedTheme.paper)
         .tint(selectedTheme.accent)
         .preferredColorScheme(selectedTheme.colorScheme)
-        .presentationBackground(selectedTheme.background)
+        .presentationBackground(selectedTheme.paper)
         .onAppear {
             // Fresh sheet state on every presentation.
             importStatus = ""
@@ -2821,7 +2826,7 @@ private struct SuggestedFeedsPickerSheet: View {
                             }
                             .padding(10)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(selectedTheme.accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 9))
+                            .background(selectedTheme.surface, in: RoundedRectangle(cornerRadius: 9))
                             .overlay {
                                 RoundedRectangle(cornerRadius: 9)
                                     .stroke(selectedTheme.accent.opacity(0.35), lineWidth: 1)
@@ -2867,10 +2872,10 @@ private struct SuggestedFeedsPickerSheet: View {
         .padding(PrecisSpacing.lg)
         .frame(width: 560, height: 620)
         .foregroundStyle(selectedTheme.foreground)
-        .background(selectedTheme.background)
+        .background(selectedTheme.paper)
         .tint(selectedTheme.accent)
         .preferredColorScheme(selectedTheme.colorScheme)
-        .presentationBackground(selectedTheme.background)
+        .presentationBackground(selectedTheme.paper)
         .alert("Remove \(feedPendingRemoval?.name ?? "feed")?", isPresented: Binding(
             get: { feedPendingRemoval != nil },
             set: { if !$0 { feedPendingRemoval = nil } }

@@ -214,7 +214,7 @@ public enum ArticleHTMLSanitizer {
         guard depth < maxWrapperDepth,
               let tag = node.tag,
               wrapperTags.contains(tag),
-              let openEnd = html.range(of: ">", range: node.range)?.lowerBound
+              let openEnd = tagEnd(in: html, startingAt: node.range.lowerBound)
         else { return nil }
 
         let innerStart = html.index(after: openEnd)
@@ -420,7 +420,7 @@ public enum ArticleHTMLSanitizer {
             return FragmentNode(range: i..<end, tag: nil, text: String(slice))
         }
 
-        guard let headerEnd = html[i...].firstIndex(of: ">") else { return nil }
+        guard let headerEnd = tagEnd(in: html, startingAt: i) else { return nil }
         let header = html[i...headerEnd]
         let end = html.index(after: headerEnd)
 
@@ -452,7 +452,7 @@ public enum ArticleHTMLSanitizer {
         var i = headerEnd
         while i < html.endIndex {
             guard let open = html[i...].firstIndex(of: "<"),
-                  let close = html[open...].firstIndex(of: ">") else { return nil }
+                  let close = tagEnd(in: html, startingAt: open) else { return nil }
             let tag = html[open...close]
             i = html.index(after: close)
 
@@ -474,6 +474,26 @@ public enum ArticleHTMLSanitizer {
     private static func tagName(of tag: Substring) -> String {
         let trimmed = tag.dropFirst().prefix(while: { !$0.isWhitespace && $0 != ">" && $0 != "/" })
         return trimmed.lowercased()
+    }
+
+    /// Finds a tag's closing `>` without mistaking one inside a quoted
+    /// attribute value for the end of the tag.
+    private static func tagEnd(in html: String, startingAt start: String.Index) -> String.Index? {
+        guard start < html.endIndex, html[start] == "<" else { return nil }
+        var cursor = html.index(after: start)
+        var quote: Character?
+        while cursor < html.endIndex {
+            let character = html[cursor]
+            if let activeQuote = quote {
+                if character == activeQuote { quote = nil }
+            } else if character == "\"" || character == "'" {
+                quote = character
+            } else if character == ">" {
+                return cursor
+            }
+            cursor = html.index(after: cursor)
+        }
+        return nil
     }
 
     // MARK: - Ad images
@@ -531,7 +551,7 @@ public enum ArticleHTMLSanitizer {
     }
 
     static func visibleText(of html: String) -> String {
-        collapsed(html.replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression))
+        collapsed(html)
     }
 
     private static func visibleLength(_ html: String) -> Int {
@@ -541,11 +561,49 @@ public enum ArticleHTMLSanitizer {
     /// Collapses whitespace and decodes the handful of entities that affect
     /// matching (apostrophes in titles, `&amp;`, `&#…;`).
     private static func collapsed(_ raw: String) -> String {
-        let tagsStripped = raw.replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression)
+        let commentsStripped = replacing(in: raw, pattern: "<!--.*?-->", with: " ")
+        let tagsStripped = strippingHTMLTags(from: commentsStripped)
         let decoded = decodeEntities(tagsStripped)
         return decoded
             .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Removes complete HTML tags while respecting quoted attributes. A
+    /// `<[^>]+>` expression ends a tag too early if an attribute contains `>`.
+    private static func strippingHTMLTags(from html: String) -> String {
+        var result = ""
+        var cursor = html.startIndex
+
+        while cursor < html.endIndex {
+            guard html[cursor] == "<" else {
+                result.append(html[cursor])
+                cursor = html.index(after: cursor)
+                continue
+            }
+
+            let afterOpen = html.index(after: cursor)
+            guard afterOpen < html.endIndex else {
+                result.append("<")
+                break
+            }
+            let first = html[afterOpen]
+            guard first.isLetter || first == "/" || first == "!" || first == "?" else {
+                result.append("<")
+                cursor = afterOpen
+                continue
+            }
+
+            guard let endOfTag = tagEnd(in: html, startingAt: cursor) else {
+                result.append("<")
+                cursor = afterOpen
+                continue
+            }
+            result.append(" ")
+            cursor = html.index(after: endOfTag)
+        }
+
+        return result
     }
 
     private static func decodeEntities(_ text: String) -> String {

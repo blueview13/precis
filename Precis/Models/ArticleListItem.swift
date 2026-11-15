@@ -120,7 +120,7 @@ public struct ArticleListItem: Identifiable, Hashable, Sendable {
                 ArticleHTMLSanitizer.articlePlainText(from: readerHTML, title: record.title),
                 title: record.title
             )
-        } else if let stored = record.normalizedText, !stored.isEmpty {
+        } else if let stored = record.normalizedText, !stored.isEmpty, !Self.looksLikeHTMLResidue(stored) {
             self.normalizedBody = Self.strippingLeadingMetadataBlob(
                 ArticleHTMLSanitizer.decodingHTMLEntities(stored),
                 title: record.title
@@ -220,6 +220,7 @@ public struct ArticleListItem: Identifiable, Hashable, Sendable {
     static func looksLikeMetadataLead(_ text: String) -> Bool {
         let head = String(text.prefix(220))
         guard !head.isEmpty else { return false }
+        if looksLikeHTMLResidue(head) { return true }
         if head.contains("&#") { return true }
         let patterns = [
             #"\b\d+\s+Comments?\b"#,
@@ -231,6 +232,16 @@ public struct ArticleListItem: Identifiable, Hashable, Sendable {
             return true
         }
         return false
+    }
+
+    private static func looksLikeHTMLResidue(_ text: String) -> Bool {
+        let lowercase = text.lowercased()
+        return lowercase.contains("#sticky-chrome*>")
+            || lowercase.contains("group-has-[")
+            || lowercase.contains("peer-has-[")
+            || lowercase.contains("/page:pt-")
+            || lowercase.contains("class=\"")
+            || lowercase.contains("href=\"")
     }
 
     /// Cuts source-site chrome off the head of a flattened article render so
@@ -262,67 +273,9 @@ public struct ArticleListItem: Identifiable, Hashable, Sendable {
     }
 
     private static func normalizeArticleText(_ rawText: String) -> String {
-        let htmlStripped = rawText
-            .replacingOccurrences(of: "<br>", with: "\n")
-            .replacingOccurrences(of: "<br/>", with: "\n")
-            .replacingOccurrences(of: "<br />", with: "\n")
-            .replacingOccurrences(of: "</p>", with: "\n")
-            .replacingOccurrences(of: "</li>", with: "\n")
-            .replacingOccurrences(of: "</div>", with: "\n")
-
-        let withoutTags = htmlStripped
-            .replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression)
-            .replacingOccurrences(of: "&nbsp;", with: " ")
-            .replacingOccurrences(of: "&amp;", with: "&")
-            .replacingOccurrences(of: "&lt;", with: "<")
-            .replacingOccurrences(of: "&gt;", with: ">")
-            .replacingOccurrences(of: "&quot;", with: "\"")
-            .replacingOccurrences(of: "&#39;", with: "'")
-            .replacingOccurrences(of: "&rsquo;", with: "’")
-
-        let decoded = decodeNumericEntities(withoutTags)
-
-        let normalized = decoded
-            .components(separatedBy: .newlines)
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-            .joined(separator: " ")
-            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-
-        return normalized
+        ArticleHTMLSanitizer.plainText(fromHTML: rawText)
     }
 
-    /// Decodes numeric HTML character references (`&#039;`, `&#8217;`, `&#x2019;`)
-    /// so raw entity codes never leak into displayed text. Invalid codes are
-    /// left as-is; scanning always advances, so the loop always terminates.
-    private static func decodeNumericEntities(_ text: String) -> String {
-        guard text.contains("&#") else { return text }
-
-        var result = ""
-        var remainder = Substring(text)
-        while let open = remainder.range(of: "&#") {
-            result += remainder[..<open.lowerBound]
-            let afterOpen = remainder[open.upperBound...]
-            if let close = afterOpen.firstIndex(of: ";") {
-                let body = afterOpen[..<close]
-                let isHex = body.first == "x" || body.first == "X"
-                let digits = isHex ? String(body.dropFirst()) : String(body)
-                if !digits.isEmpty,
-                   let value = UInt32(digits, radix: isHex ? 16 : 10),
-                   value != 0,
-                   let scalar = Unicode.Scalar(value) {
-                    result.append(Character(scalar))
-                    remainder = remainder[afterOpen.index(after: close)...]
-                    continue
-                }
-            }
-            result += "&#"
-            remainder = afterOpen
-        }
-        result += remainder
-        return result
-    }
 }
 
 public struct BundledStoryHeadline: Identifiable, Hashable, Sendable {

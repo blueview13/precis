@@ -54,29 +54,7 @@ public struct ParsedFeedEntry: Sendable {
 
     /// Strip HTML tags and decode entities from content.
     private static func cleanHTML(_ html: String) -> String {
-        var text = html
-        // Remove HTML comments
-        text = text.replacingOccurrences(of: "<!--[^>]*-->", with: "", options: .regularExpression)
-        // Convert block elements to newlines
-        text = text.replacingOccurrences(of: "<br\\s*/?>", with: "\n", options: .regularExpression)
-        text = text.replacingOccurrences(of: "</p>", with: "\n\n", options: .regularExpression)
-        text = text.replacingOccurrences(of: "</div>", with: "\n", options: .regularExpression)
-        text = text.replacingOccurrences(of: "</li>", with: "\n", options: .regularExpression)
-        text = text.replacingOccurrences(of: "</tr>", with: "\n", options: .regularExpression)
-        text = text.replacingOccurrences(of: "</td>", with: " ", options: .regularExpression)
-        // Strip all remaining HTML tags
-        text = text.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
-        // Decode common HTML entities
-        text = text.replacingOccurrences(of: "&amp;", with: "&")
-        text = text.replacingOccurrences(of: "&lt;", with: "<")
-        text = text.replacingOccurrences(of: "&gt;", with: ">")
-        text = text.replacingOccurrences(of: "&quot;", with: "\"")
-        text = text.replacingOccurrences(of: "&#39;", with: "'")
-        text = text.replacingOccurrences(of: "&nbsp;", with: " ")
-        // Collapse whitespace
-        text = text.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
-        text = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        return text
+        ArticleHTMLSanitizer.plainText(fromHTML: html)
     }
 }
 
