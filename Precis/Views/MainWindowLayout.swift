@@ -2726,6 +2726,9 @@ private struct AddFeedSheet: View {
         Task {
             isSearchingTopics = true
             topicSearchProgress = 0.05
+            topicSearchFeeds = []
+            importStatus = ""
+            importStatusKind = .neutral
             let results = await SuggestedFeedCatalog.search(topic: query) { progress in
                 await MainActor.run { topicSearchProgress = progress }
             }
@@ -2929,10 +2932,18 @@ private struct SuggestedFeedCategory: Identifiable {
 
 private enum SuggestedFeedCatalog {
     static func search(topic: String, onProgress: @Sendable (Double) async -> Void) async -> [SuggestedFeed] {
-        var components = URLComponents(string: "https://lite.duckduckgo.com/lite/")!
+        var components = URLComponents(string: "https://html.duckduckgo.com/html/")!
         components.queryItems = [URLQueryItem(name: "q", value: "\(topic) RSS feed -site:feedspot.com -site:feeder.co -site:rsscatalog.com")]
-        guard let searchURL = components.url,
-              let (data, response) = try? await URLSession.shared.data(from: searchURL),
+        guard let searchURL = components.url else {
+            await onProgress(1)
+            return []
+        }
+        var request = URLRequest(url: searchURL)
+        request.setValue(
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
+            forHTTPHeaderField: "User-Agent"
+        )
+        guard let (data, response) = try? await URLSession.shared.data(for: request),
               (response as? HTTPURLResponse).map({ (200..<300).contains($0.statusCode) }) == true,
               let html = String(data: data, encoding: .utf8) else {
             await onProgress(1)
@@ -2967,7 +2978,7 @@ private enum SuggestedFeedCatalog {
 
     private static func searchResultLinks(in html: String) -> [(title: String, url: URL)] {
         guard let anchorRegex = try? NSRegularExpression(pattern: #"<a\b([^>]*)>([\s\S]*?)</a>"#, options: [.caseInsensitive]),
-              let classRegex = try? NSRegularExpression(pattern: #"class\s*=\s*['\"][^'\"]*result-link[^'\"]*['\"]"#, options: [.caseInsensitive]),
+              let classRegex = try? NSRegularExpression(pattern: #"class\s*=\s*['\"][^'\"]*(result-link|result__a)[^'\"]*['\"]"#, options: [.caseInsensitive]),
               let hrefRegex = try? NSRegularExpression(pattern: #"href\s*=\s*['\"]([^'\"]+)['\"]"#, options: [.caseInsensitive]) else { return [] }
         let fullRange = NSRange(html.startIndex..<html.endIndex, in: html)
         return anchorRegex.matches(in: html, range: fullRange).compactMap { match in
@@ -3082,6 +3093,11 @@ private enum SuggestedFeedCatalog {
             SuggestedFeed(name: "The Conversation", url: "https://theconversation.com/global/articles.atom"),
             SuggestedFeed(name: "Times of India", url: "https://timesofindia.indiatimes.com/rssfeedstopstories.cms"),
             SuggestedFeed(name: "CNA", url: "https://www.channelnewsasia.com/api/v1/rss-outbound-feed?_format=xml"),
+            SuggestedFeed(name: "The Japan Times", url: "https://www.japantimes.co.jp/feed/"),
+            SuggestedFeed(name: "Fox News", url: "https://moxie.foxnews.com/google-publisher/latest.xml"),
+            SuggestedFeed(name: "Associated Press", url: "https://flipboard.com/@associatedpress/top-stories-u7govdf1z.rss"),
+            SuggestedFeed(name: "Yahoo News Top Stories", url: "https://news.yahoo.com/rss/topstories"),
+            SuggestedFeed(name: "Times of India World", url: "https://timesofindia.indiatimes.com/rssfeeds/296589292.cms"),
         ]),
         SuggestedFeedCategory(name: "World", feeds: [
             SuggestedFeed(name: "BBC World", url: "https://feeds.bbci.co.uk/news/world/rss.xml"),
@@ -3104,6 +3120,11 @@ private enum SuggestedFeedCatalog {
             SuggestedFeed(name: "Guardian Middle East", url: "https://www.theguardian.com/world/middleeast/rss"),
             SuggestedFeed(name: "Le Monde International", url: "https://www.lemonde.fr/en/international/rss_full.xml"),
             SuggestedFeed(name: "France 24 Africa", url: "https://www.france24.com/en/africa/rss"),
+            SuggestedFeed(name: "South China Morning Post", url: "https://www.scmp.com/rss/91/feed"),
+            SuggestedFeed(name: "The Diplomat", url: "https://thediplomat.com/feed/"),
+            SuggestedFeed(name: "RFI International", url: "https://www.rfi.fr/en/international/rss"),
+            SuggestedFeed(name: "The New Humanitarian", url: "https://www.thenewhumanitarian.org/rss.xml"),
+            SuggestedFeed(name: "Le Monde Americas", url: "https://www.lemonde.fr/en/americas/rss_full.xml"),
         ]),
         SuggestedFeedCategory(name: "Politics", feeds: [
             SuggestedFeed(name: "BBC Politics", url: "https://feeds.bbci.co.uk/news/politics/rss.xml"),
@@ -3126,6 +3147,11 @@ private enum SuggestedFeedCatalog {
             SuggestedFeed(name: "Washington Times Politics", url: "https://www.washingtontimes.com/rss/headlines/news/politics/"),
             SuggestedFeed(name: "Common Dreams", url: "https://www.commondreams.org/rss.xml"),
             SuggestedFeed(name: "Reason", url: "https://reason.com/feed/"),
+            SuggestedFeed(name: "The American Conservative", url: "https://www.theamericanconservative.com/feed/"),
+            SuggestedFeed(name: "The Hill Congress", url: "https://thehill.com/homenews/house/feed/"),
+            SuggestedFeed(name: "POLITICO Politics", url: "https://rss.politico.com/politics-news.xml"),
+            SuggestedFeed(name: "POLITICO Europe", url: "https://www.politico.eu/feed/"),
+            SuggestedFeed(name: "SCOTUSblog", url: "https://www.scotusblog.com/feed/"),
         ]),
         SuggestedFeedCategory(name: "Finance", feeds: [
             SuggestedFeed(name: "Financial Times", url: "https://www.ft.com/?format=rss"),
@@ -3148,6 +3174,11 @@ private enum SuggestedFeedCatalog {
             SuggestedFeed(name: "MarketWatch Market Pulse", url: "https://feeds.marketwatch.com/marketwatch/marketpulse/"),
             SuggestedFeed(name: "Investor’s Business Daily", url: "https://www.investors.com/feed/"),
             SuggestedFeed(name: "Benzinga", url: "https://www.benzinga.com/feed"),
+            SuggestedFeed(name: "CNBC Investing", url: "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=15839069"),
+            SuggestedFeed(name: "Business Insider Markets", url: "https://markets.businessinsider.com/rss/news"),
+            SuggestedFeed(name: "Bank of England News", url: "https://www.bankofengland.co.uk/rss/news"),
+            SuggestedFeed(name: "European Central Bank Press", url: "https://www.ecb.europa.eu/rss/press.html"),
+            SuggestedFeed(name: "CNBC Earnings", url: "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=15839135"),
         ]),
         SuggestedFeedCategory(name: "Technology", feeds: [
             SuggestedFeed(name: "Ars Technica", url: "https://feeds.arstechnica.com/arstechnica/index"),
@@ -3170,6 +3201,11 @@ private enum SuggestedFeedCatalog {
             SuggestedFeed(name: "IEEE Spectrum", url: "https://spectrum.ieee.org/feeds/feed.rss"),
             SuggestedFeed(name: "The Next Web", url: "https://thenextweb.com/feed"),
             SuggestedFeed(name: "Ars Technica Technology Lab", url: "https://feeds.arstechnica.com/arstechnica/technology-lab"),
+            SuggestedFeed(name: "Techdirt", url: "https://www.techdirt.com/feed/"),
+            SuggestedFeed(name: "404 Media", url: "https://www.404media.co/rss/"),
+            SuggestedFeed(name: "AppleInsider", url: "https://appleinsider.com/rss/news/"),
+            SuggestedFeed(name: "Google AI Blog", url: "https://blog.research.google/feeds/posts/default?alt=rss"),
+            SuggestedFeed(name: "Schneier on Security", url: "https://www.schneier.com/feed/atom/"),
         ]),
         SuggestedFeedCategory(name: "Science", feeds: [
             SuggestedFeed(name: "Nature", url: "https://www.nature.com/nature.rss"),
@@ -3192,6 +3228,11 @@ private enum SuggestedFeedCatalog {
             SuggestedFeed(name: "ScienceDaily Top Science", url: "https://www.sciencedaily.com/rss/top/science.xml"),
             SuggestedFeed(name: "Le Monde Science", url: "https://www.lemonde.fr/en/science/rss_full.xml"),
             SuggestedFeed(name: "Astronomy", url: "https://www.astronomy.com/feed/"),
+            SuggestedFeed(name: "Phys.org Science", url: "https://phys.org/rss-feed/science-news/"),
+            SuggestedFeed(name: "Le Monde Space & Astronomy", url: "https://www.lemonde.fr/en/space-and-astronomy/rss_full.xml"),
+            SuggestedFeed(name: "National Science Foundation", url: "https://www.nsf.gov/rss/rss_www_news.xml"),
+            SuggestedFeed(name: "PNAS", url: "https://www.pnas.org/rss/current.xml"),
+            SuggestedFeed(name: "Smithsonian Science", url: "https://www.smithsonianmag.com/rss/science-nature/"),
         ]),
         SuggestedFeedCategory(name: "Health", feeds: [
             SuggestedFeed(name: "BBC Health", url: "https://feeds.bbci.co.uk/news/health/rss.xml"),
@@ -3214,6 +3255,11 @@ private enum SuggestedFeedCatalog {
             SuggestedFeed(name: "ScienceDaily Top Health", url: "https://www.sciencedaily.com/rss/top/health.xml"),
             SuggestedFeed(name: "Le Monde Health", url: "https://www.lemonde.fr/en/health/rss_full.xml"),
             SuggestedFeed(name: "The Conversation Health", url: "https://theconversation.com/us/health/articles.atom"),
+            SuggestedFeed(name: "The Lancet Infectious Diseases", url: "https://www.thelancet.com/rssfeed/laninf_current.xml"),
+            SuggestedFeed(name: "The Lancet Public Health", url: "https://www.thelancet.com/rssfeed/lanpub_current.xml"),
+            SuggestedFeed(name: "The Lancet Diabetes & Endocrinology", url: "https://www.thelancet.com/rssfeed/landia_current.xml"),
+            SuggestedFeed(name: "JAMA", url: "https://jamanetwork.com/rss/site_3/67.xml"),
+            SuggestedFeed(name: "The BMJ", url: "https://www.bmj.com/rss/recent.xml"),
         ]),
         SuggestedFeedCategory(name: "Environment", feeds: [
             SuggestedFeed(name: "BBC Science & Environment", url: "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml"),
@@ -3236,6 +3282,11 @@ private enum SuggestedFeedCatalog {
             SuggestedFeed(name: "Climate Reality Project", url: "https://www.climaterealityproject.org/feed"),
             SuggestedFeed(name: "ENDS Report", url: "https://www.endsreport.com/rss/news-and-analysis"),
             SuggestedFeed(name: "NOAA News", url: "https://www.noaa.gov/news/rss.xml"),
+            SuggestedFeed(name: "NOAA Climate News", url: "https://www.noaa.gov/taxonomy/term/28/rss"),
+            SuggestedFeed(name: "Phys.org Earth Science", url: "https://phys.org/rss-feed/earth-news/earth-sciences/"),
+            SuggestedFeed(name: "Nature Climate Change", url: "https://www.nature.com/subjects/climate-change.rss"),
+            SuggestedFeed(name: "NOAA Ocean Facts", url: "https://oceanservice.noaa.gov/rss/oceanfacts.xml"),
+            SuggestedFeed(name: "NOAA Ocean Explorer", url: "https://oceanservice.noaa.gov/rss/explore.xml"),
         ]),
         SuggestedFeedCategory(name: "Sports", feeds: [
             SuggestedFeed(name: "BBC Sport", url: "https://feeds.bbci.co.uk/sport/rss.xml"),
@@ -3258,6 +3309,11 @@ private enum SuggestedFeedCatalog {
             SuggestedFeed(name: "Bleacher Report", url: "https://feeds.bleacherreport.com/articles"),
             SuggestedFeed(name: "ESPNcricinfo", url: "https://www.espncricinfo.com/rss/content/story/feeds/0.xml"),
             SuggestedFeed(name: "Le Monde Sports", url: "https://www.lemonde.fr/en/sports/rss_full.xml"),
+            SuggestedFeed(name: "CBS Sports NBA", url: "https://www.cbssports.com/rss/headlines/nba/"),
+            SuggestedFeed(name: "CBS Sports NHL", url: "https://www.cbssports.com/rss/headlines/nhl/"),
+            SuggestedFeed(name: "CBS Sports Soccer", url: "https://www.cbssports.com/rss/headlines/soccer/"),
+            SuggestedFeed(name: "The Athletic", url: "https://www.nytimes.com/athletic/rss/news/"),
+            SuggestedFeed(name: "CBS Sports NFL", url: "https://www.cbssports.com/rss/headlines/nfl/"),
         ]),
         SuggestedFeedCategory(name: "Culture", feeds: [
             SuggestedFeed(name: "BBC Arts", url: "https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml"),
@@ -3280,6 +3336,11 @@ private enum SuggestedFeedCatalog {
             SuggestedFeed(name: "Guardian Film", url: "https://www.theguardian.com/film/rss"),
             SuggestedFeed(name: "Slashfilm", url: "https://www.slashfilm.com/feed/"),
             SuggestedFeed(name: "The Marginalian", url: "https://www.themarginalian.org/feed/"),
+            SuggestedFeed(name: "NPR Books", url: "https://feeds.npr.org/1032/rss.xml"),
+            SuggestedFeed(name: "The New York Times Books", url: "https://rss.nytimes.com/services/xml/rss/nyt/Books.xml"),
+            SuggestedFeed(name: "Smithsonian History", url: "https://www.smithsonianmag.com/rss/history/"),
+            SuggestedFeed(name: "PBS Arts", url: "https://www.pbs.org/newshour/feeds/rss/arts"),
+            SuggestedFeed(name: "Le Monde Culture", url: "https://www.lemonde.fr/en/culture/rss_full.xml"),
         ]),
         SuggestedFeedCategory(name: "Gaming", feeds: [
             SuggestedFeed(name: "Polygon", url: "https://www.polygon.com/rss/index.xml"),
@@ -3302,6 +3363,11 @@ private enum SuggestedFeedCatalog {
             SuggestedFeed(name: "Massively Overpowered", url: "https://massivelyop.com/feed/"),
             SuggestedFeed(name: "GamingOnLinux", url: "https://www.gamingonlinux.com/article_rss.php"),
             SuggestedFeed(name: "Game Developer", url: "https://www.gamedeveloper.com/rss.xml"),
+            SuggestedFeed(name: "Video Games Chronicle", url: "https://www.videogameschronicle.com/feed/"),
+            SuggestedFeed(name: "VG247", url: "https://www.vg247.com/feed"),
+            SuggestedFeed(name: "Le Monde Pixels", url: "https://www.lemonde.fr/en/pixels/rss_full.xml"),
+            SuggestedFeed(name: "Game Rant", url: "https://gamerant.com/feed/"),
+            SuggestedFeed(name: "Game Informer", url: "https://gameinformer.com/rss.xml"),
         ]),
         SuggestedFeedCategory(name: "Food", feeds: [
             SuggestedFeed(name: "Bon Appetit", url: "https://www.bonappetit.com/feed/rss"),
@@ -3324,6 +3390,11 @@ private enum SuggestedFeedCatalog {
             SuggestedFeed(name: "The Mediterranean Dish", url: "https://www.themediterraneandish.com/feed/"),
             SuggestedFeed(name: "Food Republic", url: "https://www.foodrepublic.com/feed/"),
             SuggestedFeed(name: "Cookie and Kate", url: "https://cookieandkate.com/feed/"),
+            SuggestedFeed(name: "The Woks of Life", url: "https://thewoksoflife.com/feed/"),
+            SuggestedFeed(name: "Minimalist Baker", url: "https://minimalistbaker.com/feed/"),
+            SuggestedFeed(name: "Love and Lemons", url: "https://www.loveandlemons.com/feed/"),
+            SuggestedFeed(name: "BBC Good Food", url: "https://www.bbcgoodfood.com/feed"),
+            SuggestedFeed(name: "Tasting Table", url: "https://www.tastingtable.com/feed/"),
         ]),
         SuggestedFeedCategory(name: "Travel", feeds: [
             SuggestedFeed(name: "CNN Travel", url: "http://rss.cnn.com/rss/edition_travel.rss"),
@@ -3346,6 +3417,11 @@ private enum SuggestedFeedCatalog {
             SuggestedFeed(name: "Le Monde Travel", url: "https://www.lemonde.fr/en/travel/rss_full.xml"),
             SuggestedFeed(name: "The Blonde Abroad", url: "https://www.theblondeabroad.com/feed/"),
             SuggestedFeed(name: "Traveling Lifestyle", url: "https://www.travelinglifestyle.net/feed/"),
+            SuggestedFeed(name: "Budget Travel", url: "https://www.budgettravel.com/rss"),
+            SuggestedFeed(name: "Ordinary Traveler", url: "https://ordinarytraveler.com/feed"),
+            SuggestedFeed(name: "Johnny Jet", url: "https://www.johnnyjet.com/feed/"),
+            SuggestedFeed(name: "The Points Guy", url: "https://thepointsguy.com/feed"),
+            SuggestedFeed(name: "A Luxury Travel Blog", url: "https://www.aluxurytravelblog.com/feed/"),
         ]),
     ]
     static func category(named name: String) -> SuggestedFeedCategory? {

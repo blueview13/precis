@@ -12,15 +12,15 @@ Choose a theme and interface language. Theme changes apply to the reader and Set
 - In Precis’s in-app browser, optionally attempt to accept common cookie banners automatically. Some sites may still require a manual choice.
 - Choose a macOS voice for **Read Aloud**.
 - Choose a target language for **Translate Article**. macOS may download language models the first time you use translation.
-- Set the article font, reading-pane font size and width, and whether to show reading-time estimates.
+- Choose an article font, reading-pane font size and width, and whether to show reading-time estimates.
 
 ## Article List
 
-Turn on **Stack related stories** to group matching stories among the 800 newest articles. Choose whether to show thumbnails and article images, and set the default sort order.
+Turn on **Stack related stories** to group matching stories among the 800 newest articles. Choose whether to show thumbnails in the headline list and images in the reading pane, and set the default sort order.
 
 ## Left Sidebar and AI Summaries
 
-Choose whether feed rows show unread-count badges. Control whether Precis automatically generates a summary when you open an article.
+Choose whether feed rows show unread-count badges. Control whether Precis automatically generates a summary when you open an article. When automatic summaries are off, you can generate one from the summary card.
 
 ## Refresh and Accounts
 
