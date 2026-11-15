@@ -367,6 +367,16 @@ struct MainWindowLayout: View {
             wasRestoringReader = false
             raiseSettingsWindow()
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didMiniaturizeNotification)) { notification in
+            guard let window = notification.object as? NSWindow,
+                  window === readerWindow,
+                  settingsWindow?.isVisible == true else { return }
+            wasRestoringReader = true
+            window.deminiaturize(nil)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                raiseSettingsWindow()
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didEnterFullScreenNotification)) { notification in
             // Re-assert the chrome config: AppKit rewrites the titlebar's
             // appearance as it animates into full screen.
@@ -569,6 +579,7 @@ struct MainWindowLayout: View {
     /// The Settings scene's window — SwiftUI names it after the scene id.
     private var settingsWindow: NSWindow? {
         NSApp.windows.first { $0.identifier?.rawValue == "settings" }
+            ?? NSApp.windows.first { $0.title == "Settings" }
     }
 
     /// Opens Settings with the reader restored behind it.
@@ -590,15 +601,35 @@ struct MainWindowLayout: View {
         }
 
         openWindow(id: "settings")
-        raiseSettingsWindow()
-        // The first `openWindow` creates the window a beat later — retry once
-        // there is something to raise.
-        DispatchQueue.main.async { raiseSettingsWindow() }
+        raiseSettingsWindow(retry: 0)
     }
 
-    /// Orders the settings window above the (just restored) reader.
-    private func raiseSettingsWindow() {
-        settingsWindow?.makeKeyAndOrderFront(nil)
+    /// Keeps the reader restored and puts Settings directly in front of it.
+    /// SwiftUI can create the scene window after `openWindow` returns, so retry
+    /// briefly until AppKit has registered it.
+    private func raiseSettingsWindow(retry: Int = 0) {
+        guard let settings = settingsWindow else {
+            guard retry < 8 else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                raiseSettingsWindow(retry: retry + 1)
+            }
+            return
+        }
+
+        if let reader = readerWindow, reader.isMiniaturized {
+            wasRestoringReader = true
+            reader.deminiaturize(nil)
+            guard retry < 8 else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                raiseSettingsWindow(retry: retry + 1)
+            }
+            return
+        }
+
+        if let reader = readerWindow, settings !== reader {
+            settings.order(.above, relativeTo: reader.windowNumber)
+        }
+        settings.makeKeyAndOrderFront(nil)
     }
 
     // MARK: - Spacebar "next article"
