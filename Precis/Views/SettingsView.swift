@@ -187,6 +187,7 @@ struct SettingsView: View {
     @ObservedObject private var smartCategoryStore = SmartCategoryStore.shared
     @State private var desktopPanelColorPanel = DesktopPanelColorPanelController()
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
 
     private var selectedTheme: PrecisTheme {
@@ -217,16 +218,20 @@ struct SettingsView: View {
                     .font(PrecisTypography.headline)
                     .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
                 Spacer()
-                if let onClose {
-                    Button(action: onClose) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundStyle(PrecisDesignSystem.marginalia.opacity(0.7))
+                Button {
+                    if let onClose {
+                        onClose()
+                    } else {
+                        dismiss()
                     }
-                    .buttonStyle(.plain)
-                    .help("Close Settings")
-                    .accessibilityLabel("Close Settings")
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(PrecisDesignSystem.marginalia.opacity(0.7))
                 }
+                .buttonStyle(.plain)
+                .help("Close Settings")
+                .accessibilityLabel("Close Settings")
             }
             .padding(.horizontal, PrecisSpacing.lg)
             .padding(.top, PrecisSpacing.md)
