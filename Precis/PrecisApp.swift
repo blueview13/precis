@@ -49,7 +49,7 @@ struct PrecisApp: App {
                 }
         }
 
-        Window("Settings", id: "settings") {
+        Settings {
             SettingsView(
                 onImportOPML: nil,
                 onExportOPML: nil,
@@ -62,7 +62,6 @@ struct PrecisApp: App {
             .preferredColorScheme(selectedTheme.colorScheme)
             .tint(selectedTheme.accent)
         }
-        .defaultSize(width: 480, height: 560)
 
         Window(helpWindowTitle, id: "help") {
             HelpWindowView()
@@ -77,13 +76,6 @@ struct PrecisApp: App {
                 Button("New Smart Category…") {
                     NotificationCenter.default.post(name: .precisNewSmartCategory, object: nil)
                 }
-            }
-            // Settings… in the Precis app menu (⌘,)
-            CommandGroup(replacing: .appSettings) {
-                Button("Settings…") {
-                    NotificationCenter.default.post(name: .precisOpenSettings, object: nil)
-                }
-                .keyboardShortcut(",", modifiers: .command)
             }
             // Help > Precis Help (⌘?) opens the Help window instead of the
             // default help book. Commands have no window environment, so the
@@ -111,9 +103,6 @@ final class PrecisApplicationDelegate: NSObject, NSApplicationDelegate {
 }
 
 extension Notification.Name {
-    /// Posted by the app menu's Settings command. The main window observes it
-    /// and calls its `openWindow` action (commands have no window environment).
-    static let precisOpenSettings = Notification.Name("PrecisOpenSettings")
     /// Posted by the Help menu command; the main window opens the Help scene.
     static let precisOpenHelp = Notification.Name("PrecisOpenHelp")
     /// Posted after an OPML import completes in the Settings window so the

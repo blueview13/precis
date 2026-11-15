@@ -95,10 +95,8 @@ struct MainWindowLayout: View {
     /// set from the pointer reaching the window's top edge, which is where the
     /// menu bar reveals when the window is flush with the display's top.
     @State private var chromeRevealed = false
-    /// True between `presentSettings` un-minimizing the reader and that
-    /// window reporting the restore finished.
-    @State private var wasRestoringReader = false
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
 
     private var selectedFeedIDs: Set<UUID> {
         feedSelection.ids
@@ -329,9 +327,6 @@ struct MainWindowLayout: View {
         .onDisappear {
             stopSpacebarMonitor()
         }
-        .onReceive(NotificationCenter.default.publisher(for: .precisOpenSettings)) { _ in
-            presentSettings()
-        }
         .onReceive(NotificationCenter.default.publisher(for: .precisArticleRead)) { notification in
             guard let articleID = notification.object as? UUID else { return }
             // Opened from the headlines panel — mirror the read state so the
@@ -356,26 +351,6 @@ struct MainWindowLayout: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .precisFeedbinDisconnected)) { _ in
             handleFeedbinDisconnected()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didDeminiaturizeNotification)) { notification in
-            // Only for the reader we restored on Settings' behalf. A reader
-            // un-minimized by hand is what the reader asked for, so Settings
-            // is left where it is.
-            guard wasRestoringReader,
-                  let window = notification.object as? NSWindow,
-                  window === readerWindow else { return }
-            wasRestoringReader = false
-            raiseSettingsWindow()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didMiniaturizeNotification)) { notification in
-            guard let window = notification.object as? NSWindow,
-                  window === readerWindow,
-                  settingsWindow?.isVisible == true else { return }
-            wasRestoringReader = true
-            window.deminiaturize(nil)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                raiseSettingsWindow()
-            }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didEnterFullScreenNotification)) { notification in
             // Re-assert the chrome config: AppKit rewrites the titlebar's
@@ -569,67 +544,12 @@ struct MainWindowLayout: View {
         window.titleVisibility = .hidden
     }
 
-    // MARK: - Settings window
+    // MARK: - Settings
 
-    /// The reader window, even before `WindowCaptureView` has reported it.
-    private var readerWindow: NSWindow? {
-        hostingWindow ?? NSApp.windows.first { $0.identifier?.rawValue == "PrecisMainWindow" }
-    }
-
-    /// The Settings scene's window — SwiftUI names it after the scene id.
-    private var settingsWindow: NSWindow? {
-        NSApp.windows.first { $0.identifier?.rawValue == "settings" }
-            ?? NSApp.windows.first { $0.title == "Settings" }
-    }
-
-    /// Opens Settings with the reader restored behind it.
-    ///
-    /// Opening Settings from a minimized reader used to leave the settings
-    /// pane floating on its own over the desktop — the main window stayed in
-    /// the Dock — so the reader is brought back first. Un-minimizing hands the
-    /// front back to the reader once its animation finishes, so the
-    /// `didDeminiaturize` handler raises Settings again at that point.
+    /// Uses the native Settings scene so macOS manages its relationship to
+    /// the main app window and its standard app-menu command.
     private func presentSettings() {
-        if NSApp.isHidden {
-            NSApp.unhide(nil)
-        }
-        NSApp.activate()
-
-        if let window = readerWindow, window.isMiniaturized {
-            wasRestoringReader = true
-            window.deminiaturize(nil)
-        }
-
-        openWindow(id: "settings")
-        raiseSettingsWindow(retry: 0)
-    }
-
-    /// Keeps the reader restored and puts Settings directly in front of it.
-    /// SwiftUI can create the scene window after `openWindow` returns, so retry
-    /// briefly until AppKit has registered it.
-    private func raiseSettingsWindow(retry: Int = 0) {
-        guard let settings = settingsWindow else {
-            guard retry < 8 else { return }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                raiseSettingsWindow(retry: retry + 1)
-            }
-            return
-        }
-
-        if let reader = readerWindow, reader.isMiniaturized {
-            wasRestoringReader = true
-            reader.deminiaturize(nil)
-            guard retry < 8 else { return }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                raiseSettingsWindow(retry: retry + 1)
-            }
-            return
-        }
-
-        if let reader = readerWindow, settings !== reader {
-            settings.order(.above, relativeTo: reader.windowNumber)
-        }
-        settings.makeKeyAndOrderFront(nil)
+        openSettings()
     }
 
     // MARK: - Spacebar "next article"
