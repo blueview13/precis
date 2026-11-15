@@ -832,7 +832,7 @@ struct MainWindowLayout: View {
                 let matchingArticleIDs = viewModel.smartCategoryArticleIDs(for: smartCategory.id) ?? []
                 let matchingFeedIDs = Set(viewModel.items.filter { matchingArticleIDs.contains($0.id) }.compactMap(\.feedID))
                 let matchingFeeds = importedFeeds.filter { matchingFeedIDs.contains($0.id) }
-                HStack(spacing: 2) {
+                HStack(spacing: 5) {
                     Button {
                         if isExpanded { collapsedSmartCategoryIDs.insert(smartCategory.id) }
                         else { collapsedSmartCategoryIDs.remove(smartCategory.id) }
@@ -845,10 +845,35 @@ struct MainWindowLayout: View {
                     }
                     .buttonStyle(.plain)
                     .help(isExpanded ? "Collapse smart category feeds" : "Expand smart category feeds")
-                    SidebarItem(title: smartCategory.name, icon: "sparkles", badge: sidebarCount(viewModel.unreadCount(inSmartCategory: smartCategory.id)), badgeNextToTitle: true, tint: smartCategory.colorHex.flatMap { PrecisDesignSystem.color(hex: $0) }, active: viewModel.selectedSidebarFilter == .smartCategory(smartCategory.id)) {
+                    let isSelected = viewModel.selectedSidebarFilter == .smartCategory(smartCategory.id)
+                    let tint = smartCategory.colorHex.flatMap { PrecisDesignSystem.color(hex: $0) }
+                    Button {
                         selectedSidebarItem = smartCategory.name
                         viewModel.selectedSidebarFilter = .smartCategory(smartCategory.id)
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "sparkles")
+                                .font(.body)
+                                .frame(width: 18)
+                                .foregroundStyle(tint ?? (isSelected ? PrecisDesignSystem.flag : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.6)))
+                            Text(LocalizedStringKey(smartCategory.name))
+                                .font(PrecisTypography.body)
+                                .foregroundStyle(tint ?? (isSelected ? PrecisDesignSystem.foreground(for: colorScheme) : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.75)))
+                            let unreadCount = sidebarCount(viewModel.unreadCount(inSmartCategory: smartCategory.id))
+                            if unreadCount > 0 {
+                                Text("(\(unreadCount))")
+                                    .font(PrecisTypography.caption)
+                                    .foregroundStyle(PrecisDesignSystem.marginalia)
+                            }
+                            Spacer(minLength: 4)
+                        }
+                        .padding(.vertical, 6)
+                        .padding(.horizontal, 4)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(isSelected ? PrecisDesignSystem.surface(for: colorScheme).opacity(0.8) : Color.clear)
+                        .cornerRadius(10)
                     }
+                    .buttonStyle(.plain)
                 }
                 .symbolEffect(.breathe, isActive: !reduceMotion)
                 .contextMenu {
@@ -1510,6 +1535,7 @@ struct MainWindowLayout: View {
                         .lineLimit(1)
                         .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme).opacity(0.8))
                 }
+                .offset(x: 5)
             }
 
             let feedUnread = sidebarCount(viewModel.unreadCount(forFeed: feed.id))
@@ -2158,7 +2184,7 @@ struct MainWindowLayout: View {
                         let customTint = category.colorHex.flatMap { PrecisDesignSystem.color(hex: $0) }
                         let categoryIconColor = customTint ?? (isCategorySelected ? Color.accentColor : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.6))
                         let categoryTextColor = customTint ?? (isCategorySelected ? Color.accentColor : PrecisDesignSystem.foreground(for: colorScheme).opacity(0.75))
-                        HStack(spacing: 10) {
+                        HStack(spacing: 5) {
                             Button {
                                 if collapsedCategoryIDs.contains(category.id) {
                                     collapsedCategoryIDs.remove(category.id)
