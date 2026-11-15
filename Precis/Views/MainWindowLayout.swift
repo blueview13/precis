@@ -265,7 +265,8 @@ struct MainWindowLayout: View {
             SettingsView(
                 onImportOPML: nil,
                 onExportOPML: nil,
-                hasFeeds: !importedFeeds.isEmpty
+                hasFeeds: !importedFeeds.isEmpty,
+                onClose: { isPresentingFullScreenSettings = false }
             )
             .frame(width: 480, height: 560)
         }

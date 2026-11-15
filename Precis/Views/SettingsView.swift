@@ -196,6 +196,7 @@ struct SettingsView: View {
     let onImportOPML: (() -> Void)?
     let onExportOPML: (() -> Void)?
     let hasFeeds: Bool
+    var onClose: (() -> Void)? = nil
 
     private let refreshOptions = [1, 5, 15, 30, 60]
     private let sortOptions = ["newest", "oldest", "unread first", "starred first"]
@@ -216,6 +217,16 @@ struct SettingsView: View {
                     .font(PrecisTypography.headline)
                     .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
                 Spacer()
+                if let onClose {
+                    Button(action: onClose) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundStyle(PrecisDesignSystem.marginalia.opacity(0.7))
+                    }
+                    .buttonStyle(.plain)
+                    .help("Close Settings")
+                    .accessibilityLabel("Close Settings")
+                }
             }
             .padding(.horizontal, PrecisSpacing.lg)
             .padding(.top, PrecisSpacing.md)
