@@ -167,7 +167,47 @@ final class DesktopFeedPanelController: NSObject {
             name: UserDefaults.didChangeNotification,
             object: UserDefaults.standard
         )
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self,
+            selector: #selector(applicationDidActivate),
+            name: NSWorkspace.didActivateApplicationNotification,
+            object: nil
+        )
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self,
+            selector: #selector(applicationDidTerminate),
+            name: NSWorkspace.didTerminateApplicationNotification,
+            object: nil
+        )
         preferencesChanged()
+    }
+
+    @objc private func applicationDidActivate(_ notification: Notification) {
+        guard panel?.isVisible == true else { return }
+
+        restoreVisiblePanelOrder()
+    }
+
+    @objc private func applicationDidTerminate(_ notification: Notification) {
+        guard panel?.isVisible == true else { return }
+
+        // Quitting an app closes its windows without necessarily producing
+        // the same activation sequence as minimizing one. Let WindowServer
+        // finish removing the terminated app's windows before restoring the
+        // panel among desktop-level windows.
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(150))
+            self?.restoreVisiblePanelOrder()
+        }
+    }
+
+    private func restoreVisiblePanelOrder() {
+        guard panel?.isVisible == true else { return }
+
+        // The panel stays below ordinary app windows; this restores only its
+        // order among desktop-level windows, without activating Precis.
+        positionPanel()
+        panel?.orderFrontRegardless()
     }
 
     @objc private func preferencesChanged() {
