@@ -180,6 +180,12 @@ final class DesktopFeedPanelController: NSObject {
             name: NSWorkspace.didTerminateApplicationNotification,
             object: nil
         )
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self,
+            selector: #selector(activeSpaceDidChange),
+            name: NSWorkspace.activeSpaceDidChangeNotification,
+            object: nil
+        )
         preferencesChanged()
     }
 
@@ -187,6 +193,15 @@ final class DesktopFeedPanelController: NSObject {
         guard panel?.isVisible == true else { return }
 
         restoreVisiblePanelOrder()
+    }
+
+    @objc private func activeSpaceDidChange(_ notification: Notification) {
+        guard panel?.isVisible == true else { return }
+
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(200))
+            self?.restoreVisiblePanelOrder()
+        }
     }
 
     @objc private func applicationDidTerminate(_ notification: Notification) {
@@ -197,6 +212,8 @@ final class DesktopFeedPanelController: NSObject {
         // after the activation notification. Wait for the terminating app's
         // windows to disappear, then cycle the panel through orderOut just as
         // the menu bar toggle does; a front-order alone hasn't been enough.
+        let terminatedApp = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+        PrecisLogger.info("Desktop panel recovery after app termination: \(terminatedApp?.localizedName ?? "unknown app")")
         Task { @MainActor [weak self] in
             try? await Task.sleep(for: .milliseconds(750))
             guard let self,
@@ -286,7 +303,7 @@ final class DesktopFeedPanelController: NSObject {
             // over Finder's desktop surface, while normal app windows stay
             // above it.
             panel.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopIconWindow)))
-            panel.collectionBehavior = [.stationary, .ignoresCycle]
+            panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
             // Hover tracking drives the ←→ cursor on the resize strip, and
             // borderless panels don't take mouse-moved events by default —
             // without this the strip's onHover never fires.
