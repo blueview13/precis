@@ -225,9 +225,10 @@ final class DesktopFeedPanelController: NSObject {
             panel.backgroundColor = .clear
             panel.hasShadow = true
             panel.hidesOnDeactivate = false
-            // Place the panel just above the wallpaper and below app windows,
-            // so it behaves like a desktop widget instead of covering work.
-            panel.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopWindow)))
+            // Put the panel at the desktop icon level: it remains interactive
+            // over Finder's desktop surface, while normal app windows stay
+            // above it.
+            panel.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopIconWindow)))
             panel.collectionBehavior = [.stationary, .ignoresCycle]
             // Hover tracking drives the ←→ cursor on the resize strip, and
             // borderless panels don't take mouse-moved events by default —
