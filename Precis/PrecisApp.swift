@@ -141,6 +141,7 @@ final class DesktopFeedPanelController: NSObject {
     private var statusItem: NSStatusItem?
     private var panel: NSPanel?
     private var contentHeight: CGFloat?
+    private var panelVisibilityRevision = 0
     /// Last `desktopPanelEnabled` value seen by `preferencesChanged`, so an
     /// off→on change (the user ticking the box) can open the panel while the
     /// initial call from `install` leaves it closed behind its menu bar icon.
@@ -190,14 +191,24 @@ final class DesktopFeedPanelController: NSObject {
 
     @objc private func applicationDidTerminate(_ notification: Notification) {
         guard panel?.isVisible == true else { return }
+        let visibilityRevision = panelVisibilityRevision
 
-        // Quitting an app closes its windows without necessarily producing
-        // the same activation sequence as minimizing one. Let WindowServer
-        // finish removing the terminated app's windows before restoring the
-        // panel among desktop-level windows.
+        // Quitting can leave the desktop-level window ordering stale even
+        // after the activation notification. Wait for the terminating app's
+        // windows to disappear, then cycle the panel through orderOut just as
+        // the menu bar toggle does; a front-order alone hasn't been enough.
         Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .milliseconds(150))
-            self?.restoreVisiblePanelOrder()
+            try? await Task.sleep(for: .milliseconds(750))
+            guard let self,
+                  self.panel?.isVisible == true,
+                  self.panelVisibilityRevision == visibilityRevision else { return }
+            self.panel?.orderOut(nil)
+            try? await Task.sleep(for: .milliseconds(100))
+            guard self.panel != nil,
+                  self.panelVisibilityRevision == visibilityRevision,
+                  UserDefaults.standard.bool(forKey: "desktopPanelEnabled") else { return }
+            self.positionPanel()
+            self.panel?.orderFrontRegardless()
         }
     }
 
@@ -252,6 +263,7 @@ final class DesktopFeedPanelController: NSObject {
     }
 
     private func showPanel() {
+        panelVisibilityRevision &+= 1
         guard let modelContainer else { return }
         let screen = NSScreen.main ?? NSScreen.screens.first
         guard let screen else { return }
@@ -355,6 +367,7 @@ final class DesktopFeedPanelController: NSObject {
     }
 
     private func hidePanel() {
+        panelVisibilityRevision &+= 1
         panel?.orderOut(nil)
     }
 
