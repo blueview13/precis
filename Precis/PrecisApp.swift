@@ -225,10 +225,9 @@ final class DesktopFeedPanelController: NSObject {
             panel.backgroundColor = .clear
             panel.hasShadow = true
             panel.hidesOnDeactivate = false
-            // Keep the panel at the desktop's normal window level. Floating
-            // panels stay above other apps, which makes this look like an
-            // overlay instead of a desktop widget.
-            panel.level = .normal
+            // Place the panel just above the wallpaper and below app windows,
+            // so it behaves like a desktop widget instead of covering work.
+            panel.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopWindow)))
             panel.collectionBehavior = [.stationary, .ignoresCycle]
             // Hover tracking drives the ←→ cursor on the resize strip, and
             // borderless panels don't take mouse-moved events by default —

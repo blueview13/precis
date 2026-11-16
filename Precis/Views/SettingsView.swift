@@ -829,6 +829,9 @@ struct SettingsView: View {
             // omit a tab and must clear any prior side-panel placement.
             shouldPositionOverDesktopPanel = notification.userInfo?["positionOverPanel"] as? Bool == true
             if shouldPositionOverDesktopPanel {
+                // Keep the remembered central frame from flashing while the
+                // Settings scene activates and the edge placement is applied.
+                settingsWindow?.alphaValue = 0
                 // On the first launch of the Settings scene, its key-window
                 // notification can arrive before SwiftUI has applied this
                 // state update. Reapply once the scene has finished opening.
@@ -836,6 +839,8 @@ struct SettingsView: View {
                     guard shouldPositionOverDesktopPanel,
                           let window = settingsWindow else { return }
                     DesktopFeedPanelController.shared.positionSettingsWindow(overPanel: window)
+                    window.alphaValue = 1
+                    window.orderFront(nil)
                     shouldPositionOverDesktopPanel = false
                 }
             }
@@ -853,6 +858,7 @@ struct SettingsView: View {
                   window === settingsWindow else { return }
             if shouldPositionOverDesktopPanel {
                 DesktopFeedPanelController.shared.positionSettingsWindow(overPanel: window)
+                window.alphaValue = 1
                 shouldPositionOverDesktopPanel = false
             } else {
                 // SwiftUI's Settings scene remembers its previous frame. A
