@@ -258,7 +258,7 @@ final class DesktopFeedPanelController: NSObject {
         let frame = panelFrame(on: screen)
 
         if panel == nil {
-            let panel = NSPanel(
+            let panel = DesktopFeedPanelWindow(
                 contentRect: frame,
                 styleMask: [.borderless, .nonactivatingPanel],
                 backing: .buffered,
@@ -269,6 +269,7 @@ final class DesktopFeedPanelController: NSObject {
             panel.backgroundColor = .clear
             panel.hasShadow = true
             panel.hidesOnDeactivate = false
+            panel.becomesKeyOnlyIfNeeded = true
             // Put the panel at the desktop icon level: it remains interactive
             // over Finder's desktop surface, while normal app windows stay
             // above it.
@@ -294,9 +295,9 @@ final class DesktopFeedPanelController: NSObject {
     }
 
     private func positionPanel() {
-        // Stay on the screen the panel is already on: the drag handle resizes
-        // it in place, and NSScreen.main follows the key window, which is the
-        // main reader — not this panel, which can never become key.
+        // Stay on the screen the panel is already on. The panel can take key
+        // status for its controls, so the key window is no longer a reliable
+        // way to choose which display should anchor it.
         guard let screen = panel?.screen ?? NSScreen.main ?? NSScreen.screens.first else { return }
         panel?.setFrame(panelFrame(on: screen), display: true)
     }
@@ -404,11 +405,17 @@ enum DesktopPanelPlacement {
     }
 }
 
-/// The panel is borderless, so it can never become the key window. Without
-/// accepting the first mouse, a click that arrives while it is not frontmost
-/// is swallowed by the activation attempt — which is why the close button only
-/// sometimes fired on the first press.
+/// A borderless NSPanel cannot become key unless it opts in. Keeping it
+/// nonactivating preserves the desktop-widget behavior, while allowing it to
+/// become key when its content handles input avoids dispatching interaction
+/// through an inactive, never-key window.
+private final class DesktopFeedPanelWindow: NSPanel {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { false }
+}
+
 private final class PanelHostingView<Content: View>: NSHostingView<Content> {
+    override var needsPanelToBecomeKey: Bool { true }
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 }
 
