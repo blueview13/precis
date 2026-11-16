@@ -843,6 +843,10 @@ struct SettingsView: View {
                     window.orderFront(nil)
                     shouldPositionOverDesktopPanel = false
                 }
+            } else {
+                // A normal main-window Settings request supersedes any late
+                // handoff left by the first creation of the Settings scene.
+                DesktopFeedPanelController.shared.clearSettingsPlacementOverPanelRequest()
             }
             guard let tabName = notification.userInfo?["settingsTab"] as? String,
                   let tab = SettingsTab(rawValue: tabName) else { return }
@@ -852,6 +856,7 @@ struct SettingsView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .precisCenterSettings)) { _ in
             shouldPositionOverDesktopPanel = false
+            DesktopFeedPanelController.shared.clearSettingsPlacementOverPanelRequest()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { notification in
             guard let window = notification.object as? NSWindow,

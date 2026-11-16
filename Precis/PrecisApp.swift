@@ -298,6 +298,10 @@ final class DesktopFeedPanelController: NSObject {
         shouldPositionSettingsOverPanel = true
     }
 
+    func clearSettingsPlacementOverPanelRequest() {
+        shouldPositionSettingsOverPanel = false
+    }
+
     func consumeSettingsPlacementOverPanelRequest() -> Bool {
         defer { shouldPositionSettingsOverPanel = false }
         return shouldPositionSettingsOverPanel
