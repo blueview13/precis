@@ -825,19 +825,41 @@ struct SettingsView: View {
         .preferredColorScheme(selectedTheme.colorScheme)
         .tint(selectedTheme.accent)
         .onReceive(NotificationCenter.default.publisher(for: .precisOpenSettings)) { notification in
+            // Placement is part of every open request. Main-window requests
+            // omit a tab and must clear any prior side-panel placement.
+            shouldPositionOverDesktopPanel = notification.userInfo?["positionOverPanel"] as? Bool == true
+            if shouldPositionOverDesktopPanel {
+                // On the first launch of the Settings scene, its key-window
+                // notification can arrive before SwiftUI has applied this
+                // state update. Reapply once the scene has finished opening.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                    guard shouldPositionOverDesktopPanel,
+                          let window = settingsWindow else { return }
+                    DesktopFeedPanelController.shared.positionSettingsWindow(overPanel: window)
+                    shouldPositionOverDesktopPanel = false
+                }
+            }
             guard let tabName = notification.userInfo?["settingsTab"] as? String,
                   let tab = SettingsTab(rawValue: tabName) else { return }
             withAnimation(.easeInOut(duration: 0.18)) {
                 selectedSettingsTab = tab
             }
-            shouldPositionOverDesktopPanel = notification.userInfo?["positionOverPanel"] as? Bool == true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .precisCenterSettings)) { _ in
+            shouldPositionOverDesktopPanel = false
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { notification in
-            guard shouldPositionOverDesktopPanel,
-                  let window = notification.object as? NSWindow,
+            guard let window = notification.object as? NSWindow,
                   window === settingsWindow else { return }
-            DesktopFeedPanelController.shared.positionSettingsWindow(overPanel: window)
-            shouldPositionOverDesktopPanel = false
+            if shouldPositionOverDesktopPanel {
+                DesktopFeedPanelController.shared.positionSettingsWindow(overPanel: window)
+                shouldPositionOverDesktopPanel = false
+            } else {
+                // SwiftUI's Settings scene remembers its previous frame. A
+                // prior Side Panel Settings… launch can leave it at the edge
+                // when Settings is opened from the main app.
+                window.center()
+            }
         }
         .task {
             let availableTranslationLanguages = await LanguageAvailability().supportedLanguages

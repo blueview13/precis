@@ -2044,7 +2044,10 @@ struct MainWindowLayout: View {
     private var sidebarView: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Button(action: { presentSettings() }) {
+                Button(action: {
+                    NotificationCenter.default.post(name: .precisCenterSettings, object: nil)
+                    presentSettings()
+                }) {
                     Image(systemName: "gearshape.fill")
                         .font(.title3)
                         .foregroundStyle(PrecisDesignSystem.marginalia)

@@ -117,6 +117,8 @@ final class PrecisApplicationDelegate: NSObject, NSApplicationDelegate {
 extension Notification.Name {
     /// Opens Settings using the active reader window's presentation mode.
     static let precisOpenSettings = Notification.Name("PrecisOpenSettings")
+    /// Resets placement for a direct Settings launch from the main window.
+    static let precisCenterSettings = Notification.Name("PrecisCenterSettings")
     /// Posted by the Help menu command; the main window opens the Help scene.
     static let precisOpenHelp = Notification.Name("PrecisOpenHelp")
     /// Posted after an OPML import completes in the Settings window so the
