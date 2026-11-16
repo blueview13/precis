@@ -274,7 +274,6 @@ struct MainWindowLayout: View {
         // `isSidebarHidden` (sidebar slot, drag handle) animates together.
         .animation(.easeInOut(duration: 0.3), value: isSidebarHidden)
         .onReceive(NotificationCenter.default.publisher(for: .precisOpenSettings)) { _ in
-            guard hostingWindow?.isKeyWindow == true else { return }
             presentSettings()
         }
         .onChange(of: viewModel.selectedItemID) { _, _ in
@@ -568,7 +567,8 @@ struct MainWindowLayout: View {
     /// desktop Space and leave the reader's Space behind. Outside full screen,
     /// keep the standard macOS Settings window and command behavior.
     private func presentSettings() {
-        if hostingWindow?.styleMask.contains(.fullScreen) == true {
+        if hostingWindow?.isVisible == true,
+           hostingWindow?.styleMask.contains(.fullScreen) == true {
             isPresentingFullScreenSettings = true
         } else {
             openSettings()

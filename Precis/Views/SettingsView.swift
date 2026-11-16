@@ -93,6 +93,39 @@ private struct WindowWillCloseObserver: NSViewRepresentable {
     }
 }
 
+/// Gives SettingsView the native window so right-click entry can place only
+/// that Settings presentation over the desktop panel.
+private struct SettingsWindowReference: NSViewRepresentable {
+    let onWindowChange: (NSWindow?) -> Void
+
+    func makeNSView(context: Context) -> WindowView {
+        WindowView(onWindowChange: onWindowChange)
+    }
+
+    func updateNSView(_ nsView: WindowView, context: Context) {
+        nsView.onWindowChange = onWindowChange
+        onWindowChange(nsView.window)
+    }
+
+    final class WindowView: NSView {
+        var onWindowChange: (NSWindow?) -> Void
+
+        init(onWindowChange: @escaping (NSWindow?) -> Void) {
+            self.onWindowChange = onWindowChange
+            super.init(frame: .zero)
+        }
+
+        required init?(coder: NSCoder) {
+            fatalError("init(coder:) has not been implemented")
+        }
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            onWindowChange(window)
+        }
+    }
+}
+
 struct SettingsView: View {
     private struct InterfaceLanguage: Identifiable {
         let code: String
@@ -132,6 +165,8 @@ struct SettingsView: View {
         }
     }
     @State private var selectedSettingsTab: SettingsTab = .appearance
+    @State private var settingsWindow: NSWindow?
+    @State private var shouldPositionOverDesktopPanel = false
     @AppStorage(PrecisTheme.storageKey) private var selectedThemeRawValue = PrecisTheme.standard.rawValue
     @AppStorage("readingFontSize") private var readingFontSize: Double = 15
     @AppStorage("readingTypeface") private var readingTypefaceRawValue = ReadingTypeface.system.rawValue
@@ -789,6 +824,21 @@ struct SettingsView: View {
         .background(PrecisDesignSystem.background(for: colorScheme))
         .preferredColorScheme(selectedTheme.colorScheme)
         .tint(selectedTheme.accent)
+        .onReceive(NotificationCenter.default.publisher(for: .precisOpenSettings)) { notification in
+            guard let tabName = notification.userInfo?["settingsTab"] as? String,
+                  let tab = SettingsTab(rawValue: tabName) else { return }
+            withAnimation(.easeInOut(duration: 0.18)) {
+                selectedSettingsTab = tab
+            }
+            shouldPositionOverDesktopPanel = notification.userInfo?["positionOverPanel"] as? Bool == true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { notification in
+            guard shouldPositionOverDesktopPanel,
+                  let window = notification.object as? NSWindow,
+                  window === settingsWindow else { return }
+            DesktopFeedPanelController.shared.positionSettingsWindow(overPanel: window)
+            shouldPositionOverDesktopPanel = false
+        }
         .task {
             let availableTranslationLanguages = await LanguageAvailability().supportedLanguages
             translationLanguages = availableTranslationLanguages.sorted(by: { (left: Locale.Language, right: Locale.Language) in
@@ -809,6 +859,7 @@ struct SettingsView: View {
             // desktop after its owner window is gone.
             NSColorPanel.shared.close()
         })
+        .background(SettingsWindowReference { settingsWindow = $0 })
     }
 
     private var desktopPanelColor: Binding<Color> {

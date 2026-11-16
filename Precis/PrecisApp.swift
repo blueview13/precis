@@ -223,8 +223,11 @@ final class DesktopFeedPanelController: NSObject {
             panel.backgroundColor = .clear
             panel.hasShadow = true
             panel.hidesOnDeactivate = false
-            panel.level = .floating
-            panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
+            // Keep the panel at the desktop's normal window level. Floating
+            // panels stay above other apps, which makes this look like an
+            // overlay instead of a desktop widget.
+            panel.level = .normal
+            panel.collectionBehavior = [.stationary, .ignoresCycle]
             // Hover tracking drives the ←→ cursor on the resize strip, and
             // borderless panels don't take mouse-moved events by default —
             // without this the strip's onHover never fires.
@@ -241,7 +244,7 @@ final class DesktopFeedPanelController: NSObject {
         }
 
         panel?.setFrame(frame, display: true)
-        panel?.orderFrontRegardless()
+        panel?.orderFront(nil)
     }
 
     private func positionPanel() {
@@ -270,6 +273,19 @@ final class DesktopFeedPanelController: NSObject {
             frame.origin.y = screen.visibleFrame.maxY - frame.height
         }
         return frame
+    }
+
+    /// Aligns the Settings window to the same edge as the desktop panel. The
+    /// panel's context menu is the only caller; ordinary Settings openings
+    /// retain macOS's usual window placement.
+    func positionSettingsWindow(overPanel window: NSWindow) {
+        let screen = panel?.screen ?? NSScreen.main ?? NSScreen.screens.first
+        guard let screen else { return }
+        let visible = screen.visibleFrame
+        let edge = UserDefaults.standard.string(forKey: "desktopPanelEdge") ?? "right"
+        let x = edge == "left" ? visible.minX : visible.maxX - window.frame.width
+        let y = visible.minY + (visible.height - window.frame.height) / 2
+        window.setFrameOrigin(NSPoint(x: x, y: y))
     }
 
     private func resizePanel(toContentHeight height: CGFloat) {
@@ -587,6 +603,15 @@ private struct DesktopFeedPanelView: View {
                 // The header and divider sit outside the scroll view. Include
                 // their measured height so short lists leave no unused panel area.
                 onContentHeightChange(contentHeight + 51)
+            }
+        }
+        .contextMenu {
+            Button("Side Panel Settings…") {
+                NotificationCenter.default.post(
+                    name: .precisOpenSettings,
+                    object: nil,
+                    userInfo: ["settingsTab": "Side Panel", "positionOverPanel": true]
+                )
             }
         }
         .frame(width: DesktopPanelPlacement.width(fromStoredWidth: CGFloat(panelWidth)))
