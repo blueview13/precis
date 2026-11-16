@@ -145,6 +145,10 @@ final class DesktopFeedPanelController: NSObject {
     /// off→on change (the user ticking the box) can open the panel while the
     /// initial call from `install` leaves it closed behind its menu bar icon.
     private var wasEnabled: Bool?
+    /// The first Settings scene may not exist yet when the desktop panel
+    /// broadcasts its context-menu request. Keep placement intent until the
+    /// newly created Settings window becomes key.
+    private(set) var shouldPositionSettingsOverPanel = false
 
     func install(modelContainer: ModelContainer) {
         guard self.modelContainer == nil else { return }
@@ -288,6 +292,15 @@ final class DesktopFeedPanelController: NSObject {
         let x = edge == "left" ? visible.minX : visible.maxX - window.frame.width
         let y = visible.minY + (visible.height - window.frame.height) / 2
         window.setFrameOrigin(NSPoint(x: x, y: y))
+    }
+
+    func requestSettingsPlacementOverPanel() {
+        shouldPositionSettingsOverPanel = true
+    }
+
+    func consumeSettingsPlacementOverPanelRequest() -> Bool {
+        defer { shouldPositionSettingsOverPanel = false }
+        return shouldPositionSettingsOverPanel
     }
 
     private func resizePanel(toContentHeight height: CGFloat) {

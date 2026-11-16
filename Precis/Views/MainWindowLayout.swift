@@ -273,7 +273,10 @@ struct MainWindowLayout: View {
         // Drives the sidebar slide-in/slide-out; every layout change keyed to
         // `isSidebarHidden` (sidebar slot, drag handle) animates together.
         .animation(.easeInOut(duration: 0.3), value: isSidebarHidden)
-        .onReceive(NotificationCenter.default.publisher(for: .precisOpenSettings)) { _ in
+        .onReceive(NotificationCenter.default.publisher(for: .precisOpenSettings)) { notification in
+            if notification.userInfo?["positionOverPanel"] as? Bool == true {
+                DesktopFeedPanelController.shared.requestSettingsPlacementOverPanel()
+            }
             presentSettings()
         }
         .onChange(of: viewModel.selectedItemID) { _, _ in

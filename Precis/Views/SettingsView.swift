@@ -856,7 +856,8 @@ struct SettingsView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { notification in
             guard let window = notification.object as? NSWindow,
                   window === settingsWindow else { return }
-            if shouldPositionOverDesktopPanel {
+            let hasPendingPanelPlacement = DesktopFeedPanelController.shared.consumeSettingsPlacementOverPanelRequest()
+            if shouldPositionOverDesktopPanel || hasPendingPanelPlacement {
                 DesktopFeedPanelController.shared.positionSettingsWindow(overPanel: window)
                 window.alphaValue = 1
                 shouldPositionOverDesktopPanel = false
