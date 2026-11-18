@@ -888,6 +888,12 @@ struct SettingsView: View {
             oldReaderUsername = oldReaderCredentials?.username ?? ""
             hasOldReaderCredentials = oldReaderCredentials != nil
         }
+        .onReceive(NotificationCenter.default.publisher(for: .precisFeedsImported)) { _ in
+            // Feed imports and backend syncs can finish while Settings stays
+            // open. Refresh the source list so newly added feeds are available
+            // immediately in Side Panel settings.
+            loadDesktopPanelSources()
+        }
         .background(WindowWillCloseObserver {
             // The picker is app-shared and would otherwise float on over the
             // desktop after its owner window is gone.
