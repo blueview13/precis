@@ -22,6 +22,8 @@ actor StoryClusterService {
         let fingerprint: String
         var pipelineVersion: String? = StoryClusterService.pipelineVersion
         var reviewedAt: Date?
+        // Missing in older persisted indexes; treat those entries as never retried.
+        var reviewRetryCount: Int? = 0
         let title: String
         let lead: String
         let url: String?
@@ -60,6 +62,9 @@ actor StoryClusterService {
     // Keep an update bounded even when many articles retrieve plausible event
     // candidates. Individual Foundation Models reviews also have a deadline.
     private let appleReviewBudgetPerUpdate = 24
+    // One follow-up pass allows transient uncertainty to clear without
+    // repeatedly revisiting the same unchanged article on later launches.
+    private let maximumUncertainReviewRetries = 1
     private var remainingAppleReviews = 24
     private var pairCache: [String: StoryReview] = [:]
     private(set) var lastPersistenceError: String?
@@ -176,25 +181,59 @@ actor StoryClusterService {
     /// Existing assignments remain visible throughout work. Deletion is an explicit, separate operation.
     @discardableResult
     func update(_ articles: [ArticleListItem], now: Date = Date()) async -> [UUID: UUID] {
+        await update(articles, now: now, completeSnapshot: false)
+    }
+
+    /// Updates the index from the complete article library and removes entries
+    /// whose source articles no longer exist. Feed ingestion must use `update`
+    /// or `enqueue`, since those inputs are intentionally partial.
+    @discardableResult
+    func updateSnapshot(_ articles: [ArticleListItem], now: Date = Date()) async -> [UUID: UUID] {
+        await update(articles, now: now, completeSnapshot: true)
+    }
+
+    @discardableResult
+    private func update(
+        _ articles: [ArticleListItem],
+        now: Date,
+        completeSnapshot: Bool
+    ) async -> [UUID: UUID] {
         await acquire()
         defer { release() }
         load()
         guard !Task.isCancelled else { return memberships(for: Set(articles.map(\.id))) }
+        var changed = false
+        var updatesSincePersist = 0
+        var affectedClusters: Set<UUID> = []
+        if completeSnapshot {
+            let presentIDs = Set(articles.map(\.id))
+            let staleIDs = Set(store.entries.keys).subtracting(presentIDs)
+            if !staleIDs.isEmpty {
+                store.deletedIDs = (store.deletedIDs ?? []).union(staleIDs)
+                for id in staleIDs {
+                    if let removed = store.entries.removeValue(forKey: id) {
+                        affectedClusters.insert(removed.clusterID)
+                    }
+                }
+                changed = true
+            }
+        }
         let sorted = articles.sorted {
             let a = $0.publishedDate ?? now, b = $1.publishedDate ?? now
             return a == b ? $0.id.uuidString < $1.id.uuidString : a > b
         }
+        var memberCountsByCluster = store.entries.values.reduce(into: [UUID: Int]()) {
+            $0[$1.clusterID, default: 0] += 1
+        }
         remainingAppleReviews = appleReviewBudgetPerUpdate
-        var changed = false
-        var updatesSincePersist = 0
-        var affectedClusters: Set<UUID> = []
         for article in sorted {
             if Task.isCancelled { break }
             if store.deletedIDs?.contains(article.id) == true { continue }
             let previous = store.entries[article.id]
             let fingerprint = Self.fingerprint(article)
             let unchanged = previous?.fingerprint == fingerprint && previous?.pipelineVersion == Self.pipelineVersion
-            let retryUncertain = reviewer != nil && previous?.review.matches == false
+            let retryUncertain = reviewer != nil && previous?.review.relation == .insufficientEvidence
+                && (previous?.reviewRetryCount ?? 0) < maximumUncertainReviewRetries
                 && now.timeIntervalSince(previous?.reviewedAt ?? .distantPast) >= 6 * 3600
                 && abs(now.timeIntervalSince(article.publishedDate ?? now)) <= 14 * 86400
             if unchanged && !retryUncertain { continue }
@@ -202,9 +241,11 @@ actor StoryClusterService {
             entry.clusterID = article.id
             // Updating a singleton preserves its stable identifier, even after earlier merges/splits.
             let oldCluster = previous?.clusterID
-            let otherMembers = store.entries.values.filter { $0.id != article.id && $0.clusterID == oldCluster }
-            if previous != nil && otherMembers.isEmpty { entry.clusterID = oldCluster ?? article.id }
-            else if otherMembers.contains(where: { $0.clusterID == entry.clusterID }) { entry.clusterID = UUID() }
+            let otherMemberCount = oldCluster.map {
+                max(0, memberCountsByCluster[$0, default: 0] - (previous == nil ? 0 : 1))
+            } ?? 0
+            if previous != nil && otherMemberCount == 0 { entry.clusterID = oldCluster ?? article.id }
+            else if otherMemberCount > 0 && oldCluster == entry.clusterID { entry.clusterID = UUID() }
             let candidates = candidateClusters(for: entry)
             var accepted: [(UUID, Double, StoryReview)] = []
             for (clusterID, members, retrievalScore) in candidates {
@@ -227,12 +268,26 @@ actor StoryClusterService {
                 entry.clusterID = best.0
                 entry.review = best.2
             }
-            if let previous, previous.clusterID != entry.clusterID {
+            if retryUncertain {
+                entry.reviewRetryCount = (previous?.reviewRetryCount ?? 0) + 1
+            }
+            let membershipChanged = previous.map { $0.clusterID != entry.clusterID } ?? false
+            if let previous, membershipChanged {
                 store.changes.append(AssignmentChange(articleID: article.id, previous: previous.clusterID, current: entry.clusterID, date: now))
+                affectedClusters.insert(previous.clusterID)
             }
             entry.reviewedAt = now
             store.entries[article.id] = entry
-            affectedClusters.insert(entry.clusterID)
+            if previous == nil || membershipChanged {
+                if let previous { memberCountsByCluster[previous.clusterID, default: 1] -= 1 }
+                memberCountsByCluster[entry.clusterID, default: 0] += 1
+            }
+            // Reconciliation cannot change a singleton with no plausible
+            // neighbours. Revisit only clusters with candidates or a changed
+            // membership instead of every newly indexed singleton.
+            if !candidates.isEmpty || membershipChanged {
+                affectedClusters.insert(entry.clusterID)
+            }
             changed = true
             updatesSincePersist += 1
             if store.changes.count > 1000 { store.changes.removeFirst(store.changes.count - 1000) }
@@ -304,11 +359,14 @@ actor StoryClusterService {
 
     private func candidateClusters(for entry: Entry) -> [(UUID, [Entry], Double)] {
         let date = entry.date ?? entry.receivedAt
-        let eligible = store.entries.values.filter {
-            $0.id != entry.id && abs(($0.date ?? $0.receivedAt).timeIntervalSince(date)) <= 90 * 86400
-        }
-        let groups = Dictionary(grouping: eligible, by: \.clusterID)
-        return groups.compactMap { id, members -> (UUID, [Entry], Double)? in
+        // Group once per lookup, then retain complete clusters for review.
+        // This avoids rescanning the entire index separately for each candidate.
+        let entriesByCluster = Dictionary(grouping: store.entries.values.filter { $0.id != entry.id }, by: \.clusterID)
+        return entriesByCluster.compactMap { id, allMembers -> (UUID, [Entry], Double)? in
+            let members = allMembers.filter {
+                abs(($0.date ?? $0.receivedAt).timeIntervalSince(date)) <= 90 * 86400
+            }
+            guard !members.isEmpty else { return nil }
             let similarities = members.map { similarity(entry, $0) }
             let best = similarities.max() ?? 0
             let vectors = members.filter { $0.encoderVersion == entry.encoderVersion }.compactMap { $0.profile.vector }
@@ -327,7 +385,6 @@ actor StoryClusterService {
             // Recent candidates rank ahead of equally similar older coverage; time is not event identity.
             let age = members.map { abs(($0.date ?? $0.receivedAt).timeIntervalSince(date)) }.min() ?? 0
             guard age <= 14 * 86400 || (best >= 0.82 && entityAnchor) || exact else { return nil }
-            let allMembers = store.entries.values.filter { $0.id != entry.id && $0.clusterID == id }
             return (id, allMembers, 0.8 * best + 0.2 * centralSimilarity + (entityAnchor ? 0.08 : 0)
                     - min(0.12, age / (14 * 86400) * 0.12))
         }.sorted { a, b in a.2 == b.2 ? a.0.uuidString < b.0.uuidString : a.2 > b.2 }.prefix(12).map { $0 }

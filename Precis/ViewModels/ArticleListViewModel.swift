@@ -7,7 +7,6 @@ public final class ArticleListViewModel: ObservableObject {
     @Published public var items: [ArticleListItem] {
         didSet {
             invalidateSmartCategoryCaches()
-            scheduleStoryMatching()
         }
     }
     @Published public var selectedItemID: UUID? {
@@ -333,12 +332,21 @@ public final class ArticleListViewModel: ObservableObject {
                 let existing = await StoryClusterService.shared.memberships(for: ids)
                 guard !Task.isCancelled else { break }
                 self.storyGroups.merge(existing) { _, new in new }
-                let groups = await StoryClusterService.shared.update(snapshot)
+                let groups = await StoryClusterService.shared.updateSnapshot(snapshot)
                 guard !Task.isCancelled else { break }
                 self.storyGroups = groups
             }
             self.storyMatchingTask = nil
         }
+    }
+
+    /// Index the complete library once after its first database load. New feed
+    /// articles are sent directly by ArticleIngestProcessor, so read/starred
+    /// changes do not rescan the full library for story matching.
+    private func scheduleInitialStoryMatchingIfNeeded() {
+        guard !didScheduleInitialStorySnapshot else { return }
+        didScheduleInitialStorySnapshot = true
+        scheduleStoryMatching()
     }
 
     private func sharesDuplicateKey(_ lhs: ArticleListItem, _ rhs: ArticleListItem) -> Bool {
@@ -535,7 +543,8 @@ public final class ArticleListViewModel: ObservableObject {
     private let articleRepository: ArticleRepositoryProtocol
     private var storyMatchingTask: Task<Void, Never>?
     private var pendingStorySnapshot: [ArticleListItem]?
-    private var storyMatchingSignature: [String] = []
+    private var storyMatchingSignature: [String]?
+    private var didScheduleInitialStorySnapshot = false
 
     public init(
         items: [ArticleListItem] = [
@@ -570,7 +579,6 @@ public final class ArticleListViewModel: ObservableObject {
         self.selectedItemID = items.first?.id
         self.selectedFeedID = nil
         self.articleRepository = articleRepository
-        scheduleStoryMatching()
         storyObserver = NotificationCenter.default.addObserver(forName: .storyClustersDidChange, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor [weak self] in
                 guard let self else { return }
@@ -632,9 +640,11 @@ public final class ArticleListViewModel: ObservableObject {
                 items = []
                 selectedFeedID = nil
                 selectedItemID = nil
+                scheduleInitialStoryMatchingIfNeeded()
                 return
             }
             rebuildItems(from: records, in: context)
+            scheduleInitialStoryMatchingIfNeeded()
             selectedFeedID = nil
             // Select the TOP VISIBLE row, not just the top of the library —
             // with the Unread filter active at launch (the default), the
@@ -654,6 +664,7 @@ public final class ArticleListViewModel: ObservableObject {
             // entries, so reloading after every refresh is cheap even with
             // thousands of articles across hundreds of feeds.
             rebuildItems(from: records, in: context)
+            scheduleInitialStoryMatchingIfNeeded()
             selectedFeedID = feedID
             // Keep the selection inside the feed the user just opened — but
             // never steal a still-valid one: refreshes run in the background,
