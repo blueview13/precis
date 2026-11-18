@@ -2438,59 +2438,6 @@
     "Attempts to accept common cookie banners in Precis’s in-app browser. Some sites may still require a choice." : {
 
     },
-    "Auto-generate summaries on open" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "إنشاء ملخصات تلقائيًا عند الفتح"
-          }
-        },
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "খোলার সময় স্বয়ংক্রিয়ভাবে সারাংশ তৈরি করুন"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Beim Öffnen automatisch Zusammenfassungen erstellen"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Generar automáticamente resúmenes sobre apertura"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Générer automatiquement des résumés à l'ouverture"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "खुले में स्वत: सारांश उत्पन्न करें"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gerar resumos automaticamente em aberto"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "打开时自动生成摘要"
-          }
-        }
-      }
-    },
     "Background" : {
       "localizations" : {
         "ar" : {
@@ -5451,6 +5398,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "法国人"
+          }
+        }
+      }
+    },
+    "Generate today's digest when expanded" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إنشاء موجز اليوم عند توسيعه"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "প্রসারিত করলে আজকের সংবাদ সারাংশ তৈরি করুন"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tagesübersicht beim Aufklappen erstellen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generar el resumen de hoy al desplegarlo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Générer le résumé du jour à son ouverture"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "विस्तार करने पर आज का सारांश बनाएँ"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gerar o resumo de hoje ao expandir"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "展开时生成今日摘要"
           }
         }
       }

@@ -45,6 +45,11 @@ public final class FeedRecord {
     public var category: CategoryRecord?
     public var muted: Bool
     public var lastFetched: Date?
+    /// Validators for the last successfully ingested response, scoped to its URLs.
+    public var refreshRequestURL: String?
+    public var refreshResponseURL: String?
+    public var refreshETag: String?
+    public var refreshLastModified: String?
     /// Feedbin identity and flat tag assignments. Nullable for migration of existing stores.
     public var feedbinSubscriptionID: Int?
     public var feedbinFeedID: Int?

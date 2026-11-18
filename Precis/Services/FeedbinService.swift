@@ -224,17 +224,28 @@ public enum FeedbinCredentialStore {
 
     /// Mirrors Feedbin subscriptions and tags into Precis. Article downloads run through Refresh All.
     @MainActor public func sync(context: ModelContext) async throws -> Int {
+        try await syncChanges(context: context).added
+    }
+
+    @MainActor
+    func syncChanges(context: ModelContext) async throws -> (added: Int, changed: Bool) {
         let (subscriptionData, _) = try await request("subscriptions.json")
         let subscriptions = try JSONDecoder().decode([Subscription].self, from: subscriptionData)
         let (taggingData, _) = try await request("taggings.json")
         let taggings = try JSONDecoder().decode([Tagging].self, from: taggingData)
         let tagsByID = Dictionary(grouping: taggings, by: \.feed_id).mapValues { Array(Set($0.map(\.name))).sorted() }
-        let repository = FeedRepository()
+        let feeds = try FeedRepository().fetchAll(context: context)
+        var bySubscriptionID = Dictionary(feeds.compactMap { feed in
+            feed.feedbinSubscriptionID.map { ($0, feed) }
+        }, uniquingKeysWith: { first, _ in first })
+        var byURL = Dictionary(feeds.map { (FeedRepository.canonicalURLString($0.url), $0) },
+                               uniquingKeysWith: { first, _ in first })
         var added = 0
+        var changed = false
         for subscription in subscriptions {
             guard URL(string: subscription.feed_url) != nil else { continue }
-            let matching = try repository.fetchAll(context: context).first { $0.feedbinSubscriptionID == subscription.id }
-                ?? repository.existingFeed(forURL: subscription.feed_url, context: context)
+            let canonicalURL = FeedRepository.canonicalURLString(subscription.feed_url)
+            let matching = bySubscriptionID[subscription.id] ?? byURL[canonicalURL]
             let feed: FeedRecord
             if let matching {
                 feed = matching
@@ -242,15 +253,22 @@ public enum FeedbinCredentialStore {
                 feed = FeedRecord(title: subscription.title, url: subscription.feed_url, feedbinSubscriptionID: subscription.id)
                 context.insert(feed)
                 added += 1
+                byURL[canonicalURL] = feed
+                changed = true
             }
-            feed.feedbinSubscriptionID = subscription.id
-            feed.feedbinFeedID = subscription.feed_id
-            feed.feedbinTagNames = tagsByID[subscription.feed_id] ?? []
-            feed.title = subscription.title
+            bySubscriptionID[subscription.id] = feed
+            let tags = tagsByID[subscription.feed_id] ?? []
+            if feed.feedbinSubscriptionID != subscription.id || feed.feedbinFeedID != subscription.feed_id
+                || feed.feedbinTagNames != tags || feed.title != subscription.title {
+                feed.feedbinSubscriptionID = subscription.id
+                feed.feedbinFeedID = subscription.feed_id
+                feed.feedbinTagNames = tags
+                feed.title = subscription.title
+                changed = true
+            }
         }
-        try context.save()
-
-        return added
+        if changed { try context.save() }
+        return (added, changed)
     }
 }
 
@@ -424,15 +442,25 @@ public enum OldReaderCredentialStore {
 
     /// Mirrors The Old Reader subscriptions and their folder labels into Precis.
     public func sync(context: ModelContext) async throws -> Int {
+        try await syncChanges(context: context).added
+    }
+
+    @MainActor
+    func syncChanges(context: ModelContext) async throws -> (added: Int, changed: Bool) {
         let token = try await authenticate()
         let subscriptions = try await subscriptions(token: token)
-        let repository = FeedRepository()
+        let feeds = try FeedRepository().fetchAll(context: context)
+        var bySubscriptionID = Dictionary(feeds.compactMap { feed in
+            feed.oldReaderSubscriptionID.map { ($0, feed) }
+        }, uniquingKeysWith: { first, _ in first })
+        var byURL = Dictionary(feeds.map { (FeedRepository.canonicalURLString($0.url), $0) },
+                               uniquingKeysWith: { first, _ in first })
         var added = 0
+        var changed = false
         for subscription in subscriptions {
             guard URL(string: subscription.url)?.scheme?.hasPrefix("http") == true else { continue }
-            let matching = try repository.fetchAll(context: context).first {
-                $0.oldReaderSubscriptionID == subscription.id
-            } ?? repository.existingFeed(forURL: subscription.url, context: context)
+            let canonicalURL = FeedRepository.canonicalURLString(subscription.url)
+            let matching = bySubscriptionID[subscription.id] ?? byURL[canonicalURL]
             let feed: FeedRecord
             if let matching {
                 feed = matching
@@ -440,12 +468,20 @@ public enum OldReaderCredentialStore {
                 feed = FeedRecord(title: subscription.title, url: subscription.url)
                 context.insert(feed)
                 added += 1
+                byURL[canonicalURL] = feed
+                changed = true
             }
-            feed.oldReaderSubscriptionID = subscription.id
-            feed.oldReaderFolderNames = Array(Set(subscription.categories?.compactMap(\.label).filter { !$0.isEmpty } ?? [])).sorted()
-            feed.title = subscription.title
+            bySubscriptionID[subscription.id] = feed
+            let folders = Array(Set(subscription.categories?.compactMap(\.label).filter { !$0.isEmpty } ?? [])).sorted()
+            if feed.oldReaderSubscriptionID != subscription.id || feed.oldReaderFolderNames != folders
+                || feed.title != subscription.title {
+                feed.oldReaderSubscriptionID = subscription.id
+                feed.oldReaderFolderNames = folders
+                feed.title = subscription.title
+                changed = true
+            }
         }
-        try context.save()
-        return added
+        if changed { try context.save() }
+        return (added, changed)
     }
 }

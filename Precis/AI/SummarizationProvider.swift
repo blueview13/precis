@@ -406,6 +406,7 @@ public final class AppleIntelligenceSummarizationProvider: SummarizationProvider
         do {
             return try await summarizeDigestWithFoundationModels(cleaned, onProgress: onProgress)
         } catch {
+            try Task.checkCancellation()
             await onProgress?(1)
             return HeuristicSummarization.summarizeDigest(cleaned)
         }
@@ -475,6 +476,7 @@ public final class AppleIntelligenceSummarizationProvider: SummarizationProvider
         """
 
         await onProgress?(0.05)
+        try Task.checkCancellation()
         let response = try await session.respond(to: prompt)
         let shortText = response.content.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !shortText.isEmpty else {
@@ -489,6 +491,7 @@ public final class AppleIntelligenceSummarizationProvider: SummarizationProvider
         \(text)
         """
 
+        try Task.checkCancellation()
         let bulletResponse = try await session.respond(to: bulletPrompt)
         await onProgress?(0.95)
 

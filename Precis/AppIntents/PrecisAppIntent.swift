@@ -261,7 +261,7 @@ struct AddFeedIntent: AppIntent {
             try context.save()
         }
 
-        try await ArticleIngestProcessor().ingestParsed(
+        try await ArticleIngestProcessor.shared.ingestParsed(
             parsed.entries,
             feedID: feed.id,
             container: context.container

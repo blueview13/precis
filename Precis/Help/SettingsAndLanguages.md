@@ -20,7 +20,7 @@ Turn on **Stack related stories** to group matching stories among the 800 newest
 
 ## Left Sidebar and AI Summaries
 
-Choose whether feed rows show unread-count badges. Control whether Precis automatically generates a summary when you open an article. When automatic summaries are off, you can generate one from the summary card.
+Choose whether feed rows show unread-count badges. **Today’s Precis** starts collapsed. Choose whether expanding it automatically generates a digest for the current feed selection. You can also select **Generate Summary** or **Update Summary** inside the card.
 
 ## Refresh and Accounts
 

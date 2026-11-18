@@ -39,9 +39,16 @@ public final class ArticleRepository: ArticleRepositoryProtocol {
     @discardableResult
     public func saveIfNew(_ article: ArticleRecord, context: ModelContext) throws -> Bool {
         let titleHash = article.titleHash ?? DeduplicationPipeline.titleHash(article.title)
-        let feedID = article.feed?.id
-        let descriptor: FetchDescriptor<ArticleRecord>
-        if let cleanURL = article.cleanURL {
+        guard try !containsDuplicate(feedID: article.feed?.id, titleHash: titleHash, cleanURL: article.cleanURL,
+                                     context: context) else { return false }
+        try save(article, context: context)
+        return true
+    }
+
+    func containsDuplicate(feedID: UUID?, titleHash: String, cleanURL: String?,
+                           context: ModelContext, includePendingChanges: Bool = true) throws -> Bool {
+        var descriptor: FetchDescriptor<ArticleRecord>
+        if let cleanURL {
             descriptor = FetchDescriptor<ArticleRecord>(predicate: #Predicate { record in
                 record.feed?.id == feedID && (record.titleHash == titleHash || record.cleanURL == cleanURL)
             })
@@ -50,11 +57,9 @@ public final class ArticleRepository: ArticleRepositoryProtocol {
                 record.feed?.id == feedID && record.titleHash == titleHash
             })
         }
-        let existing = try context.fetch(descriptor)
-        guard existing.isEmpty else { return false }
-        context.insert(article)
-        try context.save()
-        return true
+        descriptor.fetchLimit = 1
+        descriptor.includePendingChanges = includePendingChanges
+        return try !context.fetch(descriptor).isEmpty
     }
 
     public func markRead(_ article: ArticleRecord, read: Bool, context: ModelContext) throws {

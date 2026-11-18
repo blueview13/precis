@@ -503,27 +503,17 @@ final class AppScopedFeedRefreshCoordinator: NSObject {
 
         do {
             let feeds = try FeedRepository().fetchAll(context: context)
-            let feedRepository = FeedRepository()
+            let refresh = FeedRefreshService()
             var newArticleCount = 0
+            var libraryChanged = false
             var refreshedFeedNames: [String] = []
 
             for feed in feeds {
-                guard let url = URL(string: feed.url) else { continue }
                 do {
-                    let parsed = try await FeedRefreshService().fetchAndParse(Feed(title: feed.title, url: url))
-                    let betterTitle = FeedDiscoveryService.displayTitle(current: feed.title, parsedTitle: parsed.title)
-                    if betterTitle != feed.title {
-                        feed.title = betterTitle
-                    }
-
-                    try feedRepository.update(feed, context: context)
-                    let feedNewArticleCount = try await ArticleIngestProcessor().ingestParsed(
-                        parsed.entries,
-                        feedID: feed.id,
-                        container: context.container
-                    )
-                    newArticleCount += feedNewArticleCount
-                    if feedNewArticleCount > 0 {
+                    let outcome = try await refresh.refresh(feed, context: context)
+                    libraryChanged = libraryChanged || outcome.libraryChanged
+                    newArticleCount += outcome.newArticleCount
+                    if outcome.newArticleCount > 0 {
                         refreshedFeedNames.append(feed.sidebarTitle ?? feed.title)
                     }
                 } catch {
@@ -531,7 +521,9 @@ final class AppScopedFeedRefreshCoordinator: NSObject {
                 }
             }
 
-            NotificationCenter.default.post(name: .precisFeedsRefreshed, object: nil)
+            if libraryChanged {
+                NotificationCenter.default.post(name: .precisFeedsRefreshed, object: nil)
+            }
             if UserDefaults.standard.bool(forKey: "notifyOnNewArticles"), newArticleCount > 0 {
                 try? await NewArticleNotificationService.sendNewArticlesNotification(
                     count: newArticleCount,

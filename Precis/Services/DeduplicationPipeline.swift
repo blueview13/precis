@@ -44,6 +44,8 @@ public struct PreparedArticle: Sendable {
 }
 
 public actor ArticleIngestProcessor {
+    public static let shared = ArticleIngestProcessor()
+
     private let storyClusters: StoryClusterService
     public init() { storyClusters = .shared }
     init(storyClusters: StoryClusterService) { self.storyClusters = storyClusters }
@@ -56,14 +58,21 @@ public actor ArticleIngestProcessor {
     /// lookups and inserts never run on the UI context's executor.
     @discardableResult
     public func ingest(_ entries: [PreparedArticle], feedID: UUID, container: ModelContainer) throws -> Int {
+        guard !entries.isEmpty else { return 0 }
         let context = ModelContext(container)
         let targetFeedID = feedID
         let feedRequest = FetchDescriptor<FeedRecord>(predicate: #Predicate { $0.id == targetFeedID })
         guard let feed = try context.fetch(feedRequest).first else { return 0 }
         let repository = ArticleRepository()
-        var inserted = 0
-        var clusteringItems: [ArticleListItem] = []
+        var inserted: [ArticleRecord] = []
+        var insertedHashes: Set<String> = []
+        var insertedURLs: Set<String> = []
         for prepared in entries {
+            if insertedHashes.contains(prepared.titleHash)
+                || prepared.cleanURL.map(insertedURLs.contains) == true { continue }
+            guard try !repository.containsDuplicate(feedID: feedID, titleHash: prepared.titleHash,
+                                                    cleanURL: prepared.cleanURL, context: context,
+                                                    includePendingChanges: false) else { continue }
             let entry = prepared.entry
             let record = ArticleRecord(
                 feed: feed,
@@ -78,17 +87,17 @@ public actor ArticleIngestProcessor {
                 contentHTML: entry.contentHTML,
                 imageURL: entry.imageURL?.absoluteString
             )
-            if try repository.saveIfNew(record, context: context) {
-                inserted += 1
-                clusteringItems.append(ArticleListItem(record: record))
-            }
+            context.insert(record)
+            inserted.append(record)
+            insertedHashes.insert(prepared.titleHash)
+            if let url = prepared.cleanURL { insertedURLs.insert(url) }
         }
+        guard !inserted.isEmpty else { return 0 }
+        try context.save()
         // Article persistence completes immediately; the shared actor serializes background inference.
-        let incoming = clusteringItems
-        if !incoming.isEmpty {
-            Task { await storyClusters.enqueue(incoming) }
-        }
-        return inserted
+        let incoming = inserted.map { ArticleListItem(record: $0) }
+        Task { await storyClusters.enqueue(incoming) }
+        return inserted.count
     }
 
     @discardableResult

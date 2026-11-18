@@ -480,7 +480,7 @@ struct SettingsView: View {
                     }
 
                     settingsSection(title: "AI Summaries") {
-                        Toggle("Auto-generate summaries on open", isOn: $summaryAutoGenerate)
+                        Toggle("Generate today's digest when expanded", isOn: $summaryAutoGenerate)
                             .font(PrecisTypography.body)
                             .foregroundStyle(PrecisDesignSystem.foreground(for: colorScheme))
                     }
@@ -1179,7 +1179,7 @@ struct SettingsView: View {
                                     feed.title = displayTitle
                                 }
                                 try modelContext.save()
-                                try await ArticleIngestProcessor().ingestParsed(
+                                try await ArticleIngestProcessor.shared.ingestParsed(
                                     parsed.entries,
                                     feedID: feed.id,
                                     container: modelContext.container

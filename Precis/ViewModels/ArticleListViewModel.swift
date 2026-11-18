@@ -614,6 +614,7 @@ public final class ArticleListViewModel: ObservableObject {
 
     deinit {
         storyMatchingTask?.cancel()
+        feedWideSummaryTask?.cancel()
         if let storyObserver { NotificationCenter.default.removeObserver(storyObserver) }
         if let sortObserver {
             NotificationCenter.default.removeObserver(sortObserver)
@@ -782,7 +783,7 @@ public final class ArticleListViewModel: ObservableObject {
             try context.save()
         }
 
-        let processor = ArticleIngestProcessor()
+        let processor = ArticleIngestProcessor.shared
         try await processor.ingestParsed(parsed.entries, feedID: feed.id, container: context.container)
         // Ingest writes from its own background context. Drop any stale
         // registered snapshots before querying from the window context.
@@ -842,167 +843,133 @@ public final class ArticleListViewModel: ObservableObject {
         }
     }
 
-    /// In-flight summary run. Launch fires `generateFeedWideSummary` from
-    /// several places at once; stacked runs each toggled isGeneratingSummary,
-    /// forcing full-window layout passes that stalled the first right-click.
-    /// Callers now share a single run instead.
+    private struct DigestRequest: Equatable {
+        let text: String
+        let articleCount: Int
+    }
+    private var digestCache: [(request: DigestRequest, result: String)] = []
     private var feedWideSummaryTask: Task<Void, Never>?
-    private var feedWideSummaryTaskFeedIDs: Set<UUID>?
-    private var feedWideSummaryTaskGeneration: Int?
-    private var feedWideSummaryGeneration = 0
+    private var activeDigestID: UUID?
+    private var activeDigestRequest: DigestRequest?
 
-    /// Drops the digest without starting a new run. Used when the feed or
-    /// sidebar scope changes while auto-generation is off: a digest built for
-    /// the previous scope must not keep showing as if it covered the new one,
-    /// and no automatic run may replace it — the card falls back to its
-    /// generate button. Bumping the generation also stops any in-flight run's
-    /// updates from landing afterwards.
-    public func clearFeedWideSummary() {
-        feedWideSummaryGeneration += 1
-        feedWideSummaryText = ""
-        feedWideSummaryProgress = 0
+    public func cancelFeedWideSummary() {
+        feedWideSummaryTask?.cancel()
+        feedWideSummaryTask = nil
+        activeDigestID = nil
+        activeDigestRequest = nil
         isGeneratingFeedWideSummary = false
     }
 
-    /// Generate a digest of up to 25 articles from the last 24 hours.
-    /// If feedIDs is provided, only summarizes articles from those feeds.
-    public func generateFeedWideSummary(context: ModelContext, feedIDs: Set<UUID>? = nil) async {
-        if let running = feedWideSummaryTask {
-            if feedWideSummaryTaskFeedIDs == feedIDs,
-               feedWideSummaryTaskGeneration == feedWideSummaryGeneration {
-                await running.value
-                return
-            }
-        }
-
-        feedWideSummaryGeneration += 1
-        let generation = feedWideSummaryGeneration
+    public func clearFeedWideSummary() {
+        cancelFeedWideSummary()
         feedWideSummaryText = ""
         feedWideSummaryProgress = 0
-        isGeneratingFeedWideSummary = true
+    }
 
-        if let running = feedWideSummaryTask {
-            await running.value
-            guard generation == feedWideSummaryGeneration else { return }
+    /// Generate or reuse a digest for the current 24-hour window and feed scope.
+    public func generateFeedWideSummary(context: ModelContext, feedIDs: Set<UUID>? = nil) async {
+        let records: [ArticleRecord]
+        do {
+            records = try fetchDigestRecords(context: context, feedIDs: feedIDs)
+        } catch {
+            clearFeedWideSummary()
+            feedWideSummaryText = "Could not load articles."
+            return
         }
 
-        feedWideSummaryTaskFeedIDs = feedIDs
-        let task = Task {
-            await self.performFeedWideSummary(context: context, feedIDs: feedIDs, generation: generation)
-            guard self.feedWideSummaryGeneration == generation else { return }
+        let articleSummaries = records.compactMap { record -> String? in
+            let text = record.extractedContentText ?? record.rawContentText ?? record.title
+            let cleaned = ArticleHTMLSanitizer.plainText(fromHTML: text)
+            return cleaned.isEmpty ? nil : "\(record.title): \(cleaned.prefix(200))"
+        }
+        let request = DigestRequest(text: articleSummaries.joined(separator: "\n\n"), articleCount: articleSummaries.count)
+        if activeDigestRequest == request, let running = feedWideSummaryTask {
+            await running.value
+            return
+        }
+
+        cancelFeedWideSummary()
+        if let index = digestCache.firstIndex(where: { $0.request == request }) {
+            let cached = digestCache.remove(at: index)
+            digestCache.append(cached)
+            feedWideSummaryText = cached.result
+            feedWideSummaryProgress = 1
+            return
+        }
+        guard !articleSummaries.isEmpty else {
+            feedWideSummaryText = records.isEmpty
+                ? "No articles in the last 24 hours."
+                : "No article content available to summarize."
+            return
+        }
+
+        let runID = UUID()
+        activeDigestID = runID
+        activeDigestRequest = request
+        isGeneratingFeedWideSummary = true
+        feedWideSummaryProgress = 0
+        let titles = records.map(\.title)
+        let task = Task { [weak self] in
+            guard !Task.isCancelled else { return }
+            let result: String
+            let cacheResult: Bool
+            do {
+                let summary = try await SummarizationProviderFactory.makeDefault().summarizeDigest(request.text) { [weak self] progress in
+                    guard let self, self.activeDigestID == runID else { return }
+                    self.feedWideSummaryProgress = progress
+                }
+                result = PrecisDigest.cardText(articleCount: request.articleCount, paragraph: summary.shortText, bullets: summary.bulletPoints)
+                cacheResult = true
+            } catch {
+                result = PrecisDigest.cardText(articleCount: titles.count, paragraph: "", bullets: titles)
+                cacheResult = false
+            }
+            guard let self, self.activeDigestID == runID, !Task.isCancelled else { return }
+
+            if cacheResult {
+                self.digestCache.append((request, result))
+                if self.digestCache.count > 16 { self.digestCache.removeFirst() }
+            }
+            self.feedWideSummaryText = result
             self.feedWideSummaryProgress = 1
             self.isGeneratingFeedWideSummary = false
+            self.activeDigestID = nil
+            self.activeDigestRequest = nil
             self.feedWideSummaryTask = nil
-            self.feedWideSummaryTaskFeedIDs = nil
-            self.feedWideSummaryTaskGeneration = nil
         }
         feedWideSummaryTask = task
-        feedWideSummaryTaskGeneration = generation
         await task.value
     }
 
-    private func updateFeedWideSummaryProgress(_ progress: Double, generation: Int) {
-        guard generation == feedWideSummaryGeneration else { return }
-        feedWideSummaryProgress = progress
-    }
+    private func fetchDigestRecords(context: ModelContext, feedIDs: Set<UUID>?) throws -> [ArticleRecord] {
+        let now = Date()
+        let cutoff = now.addingTimeInterval(-24 * 3600)
+        let recent = #Predicate<ArticleRecord> { article in
+            article.publishedDate.flatMap { $0 >= cutoff && $0 <= now } ?? false
+        }
+        let sort = [SortDescriptor(\ArticleRecord.publishedDate, order: .reverse), SortDescriptor(\ArticleRecord.id)]
 
-    private func updateFeedWideSummaryText(_ text: String, generation: Int) {
-        guard generation == feedWideSummaryGeneration else { return }
-        feedWideSummaryText = text
-    }
+        guard let feedIDs else {
+            var descriptor = FetchDescriptor(predicate: recent, sortBy: sort)
+            descriptor.fetchLimit = 25
+            return try context.fetch(descriptor)
+        }
+        guard !feedIDs.isEmpty else { return [] }
 
-    private func performFeedWideSummary(context: ModelContext, feedIDs: Set<UUID>?, generation: Int) async {
+        let ids = Array(feedIDs)
+        let scoped = #Predicate<ArticleRecord> { article in
+            (article.publishedDate.flatMap { $0 >= cutoff && $0 <= now } ?? false)
+                && (article.feed.flatMap { ids.contains($0.id) } ?? false)
+        }
+        var descriptor = FetchDescriptor(predicate: scoped, sortBy: sort)
+        descriptor.fetchLimit = 25
         do {
-            updateFeedWideSummaryProgress(0.08, generation: generation)
-            let allRecords = try articleRepository.fetchAll(context: context)
-            let twentyFourHoursAgo = Calendar.current.date(byAdding: .hour, value: -24, to: Date()) ?? Date()
-
-            // Newest first, so the digest covers the freshest articles of the
-            // last 24 hours rather than whichever ones the store returns first.
-            let recentRecords = allRecords.filter { record in
-                guard let pubDate = record.publishedDate else { return false }
-                let withinTimeframe = pubDate >= twentyFourHoursAgo
-                if let feedIDs {
-                    return withinTimeframe && record.feed.map { feedIDs.contains($0.id) } == true
-                }
-                return withinTimeframe
-            }.sorted { ($0.publishedDate ?? .distantPast) > ($1.publishedDate ?? .distantPast) }
-            updateFeedWideSummaryProgress(0.18, generation: generation)
-
-            guard !recentRecords.isEmpty else {
-                updateFeedWideSummaryText("No articles in the last 24 hours.", generation: generation)
-                return
-            }
-
-            let digestRecords = Array(recentRecords.prefix(25))
-            var articleSummaries: [String] = []
-            let provider = SummarizationProviderFactory.makeDefault()
-
-            for (index, record) in digestRecords.enumerated() {
-                let articleValue = Article(record: record)
-                let text = articleValue.extractedContent ?? articleValue.rawContent ?? articleValue.title
-                // Strip tags AND decode entities — entity codes that reached
-                // the digest prompt showed up verbatim in "Today's Precis".
-                let cleaned = ArticleHTMLSanitizer.plainText(fromHTML: text)
-
-                if !cleaned.isEmpty {
-                    // No bullet marker here: the card adds its own, and markers
-                    // in the prompt came back doubled in the digest.
-                    articleSummaries.append("\(record.title): \(cleaned.prefix(200))")
-                }
-                updateFeedWideSummaryProgress(0.18 + 0.30 * Double(index + 1) / Double(digestRecords.count), generation: generation)
-            }
-
-            guard !articleSummaries.isEmpty else {
-                updateFeedWideSummaryText("No article content available to summarize.", generation: generation)
-                return
-            }
-
-            // One paragraph of themes plus the day's distinct takeaways.
-            let combinedText = articleSummaries.joined(separator: "\n\n")
-            updateFeedWideSummaryProgress(0.52, generation: generation)
-            let summary = try await provider.summarizeDigest(combinedText) { progress in
-                self.updateFeedWideSummaryProgress(0.52 + progress * 0.46, generation: generation)
-            }
-
-            updateFeedWideSummaryText(
-                PrecisDigest.cardText(
-                    articleCount: articleSummaries.count,
-                    paragraph: summary.shortText,
-                    bullets: summary.bulletPoints
-                ),
-                generation: generation
-            )
+            return try context.fetch(descriptor)
         } catch {
-            guard generation == feedWideSummaryGeneration else { return }
-            // Fallback: just list the article titles
-            do {
-                let allRecords = try articleRepository.fetchAll(context: context)
-                let twentyFourHoursAgo = Calendar.current.date(byAdding: .hour, value: -24, to: Date()) ?? Date()
-                let recentRecords = allRecords.filter { record in
-                    guard let pubDate = record.publishedDate else { return false }
-                    guard pubDate >= twentyFourHoursAgo else { return false }
-                    if let feedIDs {
-                        return record.feed.map { feedIDs.contains($0.id) } == true
-                    }
-                    return true
-                }.sorted { ($0.publishedDate ?? .distantPast) > ($1.publishedDate ?? .distantPast) }
-                if recentRecords.isEmpty {
-                    updateFeedWideSummaryText("No articles in the last 24 hours.", generation: generation)
-                } else {
-                    let digestRecords = Array(recentRecords.prefix(25))
-                    updateFeedWideSummaryText(
-                        PrecisDigest.cardText(
-                            articleCount: digestRecords.count,
-                            paragraph: "",
-                            bullets: digestRecords.map(\.title)
-                        ),
-                        generation: generation
-                    )
-                }
-            } catch {
-                updateFeedWideSummaryText("Could not load articles.", generation: generation)
-            }
+            // Some persistent stores cannot translate membership on a relationship.
+            // Keep the date predicate in the store and filter only recent rows.
+            return Array(try context.fetch(FetchDescriptor(predicate: recent, sortBy: sort))
+                .lazy.filter { $0.feed.map { feedIDs.contains($0.id) } == true }.prefix(25))
         }
     }
 
