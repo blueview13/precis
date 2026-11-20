@@ -196,6 +196,7 @@ struct MainWindowLayout: View {
             isColumnLayout: isColumnLayout,
             newspaperScope: newspaperScope,
             newspaperRequest: newspaperRequest,
+            onRefresh: { await refreshSelectedArticleScope() },
             onToggleLayout: {
                 withAnimation(.easeInOut(duration: 0.25)) {
                     isColumnLayout.toggle()
@@ -1788,6 +1789,47 @@ struct MainWindowLayout: View {
         guard AppScopedFeedRefreshCoordinator.shared.beginManualRefresh() else { return }
         defer { AppScopedFeedRefreshCoordinator.shared.endManualRefresh() }
         _ = await refreshSingleFeed(feed)
+    }
+
+    /// Refresh the feed or category currently shown in the article list.
+    /// A category resolves to its member feeds, and each feed is reloaded
+    /// without rebuilding the whole article library until the pass finishes.
+    private func refreshSelectedArticleScope() async {
+        let feeds: [FeedRecord]
+        switch viewModel.selectedSidebarFilter {
+        case .feed(let id):
+            feeds = viewModel.allFeeds.filter { $0.id == id }
+        case .folder(let id):
+            feeds = viewModel.allFeeds.filter { $0.folder?.id == id }
+        case .oldReaderFolder(let name):
+            feeds = viewModel.allFeeds.filter { $0.oldReaderFolderNames?.contains(name) == true }
+        case .feedbinTag(let name):
+            feeds = viewModel.allFeeds.filter { $0.feedbinTagNames?.contains(name) == true }
+        case .feedbinUntagged:
+            feeds = viewModel.allFeeds.filter { $0.feedbinSubscriptionID != nil && ($0.feedbinTagNames ?? []).isEmpty }
+        case .feedbin:
+            feeds = viewModel.allFeeds.filter { $0.feedbinSubscriptionID != nil }
+        case .oldReader:
+            feeds = viewModel.allFeeds.filter { $0.oldReaderSubscriptionID != nil }
+        case .oldReaderUnfiled:
+            feeds = viewModel.allFeeds.filter { $0.oldReaderSubscriptionID != nil && ($0.oldReaderFolderNames ?? []).isEmpty }
+        case .smartCategory(let id):
+            let feedIDs = Set(viewModel.smartCategoryMatches(for: id).compactMap(\.feedID))
+            feeds = viewModel.allFeeds.filter { feedIDs.contains($0.id) }
+        case .all, .unread, .starred:
+            feeds = []
+        }
+
+        guard !feeds.isEmpty,
+              AppScopedFeedRefreshCoordinator.shared.beginManualRefresh() else { return }
+        defer { AppScopedFeedRefreshCoordinator.shared.endManualRefresh() }
+
+        var libraryChanged = false
+        for feed in feeds {
+            let outcome = await refreshSingleFeed(feed, reload: false, sendNotification: false)
+            libraryChanged = libraryChanged || outcome.libraryChanged
+        }
+        if libraryChanged { refreshFeeds() }
     }
 
     /// One-shot pass at launch: feeds imported before real channel titles were

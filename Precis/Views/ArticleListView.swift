@@ -24,6 +24,7 @@ struct ArticleListView: View {
     var newspaperRequest: NewspaperRequest? = nil
     /// Flips between the stacked and three-column reading layouts.
     var onToggleLayout: (() -> Void)? = nil
+    var onRefresh: (() async -> Void)? = nil
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage("showThumbnails") private var showThumbnails: Bool = true
@@ -37,6 +38,7 @@ struct ArticleListView: View {
     @State private var newspaperAlertMessage = ""
     @State private var isShowingNewspaperAlert = false
     @State private var expandedStoryIDs: Set<UUID> = []
+    @State private var isRefreshing = false
     // Backup invalidation: the view model also observes this key directly and
     // republishes `sortPreference`, so the list re-sorts the moment Settings
     // changes it.
@@ -303,6 +305,23 @@ struct ArticleListView: View {
                                 }
                             }
                         }
+                    }
+                }
+                .refreshable {
+                    guard !isRefreshing, let onRefresh else { return }
+                    isRefreshing = true
+                    defer { isRefreshing = false }
+                    await onRefresh()
+                }
+                .overlay(alignment: .top) {
+                    if isRefreshing {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(PrecisDesignSystem.marginalia)
+                            .padding(8)
+                            .background(.regularMaterial, in: Circle())
+                            .padding(.top, PrecisSpacing.sm)
+                            .accessibilityLabel("Refreshing articles")
                     }
                 }
                 // Rebuild the scroll view when the sidebar filter changes so the
