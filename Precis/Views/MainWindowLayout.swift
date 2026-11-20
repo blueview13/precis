@@ -1797,7 +1797,7 @@ struct MainWindowLayout: View {
     private func refreshSelectedArticleScope() async {
         switch viewModel.selectedSidebarFilter {
         case .all, .unread, .starred:
-            await refreshAllFeeds()
+            await refreshAllFeeds(waitForCurrentRefresh: true)
             return
         default:
             break
@@ -1829,7 +1829,9 @@ struct MainWindowLayout: View {
             return
         }
 
-        guard !feeds.isEmpty,
+        guard !feeds.isEmpty else { return }
+        await AppScopedFeedRefreshCoordinator.shared.waitForRefreshToFinish()
+        guard
               AppScopedFeedRefreshCoordinator.shared.beginManualRefresh() else { return }
         defer { AppScopedFeedRefreshCoordinator.shared.endManualRefresh() }
 
@@ -1865,7 +1867,10 @@ struct MainWindowLayout: View {
         if needsReload { refreshFeeds() }
     }
 
-    private func refreshAllFeeds() async {
+    private func refreshAllFeeds(waitForCurrentRefresh: Bool = false) async {
+        if waitForCurrentRefresh {
+            await AppScopedFeedRefreshCoordinator.shared.waitForRefreshToFinish()
+        }
         guard AppScopedFeedRefreshCoordinator.shared.beginManualRefresh() else { return }
         isRefreshingAll = true
         defer {

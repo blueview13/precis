@@ -450,13 +450,13 @@ private final class PanelHostingView<Content: View>: NSHostingView<Content> {
 }
 
 @MainActor
-final class AppScopedFeedRefreshCoordinator: NSObject {
+final class AppScopedFeedRefreshCoordinator: NSObject, ObservableObject {
     static let shared = AppScopedFeedRefreshCoordinator()
 
     private let refreshService = BackgroundRefreshService()
     private var modelContainer: ModelContainer?
     private var scheduledIntervalMinutes: Int?
-    private var isRefreshing = false
+    @Published private(set) var isRefreshing = false
 
     func beginManualRefresh() -> Bool {
         guard !isRefreshing else { return false }
@@ -466,6 +466,15 @@ final class AppScopedFeedRefreshCoordinator: NSObject {
 
     func endManualRefresh() {
         isRefreshing = false
+    }
+
+    /// Pull-to-refresh should not silently disappear when a scheduled or
+    /// toolbar refresh already owns the coordinator. Wait for that pass to
+    /// finish so the user's gesture always leads to a complete refresh.
+    func waitForRefreshToFinish() async {
+        while isRefreshing {
+            try? await Task.sleep(for: .milliseconds(100))
+        }
     }
 
     func start(modelContainer: ModelContainer) {
