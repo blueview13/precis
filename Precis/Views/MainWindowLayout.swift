@@ -9,6 +9,7 @@ struct MainWindowLayout: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @StateObject private var viewModel: ArticleListViewModel
     @ObservedObject private var smartCategoryStore = SmartCategoryStore.shared
+    @ObservedObject private var refreshCoordinator = AppScopedFeedRefreshCoordinator.shared
     @AppStorage("notifyOnNewArticles") private var notifyOnNewArticles = false
     /// Hides unread counts in the sidebar (feeds and Library items)
     /// when off.
@@ -1835,12 +1836,15 @@ struct MainWindowLayout: View {
               AppScopedFeedRefreshCoordinator.shared.beginManualRefresh() else { return }
         defer { AppScopedFeedRefreshCoordinator.shared.endManualRefresh() }
 
+        PrecisLogger.info("Refreshing selected article scope across \(feeds.count) feed(s)")
+
         var libraryChanged = false
         for feed in feeds {
             let outcome = await refreshSingleFeed(feed, reload: false, sendNotification: false)
             libraryChanged = libraryChanged || outcome.libraryChanged
         }
         if libraryChanged { refreshFeeds() }
+        PrecisLogger.info("Finished refreshing selected article scope across \(feeds.count) feed(s)")
     }
 
     /// One-shot pass at launch: feeds imported before real channel titles were
@@ -2129,7 +2133,7 @@ struct MainWindowLayout: View {
                 Button(action: {
                     Task { await refreshAllFeeds() }
                 }) {
-                    if isRefreshingAll {
+                    if refreshCoordinator.isRefreshing {
                         ProgressView()
                             .scaleEffect(0.7)
                     } else {
@@ -2139,7 +2143,7 @@ struct MainWindowLayout: View {
                     }
                 }
                 .buttonStyle(.plain)
-                .disabled(isRefreshingAll)
+                .disabled(refreshCoordinator.isRefreshing)
                 .help("Refresh all feeds")
             }
             .padding(PrecisSpacing.md)
