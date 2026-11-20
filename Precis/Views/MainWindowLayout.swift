@@ -1795,6 +1795,14 @@ struct MainWindowLayout: View {
     /// A category resolves to its member feeds, and each feed is reloaded
     /// without rebuilding the whole article library until the pass finishes.
     private func refreshSelectedArticleScope() async {
+        switch viewModel.selectedSidebarFilter {
+        case .all, .unread, .starred:
+            await refreshAllFeeds()
+            return
+        default:
+            break
+        }
+
         let feeds: [FeedRecord]
         switch viewModel.selectedSidebarFilter {
         case .feed(let id):
@@ -1817,7 +1825,8 @@ struct MainWindowLayout: View {
             let feedIDs = Set(viewModel.smartCategoryMatches(for: id).compactMap(\.feedID))
             feeds = viewModel.allFeeds.filter { feedIDs.contains($0.id) }
         case .all, .unread, .starred:
-            feeds = []
+            // Handled above.
+            return
         }
 
         guard !feeds.isEmpty,

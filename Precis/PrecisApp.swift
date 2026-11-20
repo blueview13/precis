@@ -502,10 +502,27 @@ final class AppScopedFeedRefreshCoordinator: NSObject {
         defer { isRefreshing = false }
 
         do {
+            var libraryChanged = false
+            if let credentials = await FeedbinCredentialStore.load() {
+                do {
+                    let sync = try await FeedbinService(credentials: credentials).syncChanges(context: context)
+                    libraryChanged = libraryChanged || sync.changed
+                } catch {
+                    PrecisLogger.error("Scheduled Feedbin sync failed: \(error.localizedDescription)")
+                }
+            }
+            if let credentials = await OldReaderCredentialStore.load() {
+                do {
+                    let sync = try await OldReaderService(credentials: credentials).syncChanges(context: context)
+                    libraryChanged = libraryChanged || sync.changed
+                } catch {
+                    PrecisLogger.error("Scheduled The Old Reader sync failed: \(error.localizedDescription)")
+                }
+            }
+
             let feeds = try FeedRepository().fetchAll(context: context)
             let refresh = FeedRefreshService()
             var newArticleCount = 0
-            var libraryChanged = false
             var refreshedFeedNames: [String] = []
 
             for feed in feeds {
