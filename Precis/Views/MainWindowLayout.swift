@@ -196,7 +196,6 @@ struct MainWindowLayout: View {
             isColumnLayout: isColumnLayout,
             newspaperScope: newspaperScope,
             newspaperRequest: newspaperRequest,
-            onRefresh: { await refreshSelectedArticleScope() },
             onToggleLayout: {
                 withAnimation(.easeInOut(duration: 0.25)) {
                     isColumnLayout.toggle()
@@ -208,7 +207,8 @@ struct MainWindowLayout: View {
                         isSidebarHidden = false
                     }
                 }
-            }
+            },
+            onRefresh: { await refreshSelectedArticleScope() }
         )
     }
 
