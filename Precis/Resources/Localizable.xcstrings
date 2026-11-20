@@ -5403,6 +5403,7 @@
       }
     },
     "Generate today's digest when expanded" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
