@@ -36,6 +36,26 @@ final class StoryClusterServiceTests: XCTestCase {
         XCTAssertEqual(afterDelete[b.id], first[b.id])
     }
 
+    func testSnapshotPublishesOneNotificationAfterBatch() async {
+        let notificationCenter = NotificationCenter()
+        let notificationCount = NotificationCounter()
+        let observer = notificationCenter.addObserver(forName: .storyClustersDidChange, object: nil, queue: nil) { _ in
+            notificationCount.increment()
+        }
+        defer { notificationCenter.removeObserver(observer) }
+
+        let service = StoryClusterService(
+            useAppleIntelligence: false,
+            useSystemEmbeddings: false,
+            notificationCenter: notificationCenter
+        )
+        let articles = (0..<12).map { article("Unique story \($0)", days: Double($0) * 100) }
+
+        _ = await service.updateSnapshot(articles)
+
+        XCTAssertEqual(notificationCount.count, 1)
+    }
+
     func testPipelineUpgradePreservesMembershipsUntilSnapshotRefreshesEntries() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -57,6 +77,30 @@ final class StoryClusterServiceTests: XCTestCase {
         XCTAssertEqual(retained[a.id], before[a.id])
         let refreshed = await upgraded.update([a])
         XCTAssertEqual(refreshed[a.id], before[a.id])
+    }
+
+    func testLegacyUnversionedEntryKeepsItsProfileUntilContentChanges() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("clusters.json")
+        let a = article("Riverton approves a new library")
+        let original = StoryClusterService(storeURL: url, useAppleIntelligence: false, useSystemEmbeddings: false, encoder: { _ in [1, 0] })
+        _ = await original.update([a])
+
+        var saved = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+        var entries = try XCTUnwrap(saved["entries"] as? [Any])
+        var entry = try XCTUnwrap(entries[1] as? [String: Any])
+        entry.removeValue(forKey: "pipelineVersion")
+        entries[1] = entry
+        saved["entries"] = entries
+        try JSONSerialization.data(withJSONObject: saved).write(to: url)
+
+        let reopened = StoryClusterService(storeURL: url, useAppleIntelligence: false, useSystemEmbeddings: false, encoder: { _ in [0, 1] })
+        _ = await reopened.updateSnapshot([a])
+
+        let stored = await reopened.entriesForEvaluation()[a.id]
+        XCTAssertEqual(stored?.profile.vector, [1, 0])
+        XCTAssertNil(stored?.pipelineVersion)
     }
 
     func testBridgeDoesNotMergeIncompatibleEvents() async {
@@ -259,6 +303,23 @@ final class StoryClusterServiceTests: XCTestCase {
         let b = article("Riverton gives Oak Street library green light", body: "Councillors voted on Monday to approve construction of a new library on Oak Street.", days: 1)
         let groups = await service.update([a,b])
         XCTAssertEqual(groups[a.id], groups[b.id], "Apple's grounded decision should stack paraphrases below the local semantic threshold")
+    }
+}
+
+private final class NotificationCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = 0
+
+    var count: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return value
+    }
+
+    func increment() {
+        lock.lock()
+        defer { lock.unlock() }
+        value += 1
     }
 }
 

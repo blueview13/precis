@@ -50,6 +50,7 @@ actor StoryClusterService {
     private let storeURL: URL?
     private let reviewer: Reviewer?
     private let injectedEncoder: Encoder?
+    private let notificationCenter: NotificationCenter
     private let useSystemEmbeddings: Bool
     private var systemEmbedding: NLEmbedding?
     private var embeddingAttempted = false
@@ -71,10 +72,12 @@ actor StoryClusterService {
     private(set) var lastModelError: String?
 
     init(storeURL: URL? = nil, useAppleIntelligence: Bool = true, useSystemEmbeddings: Bool = true,
-         encoder: Encoder? = nil, reviewer: Reviewer? = nil) {
+         encoder: Encoder? = nil, reviewer: Reviewer? = nil,
+         notificationCenter: NotificationCenter = .default) {
         self.storeURL = storeURL
         self.useSystemEmbeddings = useSystemEmbeddings
         self.injectedEncoder = encoder
+        self.notificationCenter = notificationCenter
         if let reviewer { self.reviewer = reviewer }
         else if useAppleIntelligence { self.reviewer = { a, b in try await AppleStoryEventReviewer().review(a, b) } }
         else { self.reviewer = nil }
@@ -203,7 +206,6 @@ actor StoryClusterService {
         load()
         guard !Task.isCancelled else { return memberships(for: Set(articles.map(\.id))) }
         var changed = false
-        var updatesSincePersist = 0
         var affectedClusters: Set<UUID> = []
         if completeSnapshot {
             let presentIDs = Set(articles.map(\.id))
@@ -231,11 +233,15 @@ actor StoryClusterService {
             if store.deletedIDs?.contains(article.id) == true { continue }
             let previous = store.entries[article.id]
             let fingerprint = Self.fingerprint(article)
-            let unchanged = previous?.fingerprint == fingerprint && previous?.pipelineVersion == Self.pipelineVersion
-            let retryUncertain = reviewer != nil && previous?.review.relation == .insufficientEvidence
+            let isLegacyEntry = previous.map { $0.pipelineVersion == nil } ?? false
+            let unchanged = previous?.fingerprint == fingerprint
+                && (previous?.pipelineVersion == Self.pipelineVersion || isLegacyEntry)
+            let retryUncertain = !isLegacyEntry && reviewer != nil && previous?.review.relation == .insufficientEvidence
                 && (previous?.reviewRetryCount ?? 0) < maximumUncertainReviewRetries
                 && now.timeIntervalSince(previous?.reviewedAt ?? .distantPast) >= 6 * 3600
                 && abs(now.timeIntervalSince(article.publishedDate ?? now)) <= 14 * 86400
+            // Entries created before pipeline versions were recorded retain their
+            // persisted memberships; content changes still trigger a fresh profile.
             if unchanged && !retryUncertain { continue }
             var entry = unchanged ? previous! : makeEntry(article, now: now)
             entry.clusterID = article.id
@@ -289,13 +295,7 @@ actor StoryClusterService {
                 affectedClusters.insert(entry.clusterID)
             }
             changed = true
-            updatesSincePersist += 1
             if store.changes.count > 1000 { store.changes.removeFirst(store.changes.count - 1000) }
-            if updatesSincePersist >= 5 {
-                persist()
-                notify()
-                updatesSincePersist = 0
-            }
             await Task.yield()
         }
         if !Task.isCancelled {
@@ -354,7 +354,7 @@ actor StoryClusterService {
     }
 
     private func notify() {
-        NotificationCenter.default.post(name: .storyClustersDidChange, object: nil)
+        notificationCenter.post(name: .storyClustersDidChange, object: nil)
     }
 
     private func candidateClusters(for entry: Entry) -> [(UUID, [Entry], Double)] {
