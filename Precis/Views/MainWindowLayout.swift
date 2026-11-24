@@ -294,9 +294,9 @@ struct MainWindowLayout: View {
         .onAppear {
             refreshFeeds()
             refreshCategories()
-            viewModel.loadFromContext(modelContext)
             // The launch selection needs its full content too — the
-            // selection-change observer only fires for later clicks.
+            // selection-change observer only fires for later clicks. The
+            // initial article load is already performed by refreshFeeds().
             viewModel.loadFullContent(context: modelContext)
             refreshSelectedSummaryText()
             Task { await repairURLTitledFeeds() }
