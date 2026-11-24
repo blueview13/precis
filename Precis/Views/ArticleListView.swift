@@ -273,20 +273,6 @@ struct ArticleListView: View {
             GeometryReader { geometry in
             ScrollViewReader { proxy in
                 ScrollView(articleListLayout == "grid" ? [.vertical, .horizontal] : .vertical) {
-                    if #available(macOS 27.0, *) {
-                        // Kept in the scroll content so the representable can
-                        // find and configure its enclosing NSScrollView.
-                        NativeScrollViewRefreshBridge {
-                            await performPullRefresh()
-                        }
-                        // A nonzero representable avoids SwiftUI eliding the
-                        // probe before it can attach to the native scroll view.
-                        .frame(width: 1, height: 1)
-                        .opacity(0)
-                        .allowsHitTesting(false)
-                        .accessibilityHidden(true)
-                    }
-
                     if viewModel.filteredItems.isEmpty {
                         // No more blank pane — explain why the list is empty
                         // (e.g. Unread filter right after "Mark All Read").
@@ -500,19 +486,12 @@ struct ArticleListView: View {
     }
 }
 
-/// Uses AppKit's native pull-to-refresh controller on macOS 27+, where
-/// NSScrollView supports it directly. SwiftUI's refreshable modifier remains
-/// the fallback for earlier supported macOS versions.
+/// Uses SwiftUI's refreshable modifier on every supported macOS version.
 private struct ArticleListRefreshModifier: ViewModifier {
     let action: @MainActor () async -> Void
 
-    @ViewBuilder
     func body(content: Content) -> some View {
-        if #available(macOS 27.0, *) {
-            content
-        } else {
-            content.refreshable { await action() }
-        }
+        content.refreshable { await action() }
     }
 }
 
@@ -533,212 +512,6 @@ private struct ArticleListRefreshIndicator: View {
                     .accessibilityLabel("Refreshing articles")
             }
         }
-    }
-}
-
-@MainActor
-private struct NativeScrollViewRefreshBridge: NSViewRepresentable {
-    let action: @MainActor () async -> Void
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(action: action)
-    }
-
-    func makeNSView(context: Context) -> RefreshControllerProbeView {
-        let view = RefreshControllerProbeView()
-        view.didMove = { [weak coordinator = context.coordinator, weak view] in
-            guard let view else { return }
-            DispatchQueue.main.async { coordinator?.attach(to: view) }
-        }
-        return view
-    }
-
-    func updateNSView(_ nsView: RefreshControllerProbeView, context: Context) {
-        context.coordinator.action = action
-        context.coordinator.attach(to: nsView)
-    }
-
-    static func dismantleNSView(_ nsView: RefreshControllerProbeView, coordinator: Coordinator) {
-        coordinator.detach()
-    }
-
-    @MainActor
-    final class Coordinator: NSObject {
-        var action: @MainActor () async -> Void
-        private weak var attachedScrollView: NSScrollView?
-        private weak var installedController: NSObject?
-        private var scrollEventMonitor: Any?
-        private var isRetryingAttachment = false
-        private var isTrackingPullAtTop = false
-        private var accumulatedPullDistance: CGFloat = 0
-        private var isHandlingRefresh = false
-        private let pullThreshold: CGFloat = 70
-
-        init(action: @escaping @MainActor () async -> Void) {
-            self.action = action
-        }
-
-        func attach(to view: NSView) {
-            guard #available(macOS 27.0, *) else { return }
-            if installControllerIfPossible(from: view) { return }
-            guard !isRetryingAttachment else { return }
-            isRetryingAttachment = true
-            retryAttachment(to: view, remainingAttempts: 20)
-        }
-
-        @available(macOS 27.0, *)
-        private func installControllerIfPossible(from view: NSView) -> Bool {
-            var ancestor = view.superview
-            while let current = ancestor {
-                if let scrollView = current as? NSScrollView {
-                    if attachedScrollView === scrollView,
-                       let installedController,
-                       scrollView.refreshController === installedController {
-                        return true
-                    }
-                    detach()
-                    let controller = NSRefreshController()
-                    controller.target = self
-                    controller.action = #selector(refresh(_:))
-                    scrollView.refreshController = controller
-                    attachedScrollView = scrollView
-                    installedController = controller
-                    installScrollEventMonitor(for: scrollView)
-                    isRetryingAttachment = false
-                    PrecisLogger.info("Attached native pull-to-refresh to article list scroll view")
-                    verifyControllerAttachment(controller, to: scrollView, after: 0.2)
-                    verifyControllerAttachment(controller, to: scrollView, after: 1.0)
-                    return true
-                }
-                ancestor = current.superview
-            }
-            return false
-        }
-
-        private func retryAttachment(to view: NSView, remainingAttempts: Int) {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self, weak view] in
-                guard let self, let view else { return }
-                if #available(macOS 27.0, *), self.installControllerIfPossible(from: view) {
-                    self.isRetryingAttachment = false
-                } else if remainingAttempts > 1 {
-                    self.retryAttachment(to: view, remainingAttempts: remainingAttempts - 1)
-                } else {
-                    self.isRetryingAttachment = false
-                    PrecisLogger.error("Could not attach native pull-to-refresh to article list scroll view")
-                }
-            }
-        }
-
-        @available(macOS 27.0, *)
-        private func verifyControllerAttachment(_ controller: NSRefreshController, to scrollView: NSScrollView, after delay: TimeInterval) {
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self, weak scrollView] in
-                guard let self, let scrollView else { return }
-                guard scrollView.refreshController !== controller else { return }
-                PrecisLogger.error("SwiftUI replaced the article list refresh controller; reinstalling it")
-                self.attachedScrollView = nil
-                self.installedController = nil
-                self.isRetryingAttachment = false
-                self.attach(to: scrollView.documentView ?? scrollView)
-            }
-        }
-
-        func detach() {
-            if let scrollEventMonitor {
-                NSEvent.removeMonitor(scrollEventMonitor)
-                self.scrollEventMonitor = nil
-            }
-            isTrackingPullAtTop = false
-            accumulatedPullDistance = 0
-            if #available(macOS 27.0, *), let attachedScrollView {
-                attachedScrollView.refreshController = nil
-                self.attachedScrollView = nil
-                installedController = nil
-            }
-        }
-
-        @available(macOS 27.0, *)
-        @objc private func refresh(_ sender: NSRefreshController) {
-            PrecisLogger.info("Native article-list pull-to-refresh triggered")
-            startRefresh()
-        }
-
-        private func installScrollEventMonitor(for scrollView: NSScrollView) {
-            if let scrollEventMonitor { NSEvent.removeMonitor(scrollEventMonitor) }
-            scrollEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self, weak scrollView] event in
-                guard let self, let scrollView,
-                      event.window === scrollView.window
-                else { return event }
-                let point = scrollView.convert(event.locationInWindow, from: nil)
-                guard scrollView.bounds.contains(point) else { return event }
-                self.handlePullScrollEvent(event, in: scrollView)
-                return event
-            }
-        }
-
-        private func handlePullScrollEvent(_ event: NSEvent, in scrollView: NSScrollView) {
-            let isAtTop: Bool
-            if let documentView = scrollView.documentView {
-                let visibleRect = scrollView.documentVisibleRect
-                isAtTop = documentView.isFlipped
-                    ? visibleRect.minY <= documentView.bounds.minY + 1
-                    : visibleRect.maxY >= documentView.bounds.maxY - 1
-            } else {
-                isAtTop = false
-            }
-
-            if event.phase.contains(.began) {
-                isTrackingPullAtTop = isAtTop
-                accumulatedPullDistance = 0
-            }
-
-            guard isTrackingPullAtTop, isAtTop else {
-                if !isAtTop {
-                    isTrackingPullAtTop = false
-                    accumulatedPullDistance = 0
-                }
-                return
-            }
-
-            // Positive scrollingDeltaY is the downward pull direction when
-            // the document is already at its top edge.
-            accumulatedPullDistance += max(0, event.scrollingDeltaY)
-            if accumulatedPullDistance >= pullThreshold {
-                isTrackingPullAtTop = false
-                accumulatedPullDistance = 0
-                PrecisLogger.info("Article-list top pull threshold reached")
-                startRefresh()
-            }
-
-            if event.phase.contains(.ended) || event.phase.contains(.cancelled) {
-                isTrackingPullAtTop = false
-                accumulatedPullDistance = 0
-            }
-        }
-
-        private func startRefresh() {
-            guard !isHandlingRefresh else { return }
-            isHandlingRefresh = true
-            if #available(macOS 27.0, *), let installedController = installedController as? NSRefreshController {
-                installedController.beginRefreshing()
-            }
-            Task { @MainActor in
-                await action()
-                if #available(macOS 27.0, *), let controller = self.installedController as? NSRefreshController {
-                    controller.endRefreshing()
-                }
-                self.isHandlingRefresh = false
-            }
-        }
-    }
-}
-
-@MainActor
-private final class RefreshControllerProbeView: NSView {
-    var didMove: (() -> Void)?
-
-    override func viewDidMoveToSuperview() {
-        super.viewDidMoveToSuperview()
-        didMove?()
     }
 }
 
