@@ -93,6 +93,20 @@ struct PrecisApp: App {
                     NotificationCenter.default.post(name: .precisOpenHelp, object: nil)
                 }
                 .keyboardShortcut("?", modifiers: .command)
+
+                Divider()
+
+                Button("Privacy Policy") {
+                    if let url = URL(string: "https://precis.vpscouk.cloud/privacy.html") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
+
+                Button("Support") {
+                    if let url = URL(string: "https://precis.vpscouk.cloud/support/") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
             }
         }
     }

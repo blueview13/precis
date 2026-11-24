@@ -16,3 +16,5 @@ Use the **+** beside **Categories** to make a category or Smart Category. Drag f
 Click a headline to open it and mark it read. Use **Space** for the next article or **↑ / ↓** to move through headlines. Press **d** to toggle read status and **s** to toggle its star. Click a related-story strip to expand its coverage. In the reading pane, use **Read Aloud** or **Translate** when available. Header buttons can mark visible articles read or unread. See **Settings & Languages** for reading, summaries, accounts, and interface options.
 
 Press **⌘?** to open Help at any time.
+
+The Help menu includes **Precis Help**, **Privacy Policy**, and **Support**.
