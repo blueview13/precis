@@ -22,6 +22,7 @@ public struct SmartCategoryEvaluator {
     }
     public func matches(_ context: SmartCategoryArticleContext, category: SmartCategory, now: Date = Date(), calendar: Calendar = .current) -> Bool {
         guard !category.isDeleted else { return false }
+        if category.excludedFeedIDs.contains(context.article.feedID) { return false }
         var root = category.rootGroup
         root.matchMode = category.matchMode
         return evaluate(root, context: context, now: now, calendar: calendar)

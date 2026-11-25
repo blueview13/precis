@@ -84,6 +84,7 @@ public struct SmartCategory: Identifiable, Codable, Hashable, Sendable {
     public var id: UUID
     public var name: String
     public var colorHex: String?
+    public var excludedFeedIDs: [UUID] = []
     public var matchMode: SmartCategoryMatchMode
     public var rootGroup: SmartCategoryRuleGroup
     public var sortOrder: Int
@@ -91,7 +92,22 @@ public struct SmartCategory: Identifiable, Codable, Hashable, Sendable {
     public var updatedAt: Date
     public var isDeleted: Bool
     public var schemaVersion: Int
-    public init(id: UUID = UUID(), name: String, colorHex: String? = nil, matchMode: SmartCategoryMatchMode = .all, rootGroup: SmartCategoryRuleGroup = .init(), sortOrder: Int = 0, createdAt: Date = Date(), updatedAt: Date = Date(), isDeleted: Bool = false, schemaVersion: Int = currentSchemaVersion) {
-        self.id = id; self.name = name; self.colorHex = colorHex; self.matchMode = matchMode; self.rootGroup = rootGroup; self.sortOrder = sortOrder; self.createdAt = createdAt; self.updatedAt = updatedAt; self.isDeleted = isDeleted; self.schemaVersion = schemaVersion
+    public init(id: UUID = UUID(), name: String, colorHex: String? = nil, excludedFeedIDs: [UUID] = [], matchMode: SmartCategoryMatchMode = .all, rootGroup: SmartCategoryRuleGroup = .init(), sortOrder: Int = 0, createdAt: Date = Date(), updatedAt: Date = Date(), isDeleted: Bool = false, schemaVersion: Int = currentSchemaVersion) {
+        self.id = id; self.name = name; self.colorHex = colorHex; self.excludedFeedIDs = excludedFeedIDs; self.matchMode = matchMode; self.rootGroup = rootGroup; self.sortOrder = sortOrder; self.createdAt = createdAt; self.updatedAt = updatedAt; self.isDeleted = isDeleted; self.schemaVersion = schemaVersion
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        colorHex = try container.decodeIfPresent(String.self, forKey: .colorHex)
+        excludedFeedIDs = try container.decodeIfPresent([UUID].self, forKey: .excludedFeedIDs) ?? []
+        matchMode = try container.decode(SmartCategoryMatchMode.self, forKey: .matchMode)
+        rootGroup = try container.decode(SmartCategoryRuleGroup.self, forKey: .rootGroup)
+        sortOrder = try container.decode(Int.self, forKey: .sortOrder)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+        isDeleted = try container.decode(Bool.self, forKey: .isDeleted)
+        schemaVersion = try container.decode(Int.self, forKey: .schemaVersion)
     }
 }

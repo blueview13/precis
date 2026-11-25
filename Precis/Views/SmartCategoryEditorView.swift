@@ -73,7 +73,7 @@ struct SmartCategoryEditorView: View {
         }
         let preservedGroups = existing?.rootGroup.children.filter { if case .group = $0 { true } else { false } } ?? []
         let root = SmartCategoryRuleGroup(matchMode: mode, children: rules.map { .rule($0) } + preservedGroups)
-        onSave(SmartCategory(id: existing?.id ?? UUID(), name: trimmed, colorHex: existing?.colorHex, matchMode: mode, rootGroup: root, sortOrder: existing?.sortOrder ?? current.count, createdAt: existing?.createdAt ?? Date()))
+        onSave(SmartCategory(id: existing?.id ?? UUID(), name: trimmed, colorHex: existing?.colorHex, excludedFeedIDs: existing?.excludedFeedIDs ?? [], matchMode: mode, rootGroup: root, sortOrder: existing?.sortOrder ?? current.count, createdAt: existing?.createdAt ?? Date()))
         dismiss()
     }
 }

@@ -56,6 +56,13 @@ final class SmartCategoryEvaluatorTests: XCTestCase {
         XCTAssertFalse(evaluator.matches(context(), category: category([])))
     }
 
+    func testExcludedFeedNeverMatches() {
+        let excludedContext = context()
+        var excludedCategory = category([rule(.title, .contains, "cafe")])
+        excludedCategory.excludedFeedIDs = [excludedContext.article.feedID]
+        XCTAssertFalse(evaluator.matches(excludedContext, category: excludedCategory))
+    }
+
     func testCodableRoundTripIgnoresUnknownFields() throws {
         let original = category([rule(.title, .contains, "cafe"), .group(.init(matchMode: .any, children: [rule(.starred, .equal, "yes")]))])
         let data = try JSONEncoder().encode(original)

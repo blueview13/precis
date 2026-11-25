@@ -863,7 +863,7 @@ struct MainWindowLayout: View {
                 }
                 if isExpanded {
                     ForEach(matchingFeeds) { feed in
-                        sidebarFeedRow(feed, indent: 32, compact: true, group: matchingFeeds)
+                        sidebarFeedRow(feed, indent: 32, compact: true, group: matchingFeeds, smartCategory: smartCategory)
                             .id("smart-\(smartCategory.id)-\(feed.id)")
                     }
                 }
@@ -1321,6 +1321,17 @@ struct MainWindowLayout: View {
         refreshFeeds()
     }
 
+    private func removeFeeds(_ feeds: [FeedRecord], from smartCategory: SmartCategory) {
+        var updated = smartCategory
+        let feedIDs = Set(feeds.map(\.id))
+        updated.excludedFeedIDs = Array(Set(updated.excludedFeedIDs).union(feedIDs)).sorted {
+            $0.uuidString < $1.uuidString
+        }
+        SmartCategoryStore.shared.upsert(updated)
+        viewModel.invalidateSmartCategoryCaches()
+        refreshFeeds()
+    }
+
     // MARK: - Drag-to-category
 
     /// Prefix marks a drag payload as a feed multi-selection rather than a
@@ -1464,20 +1475,7 @@ struct MainWindowLayout: View {
         }
     }
 
-    /// "Remove from Category" — ungroup the feeds without deleting them.
-    private func ungroupFeeds(_ feeds: [FeedRecord]) {
-        for feed in feeds {
-            feed.folder = nil
-        }
-        do {
-            try modelContext.save()
-        } catch {
-            PrecisLogger.error("Failed to ungroup feeds: \(error.localizedDescription)")
-        }
-        refreshFeeds()
-    }
-
-    private func sidebarFeedRow(_ feed: FeedRecord, indent: CGFloat = 0, compact: Bool = false, group: [FeedRecord] = []) -> some View {
+    private func sidebarFeedRow(_ feed: FeedRecord, indent: CGFloat = 0, compact: Bool = false, group: [FeedRecord] = [], category: FolderRecord? = nil, smartCategory: SmartCategory? = nil) -> some View {
         HStack {
             if editingFeedID == feed.id {
                 TextField("Feed name", text: $editingFeedName)
@@ -1578,6 +1576,30 @@ struct MainWindowLayout: View {
                 Label("Create Newspaper", systemImage: "newspaper")
             }
             Divider()
+            if let smartCategory {
+                Button {
+                    let feeds = movesWholeSelection(feed)
+                        ? importedFeeds.filter { selectedFeedIDs.contains($0.id) }
+                        : [feed]
+                    removeFeeds(feeds, from: smartCategory)
+                } label: {
+                    Label(movesWholeSelection(feed) && selectedFeedIDs.count > 1
+                          ? "Remove \(selectedFeedIDs.count) Feeds…"
+                          : "Remove Feed…",
+                          systemImage: "folder.badge.minus")
+                }
+            }
+            if category != nil {
+                Button {
+                    if movesWholeSelection(feed) {
+                        moveSelectedFeeds(to: nil)
+                    } else {
+                        moveFeed(feed, to: nil)
+                    }
+                } label: {
+                    Label(selectedFeedsForBulkAction.count > 1 ? "Remove \(selectedFeedIDs.count) Feeds…" : "Remove Feed…", systemImage: "folder.badge.minus")
+                }
+            }
             if selectedFeedsForBulkAction.count > 1 {
                 Button(role: .destructive) {
                     beginContextMenuDeletion(for: feed)
@@ -2339,12 +2361,6 @@ struct MainWindowLayout: View {
                                 Label("Create Newspaper", systemImage: "newspaper")
                             }
                             Divider()
-                            Button {
-                                ungroupFeeds(feeds(in: category))
-                            } label: {
-                                Label("Remove from Category", systemImage: "folder.badge.minus")
-                            }
-                            .disabled(feeds(in: category).isEmpty)
                             Button(role: .destructive) {
                                 feedsPendingDeletion = feeds(in: category)
                             } label: {
@@ -2384,7 +2400,7 @@ struct MainWindowLayout: View {
                     let categoryFeeds = feeds(in: category)
                     if !collapsedCategoryIDs.contains(category.id) {
                         ForEach(categoryFeeds) { feed in
-                            sidebarFeedRow(feed, indent: 32, compact: true, group: categoryFeeds)
+                            sidebarFeedRow(feed, indent: 32, compact: true, group: categoryFeeds, category: category)
                                 .id("cat-\(category.id)-\(feed.id)-\(selectedFeedIDs.contains(feed.id))")
                         }
                     }
