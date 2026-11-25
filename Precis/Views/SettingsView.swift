@@ -179,7 +179,7 @@ struct SettingsView: View {
     @AppStorage("showSidebarUnreadPills") private var showSidebarUnreadPills: Bool = true
     // Default On, matching the launch behaviour it gates — users opt out.
     @AppStorage("summaryAutoGenerate") private var summaryAutoGenerate: Bool = true
-    @AppStorage("refreshIntervalMinutes") private var refreshIntervalMinutes: Int = 15
+    @AppStorage("refreshIntervalMinutes") private var refreshIntervalMinutes: Int = 30
     @AppStorage("defaultSortOrder") private var defaultSortOrder: String = "newest"
     @AppStorage("showReadingTime") private var showReadingTime: Bool = true
     @AppStorage("showThumbnails") private var showThumbnails: Bool = true

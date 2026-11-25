@@ -28,7 +28,7 @@ public struct RefreshScheduleSettings: Codable {
     public var manualRefreshEnabled: Bool
     public var mutedFeedsEnabled: Bool
 
-    public init(interval: RefreshInterval = .fifteenMinutes, manualRefreshEnabled: Bool = true, mutedFeedsEnabled: Bool = false) {
+    public init(interval: RefreshInterval = .thirtyMinutes, manualRefreshEnabled: Bool = true, mutedFeedsEnabled: Bool = false) {
         self.interval = interval
         self.manualRefreshEnabled = manualRefreshEnabled
         self.mutedFeedsEnabled = mutedFeedsEnabled

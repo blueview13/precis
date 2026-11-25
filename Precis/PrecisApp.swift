@@ -501,25 +501,26 @@ final class AppScopedFeedRefreshCoordinator: NSObject, ObservableObject {
             object: UserDefaults.standard
         )
         scheduleRefresh()
+        Task { await refreshAllFeeds(trigger: "Launch") }
     }
 
     @objc private func preferencesChanged() {
-        let intervalMinutes = UserDefaults.standard.object(forKey: "refreshIntervalMinutes") as? Int ?? 15
+        let intervalMinutes = UserDefaults.standard.object(forKey: "refreshIntervalMinutes") as? Int ?? 30
         guard intervalMinutes != scheduledIntervalMinutes else { return }
         scheduleRefresh()
     }
 
     private func scheduleRefresh() {
-        let intervalMinutes = UserDefaults.standard.object(forKey: "refreshIntervalMinutes") as? Int ?? 15
-        let interval = RefreshInterval(rawValue: intervalMinutes) ?? .fifteenMinutes
+        let intervalMinutes = UserDefaults.standard.object(forKey: "refreshIntervalMinutes") as? Int ?? 30
+        let interval = RefreshInterval(rawValue: intervalMinutes) ?? .thirtyMinutes
         scheduledIntervalMinutes = intervalMinutes
         refreshService.stopRefreshLoop()
         refreshService.beginRefreshLoop(interval: interval) { [weak self] in
-            await self?.refreshAllFeeds()
+            await self?.refreshAllFeeds(trigger: "Scheduled")
         }
     }
 
-    private func refreshAllFeeds() async {
+    private func refreshAllFeeds(trigger: String) async {
         guard !isRefreshing, let context = modelContainer?.mainContext else { return }
         isRefreshing = true
         defer { isRefreshing = false }
@@ -531,7 +532,7 @@ final class AppScopedFeedRefreshCoordinator: NSObject, ObservableObject {
                     let sync = try await FeedbinService(credentials: credentials).syncChanges(context: context)
                     libraryChanged = libraryChanged || sync.changed
                 } catch {
-                    PrecisLogger.error("Scheduled Feedbin sync failed: \(error.localizedDescription)")
+                    PrecisLogger.error("\(trigger) Feedbin sync failed: \(error.localizedDescription)")
                 }
             }
             if let credentials = await OldReaderCredentialStore.load() {
@@ -539,7 +540,7 @@ final class AppScopedFeedRefreshCoordinator: NSObject, ObservableObject {
                     let sync = try await OldReaderService(credentials: credentials).syncChanges(context: context)
                     libraryChanged = libraryChanged || sync.changed
                 } catch {
-                    PrecisLogger.error("Scheduled The Old Reader sync failed: \(error.localizedDescription)")
+                    PrecisLogger.error("\(trigger) The Old Reader sync failed: \(error.localizedDescription)")
                 }
             }
 
@@ -557,7 +558,7 @@ final class AppScopedFeedRefreshCoordinator: NSObject, ObservableObject {
                         refreshedFeedNames.append(feed.sidebarTitle ?? feed.title)
                     }
                 } catch {
-                    PrecisLogger.error("Scheduled refresh failed for \(feed.title): \(error.localizedDescription)")
+                    PrecisLogger.error("\(trigger) refresh failed for \(feed.title): \(error.localizedDescription)")
                 }
             }
 
@@ -571,7 +572,7 @@ final class AppScopedFeedRefreshCoordinator: NSObject, ObservableObject {
                 )
             }
         } catch {
-            PrecisLogger.error("Scheduled feed refresh failed: \(error.localizedDescription)")
+            PrecisLogger.error("\(trigger) feed refresh failed: \(error.localizedDescription)")
         }
     }
 }

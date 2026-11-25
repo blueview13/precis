@@ -2361,6 +2361,12 @@ struct MainWindowLayout: View {
                                 Label("Create Newspaper", systemImage: "newspaper")
                             }
                             Divider()
+                            Button {
+                                moveFeeds(ids: feeds(in: category).map(\.id), to: nil)
+                            } label: {
+                                Label("Remove All Feeds in Category", systemImage: "folder.badge.minus")
+                            }
+                            .disabled(feeds(in: category).isEmpty)
                             Button(role: .destructive) {
                                 feedsPendingDeletion = feeds(in: category)
                             } label: {

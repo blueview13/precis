@@ -8,7 +8,7 @@ For Feedbin feeds, manage tags or unsubscribe from Feedbin. Unsubscribing leaves
 
 ## Categories
 
-Right-click a category to rename it, change its text and icon color, or create a newspaper PDF. You can delete all feeds inside it or delete the category while keeping its feeds.
+Right-click a category to rename it, change its text and icon color, or create a newspaper PDF. **Remove All Feeds in Category** moves its feeds to No Category without deleting them. You can also delete all feeds inside it or delete the category while keeping its feeds.
 
 ## Smart Categories
 

@@ -13,6 +13,11 @@ struct RefreshSchedulerTests {
     }
 
     @Test
+    func refreshScheduleDefaultsToThirtyMinutes() {
+        #expect(RefreshScheduleSettings().interval == .thirtyMinutes)
+    }
+
+    @Test
     func schedulerFiresRepeatedlyAtConfiguredInterval() async {
         let counter = Counter()
         let scheduler = RefreshScheduler(secondsForInterval: { _ in 0.05 })
